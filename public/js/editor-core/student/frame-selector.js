@@ -51,14 +51,20 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
     const { onFrameApplied } = options;
     const frameRegistry = options.frames || DEFAULT_FRAME_REGISTRY;
 
-    // --- Build dropdown panel ---
+    // --- Build dropdown panel (appended to body to avoid overflow clipping) ---
     const panel = document.createElement('div');
-    panel.className = 'hidden absolute right-0 top-full mt-1 bg-white border border-stone-200 rounded-lg shadow-lg py-2 z-50 min-w-[240px]';
-    panel.style.cssText = 'max-height: 400px; overflow-y: auto;';
+    panel.className = 'hidden bg-white border border-stone-200 rounded-lg shadow-lg py-2 min-w-[240px]';
+    panel.style.cssText = 'position: fixed; z-index: 100; max-height: 400px; overflow-y: auto;';
+    document.body.appendChild(panel);
 
-    // Position panel relative to button
-    button.parentElement.style.position = 'relative';
-    button.parentElement.appendChild(panel);
+    /** Position the panel below the button using fixed coords. */
+    function positionPanel() {
+        const rect = button.getBoundingClientRect();
+        panel.style.top = `${rect.bottom + 4}px`;
+        // Align left edge with button, but clamp to viewport
+        const left = Math.min(rect.left, window.innerWidth - 260);
+        panel.style.left = `${Math.max(4, left)}px`;
+    }
 
     function buildPanel() {
         panel.innerHTML = '';
@@ -207,6 +213,7 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
     function handleButtonClick(e) {
         e.stopPropagation(); // Prevent document click from immediately closing
         buildPanel(); // Rebuild to reflect current state
+        positionPanel();
         panel.classList.toggle('hidden');
     }
 
