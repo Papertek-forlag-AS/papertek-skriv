@@ -90,6 +90,7 @@ export function initWritingSpinner(editor, container, options = {}) {
     let synonymPopup = null;
     let spinnerPanel = null;
     let currentCategory = null;
+    const recentPicks = new Map();  // category → index[] of recently shown
 
     // --- Load word bank ---
     const bankPromise = loadWordBank().then(bank => { wordBank = bank; });
@@ -136,11 +137,44 @@ export function initWritingSpinner(editor, container, options = {}) {
         });
     }
 
+    /**
+     * Pick a random item from the pool, avoiding recent picks.
+     * Cycles through all items before repeating any.
+     */
+    function pickFromPool(pool, category) {
+        if (!recentPicks.has(category)) {
+            recentPicks.set(category, []);
+        }
+        const recent = recentPicks.get(category);
+
+        // Build list of indices not recently shown
+        let available = [];
+        for (let i = 0; i < pool.length; i++) {
+            if (!recent.includes(i)) available.push(i);
+        }
+
+        // If all used up, reset but keep the very last one out to avoid immediate repeat
+        if (available.length === 0) {
+            const last = recent[recent.length - 1];
+            recent.length = 0;
+            available = [];
+            for (let i = 0; i < pool.length; i++) {
+                if (i !== last) available.push(i);
+            }
+            // Edge case: pool has only 1 item
+            if (available.length === 0) available.push(last);
+        }
+
+        const idx = available[Math.floor(Math.random() * available.length)];
+        recent.push(idx);
+        return pool[idx];
+    }
+
     function doSpin() {
         if (!wordBank?.starters || !currentCategory) return;
         const pool = wordBank.starters[currentCategory];
         if (!pool || pool.length === 0) return;
-        const text = pool[Math.floor(Math.random() * pool.length)];
+        const text = pickFromPool(pool, currentCategory);
         resultEl.classList.add('spinning');
         scrambleReveal(resultEl, text, () => {
             resultEl.classList.remove('spinning');
