@@ -19,7 +19,8 @@
 import { t, getCurrentLanguage } from '../shared/i18n.js';
 import { isFrameElement } from '../shared/frame-elements.js';
 
-const REPEAT_THRESHOLD = 3;     // minimum occurrences to highlight
+const REPEAT_THRESHOLD = 3;     // minimum occurrences for content words
+const STOPWORD_THRESHOLD = 6;   // higher bar for function words (hva, som, etc.)
 const DEBOUNCE_MS = 800;        // delay after last input
 const HIGHLIGHT_CLASS = 'skriv-repeat-word';
 
@@ -108,14 +109,15 @@ export function initWordFrequency(editor, container, options = {}) {
     }
 
     /**
-     * Analyze text and return stem → { count, originalWords } map.
-     * @returns {Map<string, { count: number, words: Set<string> }>}
+     * Analyze text and return stem → { count, originalWords, isStopword } map.
+     * Stopwords are counted too — they use a higher threshold later.
+     * @returns {Map<string, { count: number, words: Set<string>, isStopword: boolean }>}
      */
     function buildFrequencyMap() {
         if (!wordBank) return new Map();
 
         const { stopwords, stem } = wordBank;
-        const freqMap = new Map(); // stem → { count, words }
+        const freqMap = new Map(); // stem → { count, words, isStopword }
 
         const textNodes = getTextNodes(editor);
         for (const node of textNodes) {
@@ -123,11 +125,12 @@ export function initWordFrequency(editor, container, options = {}) {
             for (const { word } of tokens) {
                 const lower = word.toLowerCase();
                 if (lower.length < 3) continue;
-                if (stopwords.has(lower)) continue;
 
-                const stemmed = stem(lower);
+                const isStop = stopwords.has(lower);
+                const stemmed = isStop ? lower : stem(lower); // don't stem stopwords
+
                 if (!freqMap.has(stemmed)) {
-                    freqMap.set(stemmed, { count: 0, words: new Set() });
+                    freqMap.set(stemmed, { count: 0, words: new Set(), isStopword: isStop });
                 }
                 const entry = freqMap.get(stemmed);
                 entry.count++;
@@ -155,10 +158,12 @@ export function initWordFrequency(editor, container, options = {}) {
         const { stopwords, stem, synonyms } = wordBank;
         const freqMap = buildFrequencyMap();
 
-        // Collect stems that exceed the threshold
+        // Collect stems that exceed their threshold
+        // (content words: 3+, stopwords: 6+)
         const repeatedStems = new Set();
-        for (const [stemmed, { count }] of freqMap) {
-            if (count >= REPEAT_THRESHOLD) {
+        for (const [stemmed, { count, isStopword }] of freqMap) {
+            const threshold = isStopword ? STOPWORD_THRESHOLD : REPEAT_THRESHOLD;
+            if (count >= threshold) {
                 repeatedStems.add(stemmed);
             }
         }
@@ -176,8 +181,8 @@ export function initWordFrequency(editor, container, options = {}) {
             for (const tok of tokens) {
                 const lower = tok.word.toLowerCase();
                 if (lower.length < 3) continue;
-                if (stopwords.has(lower)) continue;
-                const stemmed = stem(lower);
+                const isStop = stopwords.has(lower);
+                const stemmed = isStop ? lower : stem(lower);
                 if (repeatedStems.has(stemmed)) {
                     const entry = freqMap.get(stemmed);
                     const hasSynonym = synonyms && synonyms[lower];
@@ -297,8 +302,9 @@ export function initWordFrequency(editor, container, options = {}) {
         await bankPromise;
         const freqMap = buildFrequencyMap();
         const result = [];
-        for (const [stemmed, { count, words }] of freqMap) {
-            if (count >= REPEAT_THRESHOLD) {
+        for (const [stemmed, { count, words, isStopword }] of freqMap) {
+            const threshold = isStopword ? STOPWORD_THRESHOLD : REPEAT_THRESHOLD;
+            if (count >= threshold) {
                 result.push({ stem: stemmed, count, words: [...words] });
             }
         }
