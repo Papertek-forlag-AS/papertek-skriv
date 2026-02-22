@@ -82,6 +82,15 @@ export default {
         off: 'Gjentakingsradar av',
     },
 
+    sentence: {
+        button: 'Setningslengd',
+        on: 'Setningslengd-vising på',
+        off: 'Setningslengd-vising av',
+        tooltipLong: 'Lang setning ({{count}} ord)',
+        tooltipVeryLong: 'Svært lang setning ({{count}} ord)',
+        avgLength: 'Snitt: {{avg}} ord/setning',
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',

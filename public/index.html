@@ -350,6 +350,53 @@
         .skriv-repeat-word[data-has-synonym="true"] {
             cursor: help;
         }
+
+        /* --- Sentence length highlights --- */
+        .skriv-sentence-long {
+            background: rgba(59, 130, 246, 0.12);
+            border-radius: 2px;
+            transition: background 0.15s;
+        }
+        .skriv-sentence-very-long {
+            background: rgba(59, 130, 246, 0.22);
+            border-bottom: 2px solid rgba(37, 99, 235, 0.4);
+            border-radius: 2px;
+            transition: background 0.15s;
+        }
+
+        /* --- Rhythm bar (sentence-length visualization) --- */
+        .skriv-rhythm-bar {
+            border-top: 1px solid #e7e5e4;
+            background: #fafaf9;
+            padding: 0.5rem 1rem;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .skriv-rhythm-bar.hidden {
+            display: none;
+        }
+        .skriv-rhythm-inner {
+            max-width: 48rem;
+            margin: 0 auto;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 32px;
+        }
+        .skriv-rhythm-inner .bar {
+            flex: 1 1 0;
+            min-width: 2px;
+            max-width: 6px;
+            border-radius: 1px 1px 0 0;
+            transition: height 0.2s, background 0.2s;
+        }
+        .skriv-rhythm-avg {
+            max-width: 48rem;
+            margin: 0.25rem auto 0;
+            font-size: 0.65rem;
+            color: #a8a29e;
+            text-align: right;
+        }
     </style>
 </head>
 <body class="bg-stone-50 text-stone-900 antialiased">

@@ -82,6 +82,15 @@ export default {
         off: 'Gjentakelsesradar av',
     },
 
+    sentence: {
+        button: 'Setningslengde',
+        on: 'Setningslengde-visning på',
+        off: 'Setningslengde-visning av',
+        tooltipLong: 'Lang setning ({{count}} ord)',
+        tooltipVeryLong: 'Veldig lang setning ({{count}} ord)',
+        avgLength: 'Snitt: {{avg}} ord/setning',
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',

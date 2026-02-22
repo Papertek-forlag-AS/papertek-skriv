@@ -21,6 +21,7 @@ import { initFrameManager } from '../editor-core/student/frame-manager.js';
 import { initFrameSelector } from '../editor-core/student/frame-selector.js';
 import { initWritingSpinner } from '../editor-core/student/writing-spinner.js';
 import { initWordFrequency } from '../editor-core/student/word-frequency.js';
+import { initSentenceLength } from '../editor-core/student/sentence-length.js';
 import { downloadText, downloadPDF } from '../editor-core/student/text-export.js';
 import { escapeAttr } from '../editor-core/shared/html-escape.js';
 import { attachWordCounter, countWords } from '../editor-core/shared/word-counter.js';
@@ -85,6 +86,11 @@ export async function launchEditor(container, docId, onBack) {
                 title="${t('radar.button')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                 ${t('radar.button')}
+            </button>
+            <button id="btn-sentence-length" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+                title="${t('sentence.button')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                ${t('sentence.button')}
             </button>
             <div class="relative">
                 <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 transition-colors">
@@ -241,6 +247,22 @@ export async function launchEditor(container, docId, onBack) {
         }
     });
 
+    // --- Sentence Length Visualization ---
+    const sentenceApi = initSentenceLength(editor, writingEnv);
+    const sentenceBtn = topBar.querySelector('#btn-sentence-length');
+    sentenceBtn.addEventListener('click', () => {
+        const isNowActive = sentenceApi.toggle();
+        if (isNowActive) {
+            sentenceBtn.classList.remove('text-stone-500', 'border-stone-200');
+            sentenceBtn.classList.add('text-blue-700', 'border-blue-400', 'bg-blue-50');
+            showToast(t('sentence.on'), { duration: 1500 });
+        } else {
+            sentenceBtn.classList.remove('text-blue-700', 'border-blue-400', 'bg-blue-50');
+            sentenceBtn.classList.add('text-stone-500', 'border-stone-200');
+            showToast(t('sentence.off'), { duration: 1500 });
+        }
+    });
+
     // --- Advanced toggle button ---
     const advancedBtn = topBar.querySelector('#btn-advanced');
 
@@ -305,6 +327,7 @@ export async function launchEditor(container, docId, onBack) {
         frameSelectorApi.destroy();
         spinnerApi.destroy();
         radarApi.destroy();
+        sentenceApi.destroy();
         counterCleanup();
         onBack();
     });

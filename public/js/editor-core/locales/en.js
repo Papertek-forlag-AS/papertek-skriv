@@ -88,6 +88,15 @@ export default {
         off: 'Repetition radar off',
     },
 
+    sentence: {
+        button: 'Sentence length',
+        on: 'Sentence length view on',
+        off: 'Sentence length view off',
+        tooltipLong: 'Long sentence ({{count}} words)',
+        tooltipVeryLong: 'Very long sentence ({{count}} words)',
+        avgLength: 'Avg: {{avg}} words/sentence',
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',
