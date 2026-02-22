@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papertek Skriv</title>
+    <meta name="description" content="Gratis skriveverksted for elever. Skriv, formater, eksporter til PDF.">
+    <meta name="theme-color" content="#059669">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        /* Smooth page transitions */
+        #app {
+            min-height: 100vh;
+        }
+
+        /* Editor paragraph spacing */
+        #editor p, #editor h1, #editor h2 {
+            margin: 0;
+            padding: 0;
+        }
+        #editor p { margin-bottom: 0.25em; }
+        #editor h1 {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-top: 0.5em;
+            margin-bottom: 0.25em;
+        }
+        #editor h2 {
+            font-size: 1.25em;
+            font-weight: 600;
+            margin-top: 0.5em;
+            margin-bottom: 0.25em;
+        }
+
+        /* Line clamp for document previews */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased">
+    <div id="app"></div>
+
+    <script type="module" src="/js/app/main.js"></script>
+
+    <!-- Register Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .catch(err => console.warn('SW registration failed:', err));
+        }
+    </script>
+</body>
+</html>
