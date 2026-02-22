@@ -64,7 +64,7 @@ export async function launchEditor(container, docId, onBack) {
         </button>
         <div class="flex-1"></div>
         <span id="save-status" class="text-xs text-stone-400"></span>
-        <div class="skriv-toolbar-buttons flex items-center gap-1.5">
+        <div class="skriv-toolbar-buttons flex items-center gap-1.5 min-w-0">
             <button id="btn-structure" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
                 title="${t('skriv.strukturTooltip')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"/></svg>
@@ -105,14 +105,14 @@ export async function launchEditor(container, docId, onBack) {
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
                 ${t('paragraphMap.button')}
             </button>
-            <div class="relative">
-                <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 transition-colors">
-                    ${t('skriv.exportTitle')} &#9660;
-                </button>
-                <div id="export-menu" class="hidden absolute right-0 top-full mt-1 bg-white border border-stone-200 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
-                    <button id="btn-download-txt" class="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors">${t('skriv.downloadTxt')}</button>
-                    <button id="btn-download-pdf" class="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors">${t('skriv.downloadPdf')}</button>
-                </div>
+        </div>
+        <div class="relative flex-shrink-0">
+            <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 transition-colors">
+                ${t('skriv.exportTitle')} &#9660;
+            </button>
+            <div id="export-menu" class="hidden absolute right-0 top-full mt-1 bg-white border border-stone-200 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
+                <button id="btn-download-txt" class="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors">${t('skriv.downloadTxt')}</button>
+                <button id="btn-download-pdf" class="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors">${t('skriv.downloadPdf')}</button>
             </div>
         </div>
     `;
