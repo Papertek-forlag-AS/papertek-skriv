@@ -463,18 +463,20 @@
             position: relative;
             line-height: 0;
             user-select: none;
+            border-radius: 0.375rem;
+            border: 1px solid transparent;
+            padding: 0.25rem;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        #editor .skriv-image-block.selected {
+            border-color: #059669;
+            box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
         }
         #editor .skriv-image-block img {
             max-width: 100%;
             height: auto;
             display: block;
             border-radius: 0.25rem;
-            border: 1px solid #d6d3d1;
-            transition: border-color 0.15s;
-        }
-        #editor .skriv-image-block.selected img {
-            border-color: #059669;
-            box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
         }
         .skriv-image-handles {
             position: absolute;
@@ -505,6 +507,7 @@
             line-height: 1.4;
             min-height: 1.2em;
             outline: none;
+            user-select: text;
         }
         .skriv-image-caption:empty::before {
             content: attr(data-placeholder);
@@ -515,6 +518,44 @@
         #editor.skriv-image-dragover {
             outline: 2px dashed #059669;
             outline-offset: -2px;
+        }
+
+        /* --- Mobile responsive --- */
+        @media (max-width: 768px) {
+            /* Top bar: horizontally scrollable */
+            .skriv-toolbar-buttons {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding-bottom: 2px;
+            }
+            .skriv-toolbar-buttons::-webkit-scrollbar { display: none; }
+            .skriv-toolbar-buttons > button,
+            .skriv-toolbar-buttons > div { flex-shrink: 0; }
+            /* Reduce horizontal padding */
+            #doc-title { font-size: 1.25rem; }
+            /* Image blocks: full width on mobile */
+            #editor .skriv-image-block img { width: 100% !important; }
+        }
+
+        @media (max-width: 480px) {
+            /* Icon-only toolbar buttons on phones */
+            .skriv-toolbar-buttons > button {
+                font-size: 0;
+                gap: 0 !important;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            .skriv-toolbar-buttons > button svg {
+                font-size: initial;
+                width: 1rem;
+                height: 1rem;
+            }
+            /* Keep export button text visible */
+            .skriv-toolbar-buttons > div button { font-size: 0.75rem; }
+            /* Back button: icon-only */
+            #btn-back { font-size: 0; gap: 0 !important; }
+            #btn-back svg { font-size: initial; }
         }
     </style>
 </head>

@@ -137,6 +137,12 @@ export function initImageManager(editor, options = {}) {
     let resizing = false;
     let fileInput = null;
 
+    // Clean up stale selection state from rehydrated HTML
+    editor.querySelectorAll('.skriv-image-block.selected').forEach(fig => {
+        fig.classList.remove('selected');
+        fig.querySelector('.skriv-image-handles')?.classList.add('hidden');
+    });
+
     // --- Hidden file input ---
     fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -280,11 +286,17 @@ export function initImageManager(editor, options = {}) {
     }
 
     function deselectAll() {
+        // Clear JS reference
         if (selectedBlock) {
             selectedBlock.classList.remove('selected');
             selectedBlock.querySelector('.skriv-image-handles')?.classList.add('hidden');
             selectedBlock = null;
         }
+        // Also clear any stale DOM-only selections (e.g. from rehydrated HTML)
+        editor.querySelectorAll('.skriv-image-block.selected').forEach(fig => {
+            fig.classList.remove('selected');
+            fig.querySelector('.skriv-image-handles')?.classList.add('hidden');
+        });
     }
 
     function handleEditorClick(e) {
@@ -292,6 +304,7 @@ export function initImageManager(editor, options = {}) {
         if (figure && editor.contains(figure)) {
             // Don't select if clicking on caption
             if (e.target.closest('.skriv-image-caption')) {
+                deselectAll();
                 return;
             }
             e.preventDefault();
@@ -301,6 +314,14 @@ export function initImageManager(editor, options = {}) {
         }
     }
     editor.addEventListener('click', handleEditorClick);
+
+    // Also deselect on mousedown outside editor (toolbar clicks, etc.)
+    function handleDocumentClick(e) {
+        if (!editor.contains(e.target) && selectedBlock) {
+            deselectAll();
+        }
+    }
+    document.addEventListener('mousedown', handleDocumentClick);
 
     // --- Delete selected image ---
     function handleKeyDown(e) {
@@ -398,6 +419,7 @@ export function initImageManager(editor, options = {}) {
         editor.removeEventListener('dragleave', handleDragLeave);
         editor.removeEventListener('drop', handleDrop);
         editor.removeEventListener('click', handleEditorClick);
+        document.removeEventListener('mousedown', handleDocumentClick);
         document.removeEventListener('keydown', handleKeyDown);
         document.removeEventListener('mousemove', handleResizeMove);
         document.removeEventListener('mouseup', handleResizeEnd);

@@ -64,7 +64,7 @@ export async function launchEditor(container, docId, onBack) {
         </button>
         <div class="flex-1"></div>
         <span id="save-status" class="text-xs text-stone-400"></span>
-        <div class="flex items-center gap-1.5">
+        <div class="skriv-toolbar-buttons flex items-center gap-1.5">
             <button id="btn-structure" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
                 title="${t('skriv.strukturTooltip')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"/></svg>
