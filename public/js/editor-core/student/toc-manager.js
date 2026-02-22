@@ -15,6 +15,7 @@
  */
 
 import { t } from '../shared/i18n.js';
+import { isFrameElement, FRAME_SELECTORS } from '../shared/frame-elements.js';
 
 /**
  * @param {HTMLElement} editor - The contenteditable editor element
@@ -75,12 +76,11 @@ export function initTOC(editor) {
         if (!tocEl) return;
 
         const headings = [];
-        // Walk only direct children and their subtree, skipping TOC, references, and frame blocks
+        // Walk only direct children, skipping TOC, references, and frame blocks
         for (const child of editor.children) {
             if (child.classList.contains('skriv-toc')) continue;
             if (child.classList.contains('skriv-references')) continue;
-            if (child.classList.contains('skriv-frame-section')) continue;
-            if (child.classList.contains('skriv-frame-subsection')) continue;
+            if (isFrameElement(child)) continue;
             const tag = child.tagName?.toUpperCase();
             if (tag === 'H1' || tag === 'H2') {
                 headings.push(child);

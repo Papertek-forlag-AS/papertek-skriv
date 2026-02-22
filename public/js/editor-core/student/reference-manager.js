@@ -15,8 +15,10 @@
  */
 
 import { t } from '../shared/i18n.js';
+import { escapeHtml, escapeAttr } from '../shared/html-escape.js';
+import { getModalParent } from '../shared/dom-helpers.js';
 import { showInPageConfirm } from '../shared/in-page-modal.js';
-import { getModalParent } from '../shared/in-page-modal.js';
+import { isInsideNonEditableBlock } from '../shared/frame-elements.js';
 
 /**
  * @param {HTMLElement} editor - The contenteditable editor element
@@ -191,11 +193,11 @@ export function initReferences(editor, { onSave } = {}) {
         const range = sel.getRangeAt(0);
         if (!editor.contains(range.commonAncestorContainer)) return;
 
-        // Don't insert inside TOC or ref list
+        // Don't insert inside TOC, ref list, or frame scaffold
         const container = range.startContainer.nodeType === Node.TEXT_NODE
             ? range.startContainer.parentElement
             : range.startContainer;
-        if (container.closest('.skriv-toc') || container.closest('.skriv-references') || container.closest('.skriv-frame-section') || container.closest('.skriv-frame-subsection')) return;
+        if (isInsideNonEditableBlock(container)) return;
 
         const marker = document.createElement('span');
         marker.className = 'skriv-ref';
@@ -225,17 +227,6 @@ export function initReferences(editor, { onSave } = {}) {
     }
 
     // --- Reference dialog ---
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-
-    function escapeAttr(str) {
-        return (str || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
 
     /**
      * Open the add-reference dialog.

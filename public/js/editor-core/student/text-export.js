@@ -5,6 +5,7 @@
 
 import { countWords } from '../shared/word-counter.js';
 import { showInPageAlert } from '../shared/in-page-modal.js';
+import { isFrameElement } from '../shared/frame-elements.js';
 
 /**
  * Download text as a .txt file with UTF-8 BOM.
@@ -180,9 +181,7 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
     const el = node;
 
     // --- Skip frame scaffold elements (section headers, subsections, untouched prompts) ---
-    if (el.classList?.contains('skriv-frame-section')) return;
-    if (el.classList?.contains('skriv-frame-subsection')) return;
-    if (el.classList?.contains('skriv-frame-prompt')) return;
+    if (isFrameElement(el)) return;
 
     // --- Skip TOC block, render formatted TOC instead ---
     if (el.classList?.contains('skriv-toc')) {

@@ -4,6 +4,7 @@
  */
 
 import { listDocuments, createDocument, deleteDocument } from './document-store.js';
+import { escapeHtml } from '../editor-core/shared/html-escape.js';
 import { countWords } from '../editor-core/shared/word-counter.js';
 import { showInPageConfirm } from '../editor-core/shared/in-page-modal.js';
 import { t } from '../editor-core/shared/i18n.js';
@@ -151,11 +152,4 @@ function formatRelativeTime(isoString) {
     if (diffDays < 7) return `${diffDays} dager siden`;
 
     return date.toLocaleDateString('nb-NO', { day: 'numeric', month: 'short' });
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
 }

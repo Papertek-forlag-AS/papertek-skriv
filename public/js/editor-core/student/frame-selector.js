@@ -5,15 +5,20 @@
  * Attached to the Struktur button. Lists available frames,
  * fetches/parses the chosen .md file, and calls frameApi.applyFrame().
  * Shows "Remove frame" when a frame is active.
+ *
+ * The frame registry is passed in via options so this module
+ * is not hard-coded to specific genres.
  */
 
 import { t } from '../shared/i18n.js';
+import { showInPageConfirm } from '../shared/in-page-modal.js';
 import { parseFrameMarkdown } from './frame-parser.js';
 
 /**
- * Registry of available writing frames.
+ * Default registry of available writing frames.
+ * Can be overridden via options.frames.
  */
-const FRAME_REGISTRY = [
+const DEFAULT_FRAME_REGISTRY = [
     { id: 'droefting', file: '/frames/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc' },
     { id: 'analyse', file: '/frames/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc' },
     { id: 'kronikk', file: '/frames/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc' },
@@ -24,11 +29,12 @@ const FRAME_REGISTRY = [
  * @param {HTMLElement} button - The Struktur button
  * @param {HTMLElement} editor - The contenteditable element
  * @param {object} frameApi - The frame manager API
- * @param {{ onFrameApplied?: () => void }} options
+ * @param {{ onFrameApplied?: () => void, frames?: Array }} options
  * @returns {{ destroy: () => void, updateButtonState: () => void }}
  */
 export function initFrameSelector(button, editor, frameApi, options = {}) {
     const { onFrameApplied } = options;
+    const frameRegistry = options.frames || DEFAULT_FRAME_REGISTRY;
 
     // --- Build dropdown panel ---
     const panel = document.createElement('div');
@@ -49,7 +55,7 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
         panel.appendChild(titleDiv);
 
         // Frame options
-        for (const frame of FRAME_REGISTRY) {
+        for (const frame of frameRegistry) {
             const btn = document.createElement('button');
             btn.className = 'block w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors';
 
@@ -88,37 +94,6 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
         }
     }
 
-    // --- Confirm dialogs ---
-
-    function showConfirm(titleKey, messageKey, yesKey, onYes) {
-        // Use the same dialog pattern as existing confirms in the app
-        const overlay = document.createElement('div');
-        overlay.className = 'fixed inset-0 bg-black/30 flex items-center justify-center z-[100]';
-
-        const dialog = document.createElement('div');
-        dialog.className = 'bg-white rounded-xl shadow-xl p-6 max-w-sm mx-4';
-        dialog.innerHTML = `
-            <h3 class="text-lg font-semibold text-stone-900 mb-2">${t(titleKey)}</h3>
-            <p class="text-sm text-stone-600 mb-4">${t(messageKey)}</p>
-            <div class="flex justify-end gap-2">
-                <button class="cancel-btn px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors">${t('common.cancel')}</button>
-                <button class="confirm-btn px-4 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">${t(yesKey)}</button>
-            </div>
-        `;
-
-        dialog.querySelector('.cancel-btn').addEventListener('click', () => overlay.remove());
-        dialog.querySelector('.confirm-btn').addEventListener('click', () => {
-            overlay.remove();
-            onYes();
-        });
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) overlay.remove();
-        });
-
-        overlay.appendChild(dialog);
-        document.body.appendChild(overlay);
-    }
-
     // --- Frame selection logic ---
 
     async function handleSelectFrame(frame) {
@@ -128,18 +103,30 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
 
         // If there's an existing frame, remove it first (with confirm)
         if (hasExistingFrame) {
-            showConfirm('skriv.frameRemoveConfirmTitle', 'skriv.frameRemoveConfirmMessage', 'skriv.frameRemoveConfirmYes', async () => {
+            const confirmed = await showInPageConfirm(
+                t('skriv.frameRemoveConfirmTitle'),
+                t('skriv.frameRemoveConfirmMessage'),
+                t('skriv.frameRemoveConfirmYes'),
+                t('common.cancel')
+            );
+            if (confirmed) {
                 frameApi.removeFrame();
                 await applyFrameFromRegistry(frame);
-            });
+            }
             return;
         }
 
         // If editor has content (not just whitespace), confirm
         if (hasContent) {
-            showConfirm('skriv.frameApplyConfirmTitle', 'skriv.frameApplyConfirmMessage', 'skriv.frameApplyConfirmYes', async () => {
+            const confirmed = await showInPageConfirm(
+                t('skriv.frameApplyConfirmTitle'),
+                t('skriv.frameApplyConfirmMessage'),
+                t('skriv.frameApplyConfirmYes'),
+                t('common.cancel')
+            );
+            if (confirmed) {
                 await applyFrameFromRegistry(frame);
-            });
+            }
             return;
         }
 
@@ -161,11 +148,17 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
         }
     }
 
-    function handleRemoveFrame() {
-        showConfirm('skriv.frameRemoveConfirmTitle', 'skriv.frameRemoveConfirmMessage', 'skriv.frameRemoveConfirmYes', () => {
+    async function handleRemoveFrame() {
+        const confirmed = await showInPageConfirm(
+            t('skriv.frameRemoveConfirmTitle'),
+            t('skriv.frameRemoveConfirmMessage'),
+            t('skriv.frameRemoveConfirmYes'),
+            t('common.cancel')
+        );
+        if (confirmed) {
             frameApi.removeFrame();
             updateButtonState();
-        });
+        }
     }
 
     // --- Button state: green when frame is active ---

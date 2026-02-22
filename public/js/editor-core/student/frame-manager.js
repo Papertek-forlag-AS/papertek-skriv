@@ -19,6 +19,8 @@
  *   [p.skriv-frame-prompt data-frame-original="..."]   ← editable ghost text
  */
 
+import { ALL_FRAME_SCAFFOLD, FRAME_SELECTORS } from '../shared/frame-elements.js';
+
 /**
  * Initialize the frame manager for a given editor element.
  * @param {HTMLElement} editor - The contenteditable element
@@ -133,12 +135,8 @@ export function initFrameManager(editor, options = {}) {
     // --- Remove frame scaffold, keep student text ---
 
     function removeFrame() {
-        // Remove section headers
-        editor.querySelectorAll('.skriv-frame-section').forEach(el => el.remove());
-        // Remove subsection headers
-        editor.querySelectorAll('.skriv-frame-subsection').forEach(el => el.remove());
-        // Remove untouched prompts (still have the class)
-        editor.querySelectorAll('.skriv-frame-prompt').forEach(el => el.remove());
+        // Remove all frame scaffold elements
+        editor.querySelectorAll(ALL_FRAME_SCAFFOLD).forEach(el => el.remove());
 
         // If editor is now empty, add a default paragraph
         if (!editor.innerHTML.trim()) {
@@ -191,7 +189,7 @@ export function initFrameManager(editor, options = {}) {
      * Called on init — checks if the editor already contains frame elements.
      */
     function rehydrate() {
-        const hasSections = editor.querySelectorAll('.skriv-frame-section').length > 0;
+        const hasSections = editor.querySelectorAll(FRAME_SELECTORS.section).length > 0;
         if (hasSections) {
             // Frame DOM exists from saved HTML — handlers are re-attached via delegation
             // We just need to know that a frame is active
@@ -207,7 +205,7 @@ export function initFrameManager(editor, options = {}) {
 
     function hasFrame() {
         return activeFrameType !== null ||
-            editor.querySelectorAll('.skriv-frame-section').length > 0;
+            editor.querySelectorAll(FRAME_SELECTORS.section).length > 0;
     }
 
     function setActiveFrameType(type) {
@@ -220,12 +218,7 @@ export function initFrameManager(editor, options = {}) {
      */
     function getCleanText() {
         const clone = editor.cloneNode(true);
-        // Remove section headers
-        clone.querySelectorAll('.skriv-frame-section').forEach(el => el.remove());
-        // Remove subsection headers
-        clone.querySelectorAll('.skriv-frame-subsection').forEach(el => el.remove());
-        // Remove untouched prompts
-        clone.querySelectorAll('.skriv-frame-prompt').forEach(el => el.remove());
+        clone.querySelectorAll(ALL_FRAME_SCAFFOLD).forEach(el => el.remove());
         return clone.innerText || '';
     }
 

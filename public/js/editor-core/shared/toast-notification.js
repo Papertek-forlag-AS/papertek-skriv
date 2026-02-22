@@ -3,7 +3,8 @@
  * Slides in from top-right, auto-dismisses, supports click actions.
  */
 
-import { getModalParent } from './in-page-modal.js';
+import { escapeHtml } from './html-escape.js';
+import { getModalParent } from './dom-helpers.js';
 
 const TOAST_CONTAINER_ID = 'toast-container';
 const DEFAULT_DURATION = 5000;
@@ -91,11 +92,4 @@ export function showToast(message, { duration = DEFAULT_DURATION, icon, onClick 
     }
 
     return { dismiss };
-}
-
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
 }

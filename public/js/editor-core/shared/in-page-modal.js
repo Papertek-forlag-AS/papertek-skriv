@@ -3,22 +3,8 @@
  * Replaces native confirm() and alert().
  */
 
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-/**
- * Return the best parent element for modal overlays.
- */
-export function getModalParent() {
-    return document.fullscreenElement
-        || document.webkitFullscreenElement
-        || document.querySelector('[data-fake-fullscreen]')
-        || document.body;
-}
+import { escapeHtml } from './html-escape.js';
+import { getModalParent } from './dom-helpers.js';
 
 /** Remove any lingering modal overlays. */
 function cleanupStaleModals() {

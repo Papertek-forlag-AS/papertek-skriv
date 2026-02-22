@@ -9,7 +9,7 @@
  *  - Table of Contents (auto-generated when headings exist)
  *  - References (inline citations + bibliography)
  *  - Word counter
- *  - Auto-save to IndexedDB (debounced)
+ *  - Auto-save to IndexedDB (via auto-save module)
  *  - Export to .txt / .pdf
  *  - Document title editing
  */
@@ -20,7 +20,9 @@ import { initReferences } from '../editor-core/student/reference-manager.js';
 import { initFrameManager } from '../editor-core/student/frame-manager.js';
 import { initFrameSelector } from '../editor-core/student/frame-selector.js';
 import { downloadText, downloadPDF } from '../editor-core/student/text-export.js';
+import { escapeAttr } from '../editor-core/shared/html-escape.js';
 import { attachWordCounter, countWords } from '../editor-core/shared/word-counter.js';
+import { createAutoSave } from '../editor-core/shared/auto-save.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
 import { t } from '../editor-core/shared/i18n.js';
 import { getDocument, saveDocument } from './document-store.js';
@@ -131,11 +133,41 @@ export async function launchEditor(container, docId, onBack) {
     writingEnv.appendChild(wordCountBar);
     container.appendChild(writingEnv);
 
+    // --- Element references ---
+    const titleInput = titleRow.querySelector('#doc-title');
+    const saveStatusEl = topBar.querySelector('#save-status');
+
+    // --- Auto-save (separate module) ---
+    const autoSave = createAutoSave({
+        saveFn: async (state) => {
+            await saveDocument(docId, state);
+            doc.title = state.title;
+        },
+        getState: () => {
+            const plainText = frameApi.hasFrame() ? frameApi.getCleanText() : (editor.innerText || '');
+            return {
+                html: editor.innerHTML,
+                plainText,
+                title: titleInput.value,
+                wordCount: countWords(plainText),
+                references: refsApi.getReferences(),
+                frameType: frameApi.getActiveFrame(),
+            };
+        },
+        statusEl: saveStatusEl,
+        debounceMs: 1000,
+        labels: {
+            saving: t('skriv.saving'),
+            saved:  t('skriv.saved'),
+            error:  t('common.error'),
+        },
+    });
+
     // --- Initialize modules ---
     const toolbarApi = initEditorToolbar(editor);
     const tocApi = initTOC(editor);
-    const refsApi = initReferences(editor, { onSave: scheduleSave });
-    const frameApi = initFrameManager(editor, { onSave: scheduleSave });
+    const refsApi = initReferences(editor, { onSave: autoSave.schedule });
+    const frameApi = initFrameManager(editor, { onSave: autoSave.schedule });
     const counterCleanup = attachWordCounter(editor, wordCountDisplay);
 
     // Load saved references
@@ -186,7 +218,7 @@ export async function launchEditor(container, docId, onBack) {
             tocApi.remove();
             if (!suppressToast) showToast(t('skriv.advancedOff'), { duration: 1500 });
         }
-        if (!suppressToast) scheduleSave();
+        if (!suppressToast) autoSave.schedule();
     }
 
     // Listen for advanced mode changes from toolbar (including auto-detect)
@@ -200,8 +232,6 @@ export async function launchEditor(container, docId, onBack) {
     });
 
     // --- Auto-TOC: insert/remove TOC based on heading presence ---
-    // When advanced mode is on and student adds their first H1/H2, auto-insert TOC.
-    // When all headings are removed, TOC shows "no headings" message (handled by toc-manager).
     let autoTocTimer = null;
     editor.addEventListener('input', () => {
         if (!toolbarApi.isAdvancedMode()) return;
@@ -221,7 +251,8 @@ export async function launchEditor(container, docId, onBack) {
 
     // --- Back button ---
     topBar.querySelector('#btn-back').addEventListener('click', () => {
-        save();
+        autoSave.saveNow();
+        autoSave.destroy();
         toolbarApi.destroy();
         tocApi.destroy();
         refsApi.destroy();
@@ -245,7 +276,6 @@ export async function launchEditor(container, docId, onBack) {
         }
     });
 
-    const titleInput = titleRow.querySelector('#doc-title');
     const getTitle = () => titleInput.value || t('skriv.untitled');
 
     topBar.querySelector('#btn-download-txt').addEventListener('click', () => {
@@ -268,57 +298,9 @@ export async function launchEditor(container, docId, onBack) {
         });
     });
 
-    // --- Auto-save with debounce ---
-    const saveStatusEl = topBar.querySelector('#save-status');
-    let saveTimer = null;
-    let lastSavedHtml = doc.html || '';
-
-    async function save() {
-        const html = editor.innerHTML;
-        const plainText = frameApi.hasFrame() ? frameApi.getCleanText() : (editor.innerText || '');
-        const title = titleInput.value;
-        const wc = countWords(plainText);
-        const refs = refsApi.getReferences();
-        const frameType = frameApi.getActiveFrame();
-
-        // Skip if nothing changed
-        if (html === lastSavedHtml && title === doc.title) return;
-
-        saveStatusEl.textContent = t('skriv.saving');
-
-        try {
-            await saveDocument(docId, {
-                html,
-                plainText,
-                title,
-                wordCount: wc,
-                references: refs,
-                frameType,
-            });
-            lastSavedHtml = html;
-            doc.title = title;
-            saveStatusEl.textContent = t('skriv.saved');
-            setTimeout(() => {
-                if (saveStatusEl.textContent === t('skriv.saved')) {
-                    saveStatusEl.textContent = '';
-                }
-            }, 2000);
-        } catch (err) {
-            console.error('Save failed:', err);
-            saveStatusEl.textContent = t('common.error');
-        }
-    }
-
-    function scheduleSave() {
-        if (saveTimer) clearTimeout(saveTimer);
-        saveTimer = setTimeout(save, 1000);
-    }
-
-    editor.addEventListener('input', scheduleSave);
-    titleInput.addEventListener('input', scheduleSave);
-
-    // Save on page unload
-    window.addEventListener('beforeunload', save);
+    // --- Wire editor input to auto-save ---
+    editor.addEventListener('input', autoSave.schedule);
+    titleInput.addEventListener('input', autoSave.schedule);
 
     // --- Placeholder CSS ---
     const style = document.createElement('style');
@@ -336,8 +318,4 @@ export async function launchEditor(container, docId, onBack) {
 
     // Focus the editor
     editor.focus();
-}
-
-function escapeAttr(str) {
-    return (str || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

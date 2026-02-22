@@ -5,8 +5,7 @@
  * Default buttons: B, I, U
  * Advanced mode adds: bullet list, numbered list, H1, H2
  *
- * Special characters are rendered separately via initSpecialCharsPanel()
- * as a left-margin panel that follows the cursor vertically.
+ * Special characters are handled by the separate special-chars-panel.js module.
  *
  * Usage:
  *   const toolbar = initEditorToolbar(editor);
@@ -20,7 +19,8 @@ import { computePosition, flip, shift, offset } from 'https://cdn.jsdelivr.net/n
 import { SPECIAL_CHAR_GROUPS } from '../config.js';
 import { t } from '../shared/i18n.js';
 import { showInPageConfirm } from '../shared/in-page-modal.js';
-import { showToast } from '../shared/toast-notification.js';
+import { isInsideNonEditableBlock, FRAME_SELECTORS } from '../shared/frame-elements.js';
+import { initSpecialCharsPanel } from './special-chars-panel.js';
 
 /**
  * Initialize the floating editor toolbar.
@@ -314,7 +314,7 @@ export function initEditorToolbar(editor) {
         if (!blockEl || blockEl === editor) return;
 
         // Don't allow heading inside TOC, reference, or frame blocks
-        if (blockEl.closest('.skriv-toc') || blockEl.closest('.skriv-references') || blockEl.closest('.skriv-frame-section') || blockEl.closest('.skriv-frame-subsection')) return;
+        if (isInsideNonEditableBlock(blockEl)) return;
 
         const currentTag = blockEl.tagName?.toUpperCase() || '';
 
@@ -372,7 +372,7 @@ export function initEditorToolbar(editor) {
             const blockEl = getBlockElement();
 
             // Don't handle enter inside non-editable blocks
-            if (blockEl && (blockEl.closest('.skriv-toc') || blockEl.closest('.skriv-references') || blockEl.closest('.skriv-frame-section') || blockEl.closest('.skriv-frame-subsection'))) {
+            if (blockEl && isInsideNonEditableBlock(blockEl)) {
                 e.preventDefault();
                 return;
             }
@@ -500,8 +500,8 @@ export function initEditorToolbar(editor) {
 
     editor.addEventListener('keydown', onEditorKeydown);
 
-    // --- Special characters panel ---
-    const charsCleanup = initSpecialCharsPanel(editor, container);
+    // --- Special characters panel (separate module) ---
+    const charsCleanup = initSpecialCharsPanel(editor, container, SPECIAL_CHAR_GROUPS);
 
     // --- Destroy ---
     function destroy() {
@@ -519,7 +519,7 @@ export function initEditorToolbar(editor) {
         const hasToc = !!editor.querySelector('.skriv-toc');
         const hasLists = editor.querySelectorAll('ul, ol').length > 0;
         const hasMarkedHeadings = editor.querySelectorAll('p[data-was-heading]').length > 0;
-        const hasFrame = editor.querySelectorAll('.skriv-frame-section').length > 0;
+        const hasFrame = editor.querySelectorAll(FRAME_SELECTORS.section).length > 0;
         if (hasHeadings || hasToc || hasLists || hasFrame) {
             advancedMode = true;
             updateAdvancedButtons();
@@ -543,251 +543,5 @@ export function initEditorToolbar(editor) {
         },
         onAdvancedChange: (fn) => { advancedChangeListeners.push(fn); },
         getBlockElement,
-    };
-}
-
-
-/**
- * Special characters: prompt + language picker + left-side panel.
- */
-function initSpecialCharsPanel(editor, container) {
-    const scrollParent = editor.closest('.overflow-y-auto') || editor.parentElement;
-    let activeGroupId = null;
-    let panelVisible = false;
-
-    const writingWrapper = document.createElement('div');
-    writingWrapper.className = 'flex-1 relative overflow-hidden';
-    scrollParent.parentNode.insertBefore(writingWrapper, scrollParent);
-    writingWrapper.appendChild(scrollParent);
-    scrollParent.classList.remove('flex-1');
-    scrollParent.style.height = '100%';
-
-    const prompt = document.createElement('button');
-    prompt.type = 'button';
-    prompt.tabIndex = -1;
-    prompt.innerHTML = '<span class="mr-1">Aa</span> Annet språk?';
-    prompt.className = [
-        'sticky', 'bottom-2', 'z-[100]', 'ml-auto', 'mr-2',
-        'flex', 'items-center', 'gap-1',
-        'px-3', 'py-1.5', 'rounded-full',
-        'text-xs', 'text-stone-400', 'hover:text-stone-600',
-        'bg-white/80', 'hover:bg-white',
-        'border', 'border-stone-200', 'hover:border-stone-300',
-        'shadow-sm', 'transition-all', 'duration-150',
-        'select-none', 'cursor-pointer',
-        'w-fit'
-    ].join(' ');
-    prompt.addEventListener('mousedown', (e) => e.preventDefault());
-
-    const picker = document.createElement('div');
-    picker.className = [
-        'sticky', 'bottom-2', 'z-[100]', 'ml-auto', 'mr-2',
-        'bg-white', 'border', 'border-stone-200', 'rounded-lg',
-        'shadow-lg', 'p-2',
-        'hidden', 'w-fit'
-    ].join(' ');
-
-    const pickerTitle = document.createElement('div');
-    pickerTitle.className = 'text-xs text-stone-500 font-medium mb-1.5 px-1';
-    pickerTitle.textContent = 'Velg språk:';
-    picker.appendChild(pickerTitle);
-
-    SPECIAL_CHAR_GROUPS.forEach(group => {
-        const langBtn = document.createElement('button');
-        langBtn.type = 'button';
-        langBtn.tabIndex = -1;
-        langBtn.textContent = group.label;
-        langBtn.className = [
-            'block', 'w-full', 'text-left',
-            'px-3', 'py-1.5', 'rounded-md',
-            'text-sm', 'text-stone-700',
-            'hover:bg-stone-100', 'active:bg-stone-200',
-            'transition-colors', 'select-none'
-        ].join(' ');
-        langBtn.addEventListener('mousedown', (e) => e.preventDefault());
-        langBtn.addEventListener('click', () => selectLanguage(group.id));
-        picker.appendChild(langBtn);
-    });
-
-    scrollParent.appendChild(prompt);
-    scrollParent.appendChild(picker);
-
-    const panel = document.createElement('div');
-    panel.id = 'special-chars-panel';
-    panel.className = [
-        'absolute', 'z-[200]',
-        'flex', 'flex-col', 'gap-0.5',
-        'bg-white', 'border', 'border-stone-200', 'rounded-lg',
-        'shadow-sm', 'p-1',
-        'transition-opacity', 'duration-150',
-        'opacity-0', 'pointer-events-none'
-    ].join(' ');
-    panel.style.width = '36px';
-    scrollParent.appendChild(panel);
-
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.tabIndex = -1;
-    closeBtn.textContent = '×';
-    closeBtn.className = [
-        'w-7', 'h-7', 'rounded',
-        'text-base', 'text-stone-400', 'hover:text-stone-700', 'hover:bg-stone-100',
-        'flex', 'items-center', 'justify-center',
-        'select-none', 'transition-colors', 'mb-0.5'
-    ].join(' ');
-    closeBtn.addEventListener('mousedown', (e) => e.preventDefault());
-    closeBtn.addEventListener('click', () => deactivatePanel());
-
-    function showPrompt() {
-        prompt.classList.remove('hidden');
-        picker.classList.add('hidden');
-    }
-
-    function showPicker() {
-        prompt.classList.add('hidden');
-        picker.classList.remove('hidden');
-    }
-
-    function selectLanguage(groupId) {
-        activeGroupId = groupId;
-        picker.classList.add('hidden');
-        prompt.classList.add('hidden');
-        buildCharButtons(groupId);
-        updatePanelPosition();
-    }
-
-    function deactivatePanel() {
-        activeGroupId = null;
-        hidePanelChars();
-        showPrompt();
-        editor.focus();
-    }
-
-    prompt.addEventListener('click', () => showPicker());
-
-    function onDocMousedown(e) {
-        if (!picker.classList.contains('hidden') &&
-            !picker.contains(e.target) && e.target !== prompt) {
-            picker.classList.add('hidden');
-            showPrompt();
-        }
-    }
-    document.addEventListener('mousedown', onDocMousedown);
-
-    function buildCharButtons(groupId) {
-        panel.innerHTML = '';
-        panel.appendChild(closeBtn);
-
-        const group = SPECIAL_CHAR_GROUPS.find(g => g.id === groupId);
-        if (!group) return;
-
-        const label = document.createElement('div');
-        label.className = 'text-[9px] text-stone-400 text-center mb-0.5 leading-tight';
-        label.textContent = group.label;
-        panel.appendChild(label);
-
-        group.chars.forEach(char => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = char;
-            btn.tabIndex = -1;
-            btn.title = char;
-            btn.className = [
-                'w-7', 'h-7', 'rounded',
-                'text-sm', 'font-serif',
-                'flex', 'items-center', 'justify-center',
-                'text-stone-700', 'hover:bg-stone-100', 'active:bg-stone-200',
-                'select-none', 'transition-colors'
-            ].join(' ');
-            btn.addEventListener('mousedown', (e) => e.preventDefault());
-            btn.addEventListener('click', () => {
-                editor.focus();
-                document.execCommand('insertText', false, char);
-            });
-            panel.appendChild(btn);
-        });
-    }
-
-    function updatePanelPosition() {
-        if (!activeGroupId) return;
-
-        const sel = window.getSelection();
-        if (!sel || !sel.rangeCount) return;
-
-        const range = sel.getRangeAt(0);
-        if (!editor.contains(range.startContainer)) {
-            hidePanelChars();
-            return;
-        }
-
-        const caretRect = range.getBoundingClientRect();
-        if (!caretRect || (caretRect.height === 0 && caretRect.width === 0)) return;
-
-        const scrollRect = scrollParent.getBoundingClientRect();
-        const editorRect = editor.getBoundingClientRect();
-
-        const leftPos = editorRect.left - scrollRect.left - 44;
-        const topPos = caretRect.top - scrollRect.top + scrollParent.scrollTop;
-
-        panel.style.left = `${Math.max(4, leftPos)}px`;
-        panel.style.top = `${Math.max(4, topPos)}px`;
-
-        if (!panelVisible) {
-            panelVisible = true;
-            panel.classList.remove('opacity-0', 'pointer-events-none');
-            panel.classList.add('opacity-100');
-        }
-    }
-
-    function hidePanelChars() {
-        if (!panelVisible) return;
-        panelVisible = false;
-        panel.classList.remove('opacity-100');
-        panel.classList.add('opacity-0', 'pointer-events-none');
-    }
-
-    function onSelectionChangeChars() {
-        if (!activeGroupId) return;
-        const sel = window.getSelection();
-        if (!sel || !sel.rangeCount) { hidePanelChars(); return; }
-        if (!editor.contains(sel.getRangeAt(0).startContainer)) { hidePanelChars(); return; }
-        updatePanelPosition();
-    }
-
-    function onScroll() {
-        if (panelVisible) updatePanelPosition();
-    }
-
-    function onFocus() {
-        if (activeGroupId) updatePanelPosition();
-    }
-
-    function onBlur(e) {
-        if (panel.contains(e.relatedTarget)) return;
-        if (picker.contains(e.relatedTarget)) return;
-        if (e.relatedTarget === prompt) return;
-        hidePanelChars();
-    }
-
-    document.addEventListener('selectionchange', onSelectionChangeChars);
-    scrollParent.addEventListener('scroll', onScroll);
-    editor.addEventListener('focus', onFocus);
-    editor.addEventListener('blur', onBlur);
-
-    return function cleanup() {
-        document.removeEventListener('selectionchange', onSelectionChangeChars);
-        document.removeEventListener('mousedown', onDocMousedown);
-        scrollParent.removeEventListener('scroll', onScroll);
-        editor.removeEventListener('focus', onFocus);
-        editor.removeEventListener('blur', onBlur);
-        if (panel.parentNode) panel.parentNode.removeChild(panel);
-        if (prompt.parentNode) prompt.parentNode.removeChild(prompt);
-        if (picker.parentNode) picker.parentNode.removeChild(picker);
-        if (writingWrapper.parentNode) {
-            writingWrapper.parentNode.insertBefore(scrollParent, writingWrapper);
-            scrollParent.classList.add('flex-1');
-            scrollParent.style.height = '';
-            writingWrapper.parentNode.removeChild(writingWrapper);
-        }
     };
 }

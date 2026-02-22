@@ -3,6 +3,7 @@
  */
 
 import { t } from './i18n.js';
+import { getCleanEditorText, FRAME_SELECTORS } from './frame-elements.js';
 
 /**
  * Count words in a string. Splits on whitespace, filters empty strings.
@@ -20,12 +21,8 @@ export function attachWordCounter(element, displayEl, guidance) {
     const getText = () => {
         if (element.value !== undefined) return element.value;
         // If frame elements exist, exclude them from word count
-        if (element.querySelector && element.querySelector('.skriv-frame-section')) {
-            const clone = element.cloneNode(true);
-            clone.querySelectorAll('.skriv-frame-section').forEach(el => el.remove());
-            clone.querySelectorAll('.skriv-frame-subsection').forEach(el => el.remove());
-            clone.querySelectorAll('.skriv-frame-prompt').forEach(el => el.remove());
-            return clone.innerText || '';
+        if (element.querySelector && element.querySelector(FRAME_SELECTORS.section)) {
+            return getCleanEditorText(element);
         }
         return element.innerText || '';
     };
