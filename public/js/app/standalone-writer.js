@@ -22,6 +22,7 @@ import { initFrameSelector } from '../editor-core/student/frame-selector.js';
 import { initWritingSpinner } from '../editor-core/student/writing-spinner.js';
 import { initWordFrequency } from '../editor-core/student/word-frequency.js';
 import { initSentenceLength } from '../editor-core/student/sentence-length.js';
+import { initParagraphMap } from '../editor-core/student/paragraph-map.js';
 import { downloadText, downloadPDF } from '../editor-core/student/text-export.js';
 import { escapeAttr } from '../editor-core/shared/html-escape.js';
 import { attachWordCounter, countWords } from '../editor-core/shared/word-counter.js';
@@ -91,6 +92,11 @@ export async function launchEditor(container, docId, onBack) {
                 title="${t('sentence.button')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 ${t('sentence.button')}
+            </button>
+            <button id="btn-paragraph-map" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+                title="${t('paragraphMap.button')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
+                ${t('paragraphMap.button')}
             </button>
             <div class="relative">
                 <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 transition-colors">
@@ -263,6 +269,22 @@ export async function launchEditor(container, docId, onBack) {
         }
     });
 
+    // --- Paragraph Map (minimap) ---
+    const paragraphMapApi = initParagraphMap(editor, editorWrap);
+    const paragraphMapBtn = topBar.querySelector('#btn-paragraph-map');
+    paragraphMapBtn.addEventListener('click', () => {
+        const isNowActive = paragraphMapApi.toggle();
+        if (isNowActive) {
+            paragraphMapBtn.classList.remove('text-stone-500', 'border-stone-200');
+            paragraphMapBtn.classList.add('text-violet-700', 'border-violet-400', 'bg-violet-50');
+            showToast(t('paragraphMap.on'), { duration: 1500 });
+        } else {
+            paragraphMapBtn.classList.remove('text-violet-700', 'border-violet-400', 'bg-violet-50');
+            paragraphMapBtn.classList.add('text-stone-500', 'border-stone-200');
+            showToast(t('paragraphMap.off'), { duration: 1500 });
+        }
+    });
+
     // --- Advanced toggle button ---
     const advancedBtn = topBar.querySelector('#btn-advanced');
 
@@ -328,6 +350,7 @@ export async function launchEditor(container, docId, onBack) {
         spinnerApi.destroy();
         radarApi.destroy();
         sentenceApi.destroy();
+        paragraphMapApi.destroy();
         counterCleanup();
         onBack();
     });

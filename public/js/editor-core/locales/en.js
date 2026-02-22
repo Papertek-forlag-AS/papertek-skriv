@@ -97,6 +97,14 @@ export default {
         avgLength: 'Avg: {{avg}} words/sentence',
     },
 
+    paragraphMap: {
+        button: 'Paragraph map',
+        on: 'Paragraph map on',
+        off: 'Paragraph map off',
+        words: 'words',
+        ariaLabel: 'Paragraph map — visual overview of text structure',
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',

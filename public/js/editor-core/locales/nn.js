@@ -91,6 +91,14 @@ export default {
         avgLength: 'Snitt: {{avg}} ord/setning',
     },
 
+    paragraphMap: {
+        button: 'Avsnittskart',
+        on: 'Avsnittskart på',
+        off: 'Avsnittskart av',
+        words: 'ord',
+        ariaLabel: 'Avsnittskart — visuell oversikt over tekststrukturen',
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',
