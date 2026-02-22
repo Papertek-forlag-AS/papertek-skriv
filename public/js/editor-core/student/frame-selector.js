@@ -10,19 +10,34 @@
  * is not hard-coded to specific genres.
  */
 
-import { t } from '../shared/i18n.js';
+import { t, getCurrentLanguage } from '../shared/i18n.js';
 import { showInPageConfirm } from '../shared/in-page-modal.js';
 import { parseFrameMarkdown } from './frame-parser.js';
 
 /**
  * Default registry of available writing frames.
+ * File paths use {{lang}} placeholder, resolved at runtime via getFramePath().
  * Can be overridden via options.frames.
  */
 const DEFAULT_FRAME_REGISTRY = [
-    { id: 'droefting', file: '/frames/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc' },
-    { id: 'analyse', file: '/frames/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc' },
-    { id: 'kronikk', file: '/frames/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc' },
+    { id: 'droefting', file: '/frames/{{lang}}/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc' },
+    { id: 'analyse', file: '/frames/{{lang}}/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc' },
+    { id: 'kronikk', file: '/frames/{{lang}}/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc' },
 ];
+
+/**
+ * Resolve a frame file path for the current language.
+ * Falls back to 'nb' if the language-specific file doesn't exist.
+ * @param {string} pathTemplate - Path with {{lang}} placeholder
+ * @returns {string} Resolved path
+ */
+function getFramePath(pathTemplate) {
+    const lang = getCurrentLanguage();
+    // Nynorsk (nn) and Bokmål (nb) have their own frame directories.
+    // Other languages fall back to nb for now.
+    const frameLang = ['nb', 'nn'].includes(lang) ? lang : 'nb';
+    return pathTemplate.replace('{{lang}}', frameLang);
+}
 
 /**
  * Initialize the frame selector dropdown.
@@ -136,8 +151,20 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
 
     async function applyFrameFromRegistry(frame) {
         try {
-            const res = await fetch(frame.file);
-            if (!res.ok) throw new Error(`Failed to load frame: ${res.status}`);
+            const filePath = getFramePath(frame.file);
+            const res = await fetch(filePath);
+            if (!res.ok) {
+                // Fallback to nb if language-specific frame not found
+                const fallbackPath = frame.file.replace('{{lang}}', 'nb');
+                const fallbackRes = await fetch(fallbackPath);
+                if (!fallbackRes.ok) throw new Error(`Failed to load frame: ${res.status}`);
+                const md = await fallbackRes.text();
+                const frameData = parseFrameMarkdown(md);
+                frameApi.applyFrame(frameData, frame.id);
+                updateButtonState();
+                if (onFrameApplied) onFrameApplied();
+                return;
+            }
             const md = await res.text();
             const frameData = parseFrameMarkdown(md);
             frameApi.applyFrame(frameData, frame.id);

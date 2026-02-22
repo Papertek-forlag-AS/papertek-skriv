@@ -1,5 +1,10 @@
 /**
  * English (en) translations for Skriv.
+ *
+ * Pluralization: keys that depend on a count can use object form:
+ *   { one: '...', other: '...' }
+ * The correct form is selected by t() based on params.count.
+ * Plain strings still work — backward compatible.
  */
 export default {
     common: {
@@ -12,8 +17,45 @@ export default {
         delete: 'Delete',
     },
 
+    export: {
+        defaultTitle: 'Document',
+        author: 'Author: {{name}}',
+        authorFallback: 'Unknown',
+        date: 'Date: {{date}}',
+        wordCount: {
+            one: 'Word count: {{count}}',
+            other: 'Word count: {{count}}',
+        },
+        pdfNotLoaded: 'PDF library is not loaded. Try downloading as .txt instead.',
+    },
+
+    time: {
+        now: 'Now',
+        minutesAgo: {
+            one: '{{count}} min ago',
+            other: '{{count}} min ago',
+        },
+        hoursAgo: {
+            one: '{{count}} hr ago',
+            other: '{{count}} hrs ago',
+        },
+        yesterday: 'Yesterday',
+        daysAgo: {
+            one: '{{count}} day ago',
+            other: '{{count}} days ago',
+        },
+    },
+
+    specialChars: {
+        prompt: 'Other language?',
+        pickerTitle: 'Choose language:',
+    },
+
     wordCounter: {
-        count: '{{count}} words',
+        count: {
+            one: '{{count}} word',
+            other: '{{count}} words',
+        },
         goalRange: '(goal: {{min}}\u2013{{max}})',
         goalMin: '(goal: at least {{min}})',
         goalMax: '(goal: max {{max}})',
@@ -21,6 +63,29 @@ export default {
 
     language: {
         label: 'Language',
+    },
+
+    spinner: {
+        title: 'Word Spinner',
+        spin: 'Spin!',
+        clickToSpin: 'Click "Spin!" for a suggestion',
+        synonymTitle: 'Other words for "{{word}}":',
+        cat: {
+            innledning: 'Introduction',
+            argument: 'Argument',
+            motargument: 'Counter-argument',
+            eksempel: 'Example',
+            overgang: 'Transition',
+            avslutning: 'Conclusion',
+            kilde: 'Source reference',
+        },
+    },
+
+    radar: {
+        button: 'Repetition',
+        tooltip: '"{{word}}" is used {{count}} times',
+        on: 'Repetition radar on',
+        off: 'Repetition radar off',
     },
 
     // Skriv-specific
@@ -41,8 +106,14 @@ export default {
         downloadTxt: 'Download .txt',
         downloadPdf: 'Download PDF',
         titlePlaceholder: 'Give your document a title...',
-        wordsWritten: '{{count}} words written',
-        documentsCount: '{{count}} documents',
+        wordsWritten: {
+            one: '{{count}} word written',
+            other: '{{count}} words written',
+        },
+        documentsCount: {
+            one: '{{count}} document',
+            other: '{{count}} documents',
+        },
         exportTitle: 'Export',
 
         // Advanced toggle + TOC
@@ -91,5 +162,36 @@ export default {
         frameApplyConfirmMessage: 'The document already contains text. The writing frame will be added alongside existing content.',
         frameApplyConfirmYes: 'Yes, insert',
         frameActive: 'Writing frame active',
+
+        // Trash
+        trashButton: 'Trash',
+        trashEmpty: 'Trash is empty.',
+        trashInfo: {
+            one: 'Documents are permanently deleted after {{days}} day.',
+            other: 'Documents are permanently deleted after {{days}} days.',
+        },
+        trashRestore: 'Restore',
+        trashDeletePermanently: 'Delete permanently',
+        trashDeletePermanentlyConfirmTitle: 'Delete permanently?',
+        trashDeletePermanentlyConfirmMessage: 'Are you sure? "{{title}}" cannot be recovered after this.',
+        trashDeletePermanentlyConfirmYes: 'Yes, delete permanently',
+        trashEmptyAll: 'Empty trash',
+        trashEmptyAllConfirmTitle: 'Empty the trash?',
+        trashEmptyAllConfirmMessage: {
+            one: '{{count}} document in the trash will be permanently deleted. This cannot be undone.',
+            other: 'All {{count}} documents in the trash will be permanently deleted. This cannot be undone.',
+        },
+        trashEmptyAllConfirmYes: 'Yes, empty all',
+        trashRestored: 'Document has been restored',
+        trashMoveToTrash: 'Move to trash',
+        deleteConfirmMessageTrash: {
+            one: '"{{title}}" will be moved to the trash. You can restore it within {{days}} day.',
+            other: '"{{title}}" will be moved to the trash. You can restore it within {{days}} days.',
+        },
+        deleteConfirmYesTrash: 'Yes, move to trash',
+        trashCount: {
+            one: '{{count}} in trash',
+            other: '{{count}} in trash',
+        },
     },
 };

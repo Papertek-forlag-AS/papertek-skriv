@@ -6,7 +6,7 @@
  */
 
 const DB_NAME = 'skriv-documents';
-const DB_VERSION = 1;
+const DB_VERSION = 2;               // v2: added trash store
 const STORE_NAME = 'documents';
 
 let _db = null;
@@ -25,6 +25,11 @@ function openDB() {
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                 store.createIndex('updatedAt', 'updatedAt', { unique: false });
+            }
+            // v2: trash store (also created in trash-store.js)
+            if (!db.objectStoreNames.contains('trash')) {
+                const trashStore = db.createObjectStore('trash', { keyPath: 'id' });
+                trashStore.createIndex('trashedAt', 'trashedAt', { unique: false });
             }
         };
 

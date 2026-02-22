@@ -1,5 +1,10 @@
 /**
  * Norwegian Bokmål (nb) translations for Skriv.
+ *
+ * Pluralization: keys that depend on a count can use object form:
+ *   { one: '...', other: '...' }
+ * The correct form is selected by t() based on params.count.
+ * Plain strings still work — backward compatible.
  */
 export default {
     common: {
@@ -12,6 +17,37 @@ export default {
         delete: 'Slett',
     },
 
+    export: {
+        defaultTitle: 'Dokument',
+        author: 'Forfatter: {{name}}',
+        authorFallback: 'Ukjent',
+        date: 'Dato: {{date}}',
+        wordCount: 'Antall ord: {{count}}',
+        pdfNotLoaded: 'PDF-biblioteket er ikke lastet. Prøv å laste ned som .txt i stedet.',
+    },
+
+    time: {
+        now: 'Nå',
+        minutesAgo: {
+            one: '{{count}} min siden',
+            other: '{{count}} min siden',
+        },
+        hoursAgo: {
+            one: '{{count}} time siden',
+            other: '{{count}} timer siden',
+        },
+        yesterday: 'I går',
+        daysAgo: {
+            one: '{{count}} dag siden',
+            other: '{{count}} dager siden',
+        },
+    },
+
+    specialChars: {
+        prompt: 'Annet språk?',
+        pickerTitle: 'Velg språk:',
+    },
+
     wordCounter: {
         count: '{{count}} ord',
         goalRange: '(mål: {{min}}\u2013{{max}})',
@@ -21,6 +57,29 @@ export default {
 
     language: {
         label: 'Språk',
+    },
+
+    spinner: {
+        title: 'Ordspinner',
+        spin: 'Snurr!',
+        clickToSpin: 'Klikk «Snurr!» for et forslag',
+        synonymTitle: 'Andre ord for «{{word}}»:',
+        cat: {
+            innledning: 'Innledning',
+            argument: 'Argument',
+            motargument: 'Motargument',
+            eksempel: 'Eksempel',
+            overgang: 'Overgang',
+            avslutning: 'Avslutning',
+            kilde: 'Kildebruk',
+        },
+    },
+
+    radar: {
+        button: 'Gjentakelse',
+        tooltip: '«{{word}}» brukes {{count}} ganger',
+        on: 'Gjentakelsesradar på',
+        off: 'Gjentakelsesradar av',
     },
 
     // Skriv-specific
@@ -42,7 +101,10 @@ export default {
         downloadPdf: 'Last ned PDF',
         titlePlaceholder: 'Gi dokumentet en tittel...',
         wordsWritten: '{{count}} ord skrevet',
-        documentsCount: '{{count}} dokumenter',
+        documentsCount: {
+            one: '{{count}} dokument',
+            other: '{{count}} dokumenter',
+        },
         exportTitle: 'Eksporter',
 
         // Advanced toggle + TOC
@@ -91,5 +153,36 @@ export default {
         frameApplyConfirmMessage: 'Dokumentet inneholder allerede tekst. Skriverammen settes inn i tillegg til eksisterende innhold.',
         frameApplyConfirmYes: 'Ja, sett inn',
         frameActive: 'Skriveramme aktiv',
+
+        // Trash
+        trashButton: 'Papirkurv',
+        trashEmpty: 'Papirkurven er tom.',
+        trashInfo: {
+            one: 'Dokumenter slettes permanent etter {{days}} dag.',
+            other: 'Dokumenter slettes permanent etter {{days}} dager.',
+        },
+        trashRestore: 'Gjenopprett',
+        trashDeletePermanently: 'Slett permanent',
+        trashDeletePermanentlyConfirmTitle: 'Slett permanent?',
+        trashDeletePermanentlyConfirmMessage: 'Er du sikker? "{{title}}" kan ikke gjenopprettes etter dette.',
+        trashDeletePermanentlyConfirmYes: 'Ja, slett permanent',
+        trashEmptyAll: 'Tøm papirkurv',
+        trashEmptyAllConfirmTitle: 'Tøm papirkurven?',
+        trashEmptyAllConfirmMessage: {
+            one: '{{count}} dokument i papirkurven slettes permanent. Dette kan ikke angres.',
+            other: 'Alle {{count}} dokumenter i papirkurven slettes permanent. Dette kan ikke angres.',
+        },
+        trashEmptyAllConfirmYes: 'Ja, tøm alt',
+        trashRestored: 'Dokumentet er gjenopprettet',
+        trashMoveToTrash: 'Flytt til papirkurv',
+        deleteConfirmMessageTrash: {
+            one: 'Dokumentet "{{title}}" flyttes til papirkurven. Du kan gjenopprette det innen {{days}} dag.',
+            other: 'Dokumentet "{{title}}" flyttes til papirkurven. Du kan gjenopprette det innen {{days}} dager.',
+        },
+        deleteConfirmYesTrash: 'Ja, flytt til papirkurv',
+        trashCount: {
+            one: '{{count}} i papirkurven',
+            other: '{{count}} i papirkurven',
+        },
     },
 };

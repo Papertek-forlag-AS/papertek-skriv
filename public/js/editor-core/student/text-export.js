@@ -6,22 +6,23 @@
 import { countWords } from '../shared/word-counter.js';
 import { showInPageAlert } from '../shared/in-page-modal.js';
 import { isFrameElement } from '../shared/frame-elements.js';
+import { t, getDateLocale } from '../shared/i18n.js';
 
 /**
  * Download text as a .txt file with UTF-8 BOM.
  */
 export function downloadText({ title, studentName, text }) {
     const date = new Date();
-    const dateStr = date.toLocaleDateString('nb-NO', {
+    const dateStr = date.toLocaleDateString(getDateLocale(), {
         year: 'numeric', month: 'long', day: 'numeric'
     });
     const wordCount = countWords(text);
 
     const header = [
-        `${title || 'Dokument'}`,
-        `Forfatter: ${studentName || 'Ukjent'}`,
-        `Dato: ${dateStr}`,
-        `Antall ord: ${wordCount}`,
+        title || t('export.defaultTitle'),
+        t('export.author', { name: studentName || t('export.authorFallback') }),
+        t('export.date', { date: dateStr }),
+        t('export.wordCount', { count: wordCount }),
         '\u2500'.repeat(40),
         ''
     ].join('\n');
@@ -57,7 +58,7 @@ export function downloadText({ title, studentName, text }) {
 export function downloadPDF({ title, studentName, text, html, references }) {
     const { jsPDF } = window.jspdf;
     if (!jsPDF) {
-        showInPageAlert('PDF', 'PDF-biblioteket er ikke lastet. Prøv å laste ned som .txt i stedet.');
+        showInPageAlert('PDF', t('export.pdfNotLoaded'));
         return;
     }
 
@@ -78,7 +79,7 @@ export function downloadPDF({ title, studentName, text, html, references }) {
     let y = marginTop;
 
     const date = new Date();
-    const dateStr = date.toLocaleDateString('nb-NO', {
+    const dateStr = date.toLocaleDateString(getDateLocale(), {
         year: 'numeric', month: 'long', day: 'numeric'
     });
     const wordCount = countWords(text);
@@ -86,17 +87,17 @@ export function downloadPDF({ title, studentName, text, html, references }) {
     // --- Header ---
     doc.setFont('Helvetica', 'bold');
     doc.setFontSize(18);
-    doc.text(title || 'Dokument', marginLeft, y);
+    doc.text(title || t('export.defaultTitle'), marginLeft, y);
     y += 10;
 
     doc.setFont('Helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Forfatter: ${studentName || 'Ukjent'}`, marginLeft, y);
+    doc.text(t('export.author', { name: studentName || t('export.authorFallback') }), marginLeft, y);
     y += 5;
-    doc.text(`Dato: ${dateStr}`, marginLeft, y);
+    doc.text(t('export.date', { date: dateStr }), marginLeft, y);
     y += 5;
-    doc.text(`Antall ord: ${wordCount}`, marginLeft, y);
+    doc.text(t('export.wordCount', { count: wordCount }), marginLeft, y);
     y += 5;
 
     doc.setDrawColor(180, 180, 180);

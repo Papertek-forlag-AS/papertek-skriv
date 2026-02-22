@@ -6,9 +6,15 @@
 import { initI18n } from '../editor-core/shared/i18n.js';
 import { renderDocumentList } from './document-list.js';
 import { launchEditor } from './standalone-writer.js';
+import { purgeExpired } from './trash-store.js';
 
 async function init() {
     await initI18n();
+
+    // Purge expired trash documents on startup (silent, non-blocking)
+    purgeExpired().then(count => {
+        if (count > 0) console.log(`Purged ${count} expired document(s) from trash`);
+    }).catch(err => console.warn('Trash purge failed:', err));
 
     const app = document.getElementById('app');
     if (!app) {

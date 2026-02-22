@@ -19,6 +19,8 @@ import { initTOC } from '../editor-core/student/toc-manager.js';
 import { initReferences } from '../editor-core/student/reference-manager.js';
 import { initFrameManager } from '../editor-core/student/frame-manager.js';
 import { initFrameSelector } from '../editor-core/student/frame-selector.js';
+import { initWritingSpinner } from '../editor-core/student/writing-spinner.js';
+import { initWordFrequency } from '../editor-core/student/word-frequency.js';
 import { downloadText, downloadPDF } from '../editor-core/student/text-export.js';
 import { escapeAttr } from '../editor-core/shared/html-escape.js';
 import { attachWordCounter, countWords } from '../editor-core/shared/word-counter.js';
@@ -73,6 +75,16 @@ export async function launchEditor(container, docId, onBack) {
                 title="${t('skriv.refButton')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 ${t('skriv.refButton')}
+            </button>
+            <button id="btn-spinner" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+                title="${t('spinner.title')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                ${t('spinner.title')}
+            </button>
+            <button id="btn-radar" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+                title="${t('radar.button')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                ${t('radar.button')}
             </button>
             <div class="relative">
                 <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 transition-colors">
@@ -196,6 +208,39 @@ export async function launchEditor(container, docId, onBack) {
         frameSelectorApi.updateButtonState();
     }
 
+    // --- Writing Spinner ---
+    const spinnerApi = initWritingSpinner(editor, writingEnv);
+    const spinnerBtn = topBar.querySelector('#btn-spinner');
+    spinnerBtn.addEventListener('click', () => {
+        spinnerApi.show();
+    });
+
+    // --- Repetition Radar ---
+    const radarApi = initWordFrequency(editor, writingEnv, {
+        onWordClick: (word, range) => {
+            // Open synonym popup if synonym data exists for this word
+            // The synonym popup is handled by the spinner's dblclick handler,
+            // but we can also trigger it by simulating a selection + showing spinner
+            editor.focus();
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        },
+    });
+    const radarBtn = topBar.querySelector('#btn-radar');
+    radarBtn.addEventListener('click', () => {
+        const isNowActive = radarApi.toggle();
+        if (isNowActive) {
+            radarBtn.classList.remove('text-stone-500', 'border-stone-200');
+            radarBtn.classList.add('text-amber-700', 'border-amber-400', 'bg-amber-50');
+            showToast(t('radar.on'), { duration: 1500 });
+        } else {
+            radarBtn.classList.remove('text-amber-700', 'border-amber-400', 'bg-amber-50');
+            radarBtn.classList.add('text-stone-500', 'border-stone-200');
+            showToast(t('radar.off'), { duration: 1500 });
+        }
+    });
+
     // --- Advanced toggle button ---
     const advancedBtn = topBar.querySelector('#btn-advanced');
 
@@ -258,6 +303,8 @@ export async function launchEditor(container, docId, onBack) {
         refsApi.destroy();
         frameApi.destroy();
         frameSelectorApi.destroy();
+        spinnerApi.destroy();
+        radarApi.destroy();
         counterCleanup();
         onBack();
     });

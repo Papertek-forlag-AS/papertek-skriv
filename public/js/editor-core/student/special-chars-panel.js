@@ -15,6 +15,8 @@
  *   cleanup();
  */
 
+import { t } from '../shared/i18n.js';
+
 /**
  * Initialize the special characters panel.
  * @param {HTMLElement} editor - The contenteditable editor element
@@ -37,7 +39,7 @@ export function initSpecialCharsPanel(editor, container, charGroups) {
     const prompt = document.createElement('button');
     prompt.type = 'button';
     prompt.tabIndex = -1;
-    prompt.innerHTML = '<span class="mr-1">Aa</span> Annet språk?';
+    prompt.innerHTML = `<span class="mr-1">Aa</span> ${t('specialChars.prompt')}`;
     prompt.className = [
         'sticky', 'bottom-2', 'z-[100]', 'ml-auto', 'mr-2',
         'flex', 'items-center', 'gap-1',
@@ -61,7 +63,7 @@ export function initSpecialCharsPanel(editor, container, charGroups) {
 
     const pickerTitle = document.createElement('div');
     pickerTitle.className = 'text-xs text-stone-500 font-medium mb-1.5 px-1';
-    pickerTitle.textContent = 'Velg språk:';
+    pickerTitle.textContent = t('specialChars.pickerTitle');
     picker.appendChild(pickerTitle);
 
     charGroups.forEach(group => {
