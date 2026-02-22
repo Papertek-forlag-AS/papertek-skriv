@@ -105,6 +105,43 @@ export default {
         ariaLabel: 'Paragraph map — visual overview of text structure',
     },
 
+    image: {
+        button: 'Image',
+        captionPlaceholder: 'Caption...',
+        tooLarge: 'Image is too large (max 5 MB)',
+        invalidType: 'Invalid file type. Use PNG, JPEG or GIF.',
+        deleted: 'Image removed',
+    },
+
+    checklist: {
+        title: 'Pre-submission checklist',
+        proceed: 'Download',
+        cancel: 'Cancel',
+        hasTitle: 'The document has a title',
+        hasWords: 'The text has at least 100 words',
+        hasSources: 'Sources have been added',
+        introConclusion: 'Introduction and conclusion are written',
+        spellCheck: 'Spelling and language have been checked',
+        droefting: {
+            question: 'The thesis is presented in the introduction',
+            argFor: 'At least one argument for with claim, evidence and explanation',
+            argAgainst: 'At least one counter-argument with claim, evidence and explanation',
+            conclusion: 'The conclusion takes a clear position',
+        },
+        analyse: {
+            work: 'The work is presented (title, author, year)',
+            structure: 'Structure and composition are analysed',
+            devices: 'Literary devices are identified with examples',
+            interpretation: 'Interpretation is given with reasoning',
+        },
+        kronikk: {
+            hook: 'The introduction captures attention',
+            position: 'A clear stance is presented',
+            arguments: 'At least two main arguments are presented',
+            counterArg: 'A counter-argument is presented and addressed',
+        },
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',

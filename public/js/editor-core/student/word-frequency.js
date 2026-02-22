@@ -17,7 +17,7 @@
  */
 
 import { t, getCurrentLanguage } from '../shared/i18n.js';
-import { isFrameElement } from '../shared/frame-elements.js';
+import { isFrameElement, isImageBlock } from '../shared/frame-elements.js';
 
 const REPEAT_THRESHOLD = 3;     // minimum occurrences for content words
 const STOPWORD_THRESHOLD = 6;   // higher bar for function words (hva, som, etc.)
@@ -50,8 +50,9 @@ function getTextNodes(root) {
     const nodes = [];
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
-            // Skip text inside frame scaffolding (headers, placeholders)
+            // Skip text inside frame scaffolding (headers, placeholders) and image blocks
             if (isFrameElement(node.parentElement)) return NodeFilter.FILTER_REJECT;
+            if (node.parentElement?.closest('.skriv-image-block')) return NodeFilter.FILTER_REJECT;
             // Skip empty text nodes
             if (!node.textContent.trim()) return NodeFilter.FILTER_REJECT;
             return NodeFilter.FILTER_ACCEPT;

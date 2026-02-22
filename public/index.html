@@ -443,6 +443,9 @@
             background: #6ee7b7;
             opacity: 0.25;
         }
+        .pmap-image {
+            background: #8b5cf6;
+        }
         /* Viewport indicator */
         .pmap-viewport {
             position: absolute;
@@ -452,6 +455,66 @@
             border-radius: 3px;
             background: rgba(5, 150, 105, 0.04);
             pointer-events: none;
+        }
+
+        /* --- Image blocks --- */
+        #editor .skriv-image-block {
+            margin: 1em 0;
+            position: relative;
+            line-height: 0;
+            user-select: none;
+        }
+        #editor .skriv-image-block img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 0.25rem;
+            border: 1px solid #d6d3d1;
+            transition: border-color 0.15s;
+        }
+        #editor .skriv-image-block.selected img {
+            border-color: #059669;
+            box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+        }
+        .skriv-image-handles {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .skriv-image-handles.hidden { display: none; }
+        .skriv-image-handles .handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #059669;
+            border: 2px solid white;
+            border-radius: 2px;
+            pointer-events: auto;
+            cursor: nwse-resize;
+            z-index: 5;
+        }
+        .handle-nw { top: -5px; left: -5px; }
+        .handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
+        .handle-sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+        .handle-se { bottom: -5px; right: -5px; }
+        .skriv-image-caption {
+            font-size: 0.8rem;
+            color: #78716c;
+            font-style: italic;
+            margin-top: 0.375rem;
+            line-height: 1.4;
+            min-height: 1.2em;
+            outline: none;
+        }
+        .skriv-image-caption:empty::before {
+            content: attr(data-placeholder);
+            color: #d6d3d1;
+            pointer-events: none;
+        }
+        /* Drag-over state */
+        #editor.skriv-image-dragover {
+            outline: 2px dashed #059669;
+            outline-offset: -2px;
         }
     </style>
 </head>

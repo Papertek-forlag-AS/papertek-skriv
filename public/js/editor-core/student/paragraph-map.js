@@ -23,13 +23,13 @@
  */
 
 import { t } from '../shared/i18n.js';
-import { isFrameElement } from '../shared/frame-elements.js';
+import { isFrameElement, isImageBlock } from '../shared/frame-elements.js';
 
 const DEBOUNCE_MS = 600;
 const MIN_BAR_HEIGHT = 3;  // px — minimum visual size for tiny paragraphs
 
 // Block selector — the elements we visualize
-const BLOCK_SELECTOR = 'p, h1, h2, li, div.skriv-frame-section, div.skriv-frame-subsection';
+const BLOCK_SELECTOR = 'p, h1, h2, li, div.skriv-frame-section, div.skriv-frame-subsection, figure.skriv-image-block';
 
 /**
  * Classify a block element for color-coding.
@@ -40,6 +40,7 @@ function classifyBlock(el) {
     const tag = el.tagName;
     if (tag === 'H1' || tag === 'H2') return 'heading';
     if (tag === 'LI') return 'list';
+    if (isImageBlock(el)) return 'image';
     if (el.classList.contains('skriv-frame-section') || el.classList.contains('skriv-frame-subsection')) return 'frame';
     // Check for empty paragraph
     const text = el.textContent.trim();

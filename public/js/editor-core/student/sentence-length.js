@@ -16,7 +16,7 @@
  */
 
 import { t } from '../shared/i18n.js';
-import { isFrameElement } from '../shared/frame-elements.js';
+import { isFrameElement, isImageBlock } from '../shared/frame-elements.js';
 
 const LONG_THRESHOLD = 20;       // words — soft blue highlight
 const VERY_LONG_THRESHOLD = 30;  // words — strong blue highlight
@@ -97,9 +97,10 @@ export function initSentenceLength(editor, container) {
         const blocks = editor.querySelectorAll('p, h1, h2, li, div:not([class])');
 
         for (const block of blocks) {
-            // Skip frame scaffold and non-editable blocks
+            // Skip frame scaffold, non-editable blocks, and image blocks
             if (isFrameElement(block)) continue;
-            if (block.closest('.skriv-toc, .skriv-references, .skriv-frame-section, .skriv-frame-subsection')) continue;
+            if (isImageBlock(block)) continue;
+            if (block.closest('.skriv-toc, .skriv-references, .skriv-frame-section, .skriv-frame-subsection, .skriv-image-block')) continue;
 
             // Collect text nodes in this block
             const textNodes = [];

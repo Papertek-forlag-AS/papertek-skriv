@@ -23,6 +23,8 @@ import { initWritingSpinner } from '../editor-core/student/writing-spinner.js';
 import { initWordFrequency } from '../editor-core/student/word-frequency.js';
 import { initSentenceLength } from '../editor-core/student/sentence-length.js';
 import { initParagraphMap } from '../editor-core/student/paragraph-map.js';
+import { initImageManager } from '../editor-core/student/image-manager.js';
+import { showSubmissionChecklist } from '../editor-core/student/submission-checklist.js';
 import { downloadText, downloadPDF } from '../editor-core/student/text-export.js';
 import { escapeAttr } from '../editor-core/shared/html-escape.js';
 import { attachWordCounter, countWords } from '../editor-core/shared/word-counter.js';
@@ -77,6 +79,11 @@ export async function launchEditor(container, docId, onBack) {
                 title="${t('skriv.refButton')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 ${t('skriv.refButton')}
+            </button>
+            <button id="btn-image" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+                title="${t('image.button')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                ${t('image.button')}
             </button>
             <button id="btn-spinner" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
                 title="${t('spinner.title')}">
@@ -285,6 +292,13 @@ export async function launchEditor(container, docId, onBack) {
         }
     });
 
+    // --- Image Manager ---
+    const imageApi = initImageManager(editor, { onInsert: autoSave.schedule });
+    const imageBtn = topBar.querySelector('#btn-image');
+    imageBtn.addEventListener('click', () => {
+        imageApi.openFilePicker();
+    });
+
     // --- Advanced toggle button ---
     const advancedBtn = topBar.querySelector('#btn-advanced');
 
@@ -351,6 +365,7 @@ export async function launchEditor(container, docId, onBack) {
         radarApi.destroy();
         sentenceApi.destroy();
         paragraphMapApi.destroy();
+        imageApi.destroy();
         counterCleanup();
         onBack();
     });
@@ -371,24 +386,46 @@ export async function launchEditor(container, docId, onBack) {
 
     const getTitle = () => titleInput.value || t('skriv.untitled');
 
-    topBar.querySelector('#btn-download-txt').addEventListener('click', () => {
+    topBar.querySelector('#btn-download-txt').addEventListener('click', async () => {
         exportMenu.classList.add('hidden');
-        downloadText({
-            title: getTitle(),
-            studentName: '',
-            text: frameApi.hasFrame() ? frameApi.getCleanText() : (editor.innerText || '')
+        const cleanText = frameApi.hasFrame() ? frameApi.getCleanText() : (editor.innerText || '');
+        const proceed = await showSubmissionChecklist({
+            frameType: frameApi.getActiveFrame(),
+            title: titleInput.value,
+            wordCount: countWords(cleanText),
+            hasReferences: refsApi.getReferences().length > 0,
+            hasHeadings: editor.querySelectorAll('h1, h2').length > 0,
+            exportType: 'txt',
         });
+        if (proceed) {
+            downloadText({
+                title: getTitle(),
+                studentName: '',
+                text: cleanText,
+            });
+        }
     });
 
-    topBar.querySelector('#btn-download-pdf').addEventListener('click', () => {
+    topBar.querySelector('#btn-download-pdf').addEventListener('click', async () => {
         exportMenu.classList.add('hidden');
-        downloadPDF({
-            title: getTitle(),
-            studentName: '',
-            text: frameApi.hasFrame() ? frameApi.getCleanText() : (editor.innerText || ''),
-            html: editor.innerHTML || '',
-            references: refsApi.getReferences(),
+        const cleanText = frameApi.hasFrame() ? frameApi.getCleanText() : (editor.innerText || '');
+        const proceed = await showSubmissionChecklist({
+            frameType: frameApi.getActiveFrame(),
+            title: titleInput.value,
+            wordCount: countWords(cleanText),
+            hasReferences: refsApi.getReferences().length > 0,
+            hasHeadings: editor.querySelectorAll('h1, h2').length > 0,
+            exportType: 'pdf',
         });
+        if (proceed) {
+            downloadPDF({
+                title: getTitle(),
+                studentName: '',
+                text: cleanText,
+                html: editor.innerHTML || '',
+                references: refsApi.getReferences(),
+            });
+        }
     });
 
     // --- Wire editor input to auto-save ---

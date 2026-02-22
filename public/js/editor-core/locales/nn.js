@@ -99,6 +99,43 @@ export default {
         ariaLabel: 'Avsnittskart — visuell oversikt over tekststrukturen',
     },
 
+    image: {
+        button: 'Bilete',
+        captionPlaceholder: 'Bilettekst...',
+        tooLarge: 'Biletet er for stort (maks 5 MB)',
+        invalidType: 'Ugyldig filtype. Bruk PNG, JPEG eller GIF.',
+        deleted: 'Bilete fjerna',
+    },
+
+    checklist: {
+        title: 'Sjekkliste før innsending',
+        proceed: 'Last ned',
+        cancel: 'Avbryt',
+        hasTitle: 'Dokumentet har ein tittel',
+        hasWords: 'Teksten har minst 100 ord',
+        hasSources: 'Kjelder er lagt til',
+        introConclusion: 'Innleiing og avslutning er skrivne',
+        spellCheck: 'Språk og stavekontroll er sjekka',
+        droefting: {
+            question: 'Problemstillinga er presentert i innleiinga',
+            argFor: 'Minst eitt argument for med påstand, underbygging og forklaring',
+            argAgainst: 'Minst eitt argument mot med påstand, underbygging og forklaring',
+            conclusion: 'Konklusjonen tek stilling til problemstillinga',
+        },
+        analyse: {
+            work: 'Verket er presentert (tittel, forfattar, år)',
+            structure: 'Oppbygging og struktur er analysert',
+            devices: 'Verkemiddel er identifiserte med døme',
+            interpretation: 'Tolking er gitt med grunngjeving',
+        },
+        kronikk: {
+            hook: 'Innleiinga fangar merksemda',
+            position: 'Tydeleg haldning er presentert',
+            arguments: 'Minst to hovudargument er presenterte',
+            counterArg: 'Motargument er presentert og svara på',
+        },
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',

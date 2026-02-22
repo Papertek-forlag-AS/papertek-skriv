@@ -5,7 +5,7 @@
 
 import { countWords } from '../shared/word-counter.js';
 import { showInPageAlert } from '../shared/in-page-modal.js';
-import { isFrameElement } from '../shared/frame-elements.js';
+import { isFrameElement, isImageBlock } from '../shared/frame-elements.js';
 import { t, getDateLocale } from '../shared/i18n.js';
 
 /**
@@ -193,6 +193,53 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
     // --- Skip references block, render formatted references instead ---
     if (el.classList?.contains('skriv-references')) {
         renderReferencesToPDF(doc, el, state);
+        return;
+    }
+
+    // --- Image blocks: render image + caption to PDF ---
+    if (isImageBlock(el)) {
+        const img = el.querySelector('img');
+        if (img?.src) {
+            const imgWidth = state.contentWidth;
+            const naturalW = img.naturalWidth || 400;
+            const naturalH = img.naturalHeight || 300;
+            // Respect resized width if set via style
+            const displayW = img.offsetWidth || naturalW;
+            const displayH = img.offsetHeight || naturalH;
+            const aspectRatio = naturalH / naturalW;
+            // Use display proportions if available, otherwise natural
+            const pdfWidth = Math.min(imgWidth, (displayW / naturalW) * imgWidth);
+            const pdfHeight = pdfWidth * aspectRatio;
+
+            // Page break if image won't fit
+            if (state.y + pdfHeight > state.pageHeight - state.marginBottom) {
+                doc.addPage();
+                state.y = state.marginTop;
+            }
+            try {
+                doc.addImage(img.src, state.x, state.y, pdfWidth, pdfHeight);
+                state.y += pdfHeight + 2;
+            } catch (e) {
+                console.warn('Image PDF export failed:', e);
+            }
+            // Caption
+            const caption = el.querySelector('.skriv-image-caption');
+            if (caption?.textContent?.trim()) {
+                doc.setFont('times', 'italic');
+                doc.setFontSize(10);
+                doc.setTextColor(120, 113, 108);
+                const captionLines = doc.splitTextToSize(caption.textContent.trim(), state.contentWidth);
+                for (const line of captionLines) {
+                    if (state.y + 5 > state.pageHeight - state.marginBottom) {
+                        doc.addPage();
+                        state.y = state.marginTop;
+                    }
+                    doc.text(line, state.x, state.y);
+                    state.y += 10 * 0.352 * 1.5;
+                }
+                state.y += 2;
+            }
+        }
         return;
     }
 

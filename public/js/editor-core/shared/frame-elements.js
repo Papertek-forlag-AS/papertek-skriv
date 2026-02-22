@@ -71,3 +71,12 @@ export function getCleanEditorText(editor) {
 export function removeFrameScaffold(clone) {
     clone.querySelectorAll(ALL_FRAME_SCAFFOLD).forEach(el => el.remove());
 }
+
+/**
+ * Check if an element is an image block (figure with skriv-image-block class).
+ * Used by analysis tools to skip image content.
+ */
+export function isImageBlock(el) {
+    if (!el || !el.classList) return false;
+    return el.classList.contains('skriv-image-block');
+}
