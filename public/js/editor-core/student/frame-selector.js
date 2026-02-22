@@ -1,0 +1,214 @@
+/**
+ * Frame Selector
+ *
+ * Dropdown UI for selecting a writing frame (genre).
+ * Attached to the Struktur button. Lists available frames,
+ * fetches/parses the chosen .md file, and calls frameApi.applyFrame().
+ * Shows "Remove frame" when a frame is active.
+ */
+
+import { t } from '../shared/i18n.js';
+import { parseFrameMarkdown } from './frame-parser.js';
+
+/**
+ * Registry of available writing frames.
+ */
+const FRAME_REGISTRY = [
+    { id: 'droefting', file: '/frames/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc' },
+    { id: 'analyse', file: '/frames/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc' },
+    { id: 'kronikk', file: '/frames/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc' },
+];
+
+/**
+ * Initialize the frame selector dropdown.
+ * @param {HTMLElement} button - The Struktur button
+ * @param {HTMLElement} editor - The contenteditable element
+ * @param {object} frameApi - The frame manager API
+ * @param {{ onFrameApplied?: () => void }} options
+ * @returns {{ destroy: () => void, updateButtonState: () => void }}
+ */
+export function initFrameSelector(button, editor, frameApi, options = {}) {
+    const { onFrameApplied } = options;
+
+    // --- Build dropdown panel ---
+    const panel = document.createElement('div');
+    panel.className = 'hidden absolute right-0 top-full mt-1 bg-white border border-stone-200 rounded-lg shadow-lg py-2 z-50 min-w-[240px]';
+    panel.style.cssText = 'max-height: 400px; overflow-y: auto;';
+
+    // Position panel relative to button
+    button.parentElement.style.position = 'relative';
+    button.parentElement.appendChild(panel);
+
+    function buildPanel() {
+        panel.innerHTML = '';
+
+        // Title
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'px-4 py-1 text-xs font-semibold text-stone-400 uppercase tracking-wide';
+        titleDiv.textContent = t('skriv.frameSelectorTitle');
+        panel.appendChild(titleDiv);
+
+        // Frame options
+        for (const frame of FRAME_REGISTRY) {
+            const btn = document.createElement('button');
+            btn.className = 'block w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors';
+
+            const isActive = frameApi.getActiveFrame() === frame.id;
+
+            btn.innerHTML = `
+                <div class="text-sm font-medium ${isActive ? 'text-emerald-700' : 'text-stone-700'}">
+                    ${isActive ? '✓ ' : ''}${t(frame.labelKey)}
+                </div>
+                <div class="text-xs text-stone-400 mt-0.5">${t(frame.descKey)}</div>
+            `;
+
+            btn.addEventListener('click', () => {
+                panel.classList.add('hidden');
+                if (isActive) return; // Already active, do nothing
+                handleSelectFrame(frame);
+            });
+
+            panel.appendChild(btn);
+        }
+
+        // Divider + Remove option (only when frame is active)
+        if (frameApi.hasFrame()) {
+            const divider = document.createElement('div');
+            divider.className = 'border-t border-stone-200 my-1';
+            panel.appendChild(divider);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors';
+            removeBtn.textContent = t('skriv.frameRemove');
+            removeBtn.addEventListener('click', () => {
+                panel.classList.add('hidden');
+                handleRemoveFrame();
+            });
+            panel.appendChild(removeBtn);
+        }
+    }
+
+    // --- Confirm dialogs ---
+
+    function showConfirm(titleKey, messageKey, yesKey, onYes) {
+        // Use the same dialog pattern as existing confirms in the app
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-black/30 flex items-center justify-center z-[100]';
+
+        const dialog = document.createElement('div');
+        dialog.className = 'bg-white rounded-xl shadow-xl p-6 max-w-sm mx-4';
+        dialog.innerHTML = `
+            <h3 class="text-lg font-semibold text-stone-900 mb-2">${t(titleKey)}</h3>
+            <p class="text-sm text-stone-600 mb-4">${t(messageKey)}</p>
+            <div class="flex justify-end gap-2">
+                <button class="cancel-btn px-4 py-2 text-sm rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 transition-colors">${t('common.cancel')}</button>
+                <button class="confirm-btn px-4 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">${t(yesKey)}</button>
+            </div>
+        `;
+
+        dialog.querySelector('.cancel-btn').addEventListener('click', () => overlay.remove());
+        dialog.querySelector('.confirm-btn').addEventListener('click', () => {
+            overlay.remove();
+            onYes();
+        });
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.remove();
+        });
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+    }
+
+    // --- Frame selection logic ---
+
+    async function handleSelectFrame(frame) {
+        const editorText = editor.innerText?.trim();
+        const hasContent = editorText && editorText.length > 0;
+        const hasExistingFrame = frameApi.hasFrame();
+
+        // If there's an existing frame, remove it first (with confirm)
+        if (hasExistingFrame) {
+            showConfirm('skriv.frameRemoveConfirmTitle', 'skriv.frameRemoveConfirmMessage', 'skriv.frameRemoveConfirmYes', async () => {
+                frameApi.removeFrame();
+                await applyFrameFromRegistry(frame);
+            });
+            return;
+        }
+
+        // If editor has content (not just whitespace), confirm
+        if (hasContent) {
+            showConfirm('skriv.frameApplyConfirmTitle', 'skriv.frameApplyConfirmMessage', 'skriv.frameApplyConfirmYes', async () => {
+                await applyFrameFromRegistry(frame);
+            });
+            return;
+        }
+
+        // Empty editor — apply directly
+        await applyFrameFromRegistry(frame);
+    }
+
+    async function applyFrameFromRegistry(frame) {
+        try {
+            const res = await fetch(frame.file);
+            if (!res.ok) throw new Error(`Failed to load frame: ${res.status}`);
+            const md = await res.text();
+            const frameData = parseFrameMarkdown(md);
+            frameApi.applyFrame(frameData, frame.id);
+            updateButtonState();
+            if (onFrameApplied) onFrameApplied();
+        } catch (err) {
+            console.error('Frame load error:', err);
+        }
+    }
+
+    function handleRemoveFrame() {
+        showConfirm('skriv.frameRemoveConfirmTitle', 'skriv.frameRemoveConfirmMessage', 'skriv.frameRemoveConfirmYes', () => {
+            frameApi.removeFrame();
+            updateButtonState();
+        });
+    }
+
+    // --- Button state: green when frame is active ---
+
+    function updateButtonState() {
+        if (frameApi.hasFrame()) {
+            button.classList.remove('text-stone-500', 'border-stone-200');
+            button.classList.add('text-emerald-700', 'border-emerald-400', 'bg-emerald-50');
+            button.title = t('skriv.frameActive');
+        } else {
+            button.classList.remove('text-emerald-700', 'border-emerald-400', 'bg-emerald-50');
+            button.classList.add('text-stone-500', 'border-stone-200');
+            button.title = t('skriv.strukturTooltip');
+        }
+    }
+
+    // --- Toggle dropdown ---
+
+    function handleButtonClick(e) {
+        e.stopPropagation(); // Prevent document click from immediately closing
+        buildPanel(); // Rebuild to reflect current state
+        panel.classList.toggle('hidden');
+    }
+
+    // Close panel when clicking outside
+    function handleOutsideClick(e) {
+        if (!button.contains(e.target) && !panel.contains(e.target)) {
+            panel.classList.add('hidden');
+        }
+    }
+
+    button.addEventListener('click', handleButtonClick);
+    document.addEventListener('click', handleOutsideClick);
+
+    // Initial state
+    updateButtonState();
+
+    // --- Cleanup ---
+    function destroy() {
+        button.removeEventListener('click', handleButtonClick);
+        document.removeEventListener('click', handleOutsideClick);
+        panel.remove();
+    }
+
+    return { destroy, updateButtonState };
+}

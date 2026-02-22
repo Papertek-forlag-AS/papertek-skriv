@@ -1,5 +1,6 @@
 /**
  * Export written text as a downloadable .txt or .pdf file.
+ * Supports TOC and reference rendering in PDF.
  */
 
 import { countWords } from '../shared/word-counter.js';
@@ -45,8 +46,14 @@ export function downloadText({ title, studentName, text }) {
 /**
  * Download text as a formatted PDF.
  * Uses jsPDF (loaded via CDN in HTML).
+ * @param {Object} opts
+ * @param {string} opts.title
+ * @param {string} opts.studentName
+ * @param {string} opts.text
+ * @param {string} opts.html
+ * @param {Array} [opts.references] - Array of reference objects
  */
-export function downloadPDF({ title, studentName, text, html }) {
+export function downloadPDF({ title, studentName, text, html, references }) {
     const { jsPDF } = window.jspdf;
     if (!jsPDF) {
         showInPageAlert('PDF', 'PDF-biblioteket er ikke lastet. Prøv å laste ned som .txt i stedet.');
@@ -100,7 +107,7 @@ export function downloadPDF({ title, studentName, text, html }) {
     if (html) {
         const parser = new DOMParser();
         const dom = parser.parseFromString(html, 'text/html');
-        const state = { x: marginLeft, y, contentWidth, pageHeight, marginTop, marginBottom };
+        const state = { x: marginLeft, baseX: marginLeft, y, contentWidth, pageHeight, marginTop, marginBottom, pageWidth, marginRight, listStack: [] };
         renderHtmlNodeToPDF(doc, dom.body, { bold: false, italic: false, underline: false, heading: null }, state);
     } else {
         doc.setTextColor(30, 30, 30);
@@ -127,6 +134,7 @@ export function downloadPDF({ title, studentName, text, html }) {
 
 /**
  * Recursively walk a DOM node and render text into jsPDF with formatting.
+ * Skips TOC and reference blocks (they are rendered separately within the walk).
  */
 function renderHtmlNodeToPDF(doc, node, fmt, state) {
     if (node.nodeType === Node.TEXT_NODE) {
@@ -169,9 +177,113 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
     if (node.nodeType !== Node.ELEMENT_NODE) return;
 
     const tag = node.tagName?.toUpperCase();
+    const el = node;
+
+    // --- Skip frame scaffold elements (section headers, subsections, untouched prompts) ---
+    if (el.classList?.contains('skriv-frame-section')) return;
+    if (el.classList?.contains('skriv-frame-subsection')) return;
+    if (el.classList?.contains('skriv-frame-prompt')) return;
+
+    // --- Skip TOC block, render formatted TOC instead ---
+    if (el.classList?.contains('skriv-toc')) {
+        renderTocToPDF(doc, el, state);
+        return;
+    }
+
+    // --- Skip references block, render formatted references instead ---
+    if (el.classList?.contains('skriv-references')) {
+        renderReferencesToPDF(doc, el, state);
+        return;
+    }
+
+    // --- Skip inline reference markers, render as [n] text ---
+    if (el.classList?.contains('skriv-ref')) {
+        const markerText = el.textContent || '';
+        const fontSize = 12;
+        const lineHeight = fontSize * 0.352 * 1.5;
+
+        doc.setFont('times', 'normal');
+        doc.setFontSize(fontSize);
+        doc.setTextColor(30, 30, 30);
+
+        if (state.y + lineHeight > state.pageHeight - state.marginBottom) {
+            doc.addPage();
+            state.y = state.marginTop;
+        }
+        doc.text(markerText, state.x + doc.getTextWidth(' ') * 0, state.y);
+        // The marker is inline, so we add its width to the next text
+        // For simplicity, just render it inline
+        const w = doc.getTextWidth(markerText);
+        // We won't advance y, the next text will flow after. But since jsPDF is line-based,
+        // just render it as part of the text flow.
+        return;
+    }
 
     if (tag === 'BR') {
         state.y += 12 * 0.352 * 1.5;
+        return;
+    }
+
+    // --- List handling ---
+    if (tag === 'UL' || tag === 'OL') {
+        state.listStack.push({ type: tag, counter: 0 });
+        for (const child of node.childNodes) {
+            renderHtmlNodeToPDF(doc, child, fmt, state);
+        }
+        state.listStack.pop();
+        // Add spacing after list (only for top-level lists)
+        if (state.listStack.length === 0) {
+            state.y += 2;
+        }
+        return;
+    }
+
+    if (tag === 'LI') {
+        const depth = state.listStack.length;
+        const indent = 8 * depth; // 8mm per nesting level
+        const currentList = state.listStack[state.listStack.length - 1];
+
+        if (currentList) {
+            currentList.counter++;
+
+            const fontSize = 12;
+            const lineHeight = fontSize * 0.352 * 1.5;
+
+            // Page break check
+            if (state.y + lineHeight > state.pageHeight - state.marginBottom) {
+                doc.addPage();
+                state.y = state.marginTop;
+            }
+
+            // Render bullet or number prefix
+            doc.setFont('times', 'normal');
+            doc.setFontSize(fontSize);
+            doc.setTextColor(30, 30, 30);
+
+            const prefixX = state.baseX + indent - 5;
+            if (currentList.type === 'UL') {
+                const bulletChar = depth <= 1 ? '\u2022' : depth === 2 ? '\u25E6' : '\u25AA';
+                doc.text(bulletChar, prefixX, state.y);
+            } else {
+                doc.text(`${currentList.counter}.`, prefixX, state.y);
+            }
+        }
+
+        // Indent content
+        const savedX = state.x;
+        const savedContentWidth = state.contentWidth;
+        state.x = state.baseX + indent;
+        state.contentWidth = savedContentWidth - indent;
+
+        const newFmt = { ...fmt };
+        for (const child of node.childNodes) {
+            renderHtmlNodeToPDF(doc, child, newFmt, state);
+        }
+
+        // Restore x position and content width
+        state.x = savedX;
+        state.contentWidth = savedContentWidth;
+        state.y += 1; // Small spacing between list items
         return;
     }
 
@@ -189,4 +301,110 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
     if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(tag)) {
         state.y += 3;
     }
+}
+
+/**
+ * Render the TOC block into the PDF.
+ */
+function renderTocToPDF(doc, tocEl, state) {
+    // TOC title
+    const lineHeight = 14 * 0.352 * 1.5;
+
+    if (state.y + lineHeight > state.pageHeight - state.marginBottom) {
+        doc.addPage();
+        state.y = state.marginTop;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(30, 30, 30);
+
+    const titleEl = tocEl.querySelector('.toc-title');
+    if (titleEl) {
+        doc.text(titleEl.textContent, state.x, state.y);
+        state.y += lineHeight + 2;
+    }
+
+    // TOC entries
+    const entries = tocEl.querySelectorAll('.toc-entry');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    const entryLineHeight = 11 * 0.352 * 1.5;
+
+    entries.forEach(entry => {
+        if (state.y + entryLineHeight > state.pageHeight - state.marginBottom) {
+            doc.addPage();
+            state.y = state.marginTop;
+        }
+
+        const isH2 = entry.classList.contains('toc-h2');
+        const indent = isH2 ? 8 : 0;
+
+        doc.setTextColor(30, 30, 30);
+        doc.text(entry.textContent, state.x + indent, state.y);
+        state.y += entryLineHeight;
+    });
+
+    // Divider line after TOC
+    state.y += 3;
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    doc.line(state.x, state.y, state.x + state.contentWidth, state.y);
+    state.y += 8;
+}
+
+/**
+ * Render the references/bibliography block into the PDF.
+ */
+function renderReferencesToPDF(doc, refEl, state) {
+    const lineHeight = 14 * 0.352 * 1.5;
+
+    // Add some spacing before references
+    state.y += 5;
+
+    if (state.y + lineHeight > state.pageHeight - state.marginBottom) {
+        doc.addPage();
+        state.y = state.marginTop;
+    }
+
+    // Divider before references
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    doc.line(state.x, state.y, state.x + state.contentWidth, state.y);
+    state.y += 5;
+
+    // Title
+    const titleEl = refEl.querySelector('.ref-title');
+    if (titleEl) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(30, 30, 30);
+        doc.text(titleEl.textContent, state.x, state.y);
+        state.y += lineHeight + 2;
+    }
+
+    // Reference entries
+    const entries = refEl.querySelectorAll('.ref-entry');
+    doc.setFont('times', 'normal');
+    doc.setFontSize(10);
+    const entryLineHeight = 10 * 0.352 * 1.8;
+
+    entries.forEach(entry => {
+        const text = entry.textContent;
+        const lines = doc.splitTextToSize(text, state.contentWidth - 5);
+
+        lines.forEach((line, i) => {
+            if (state.y + entryLineHeight > state.pageHeight - state.marginBottom) {
+                doc.addPage();
+                state.y = state.marginTop;
+            }
+
+            doc.setTextColor(30, 30, 30);
+            const indent = i > 0 ? 8 : 0; // Hanging indent for wrapped lines
+            doc.text(line, state.x + indent, state.y);
+            state.y += entryLineHeight;
+        });
+
+        state.y += 1; // Small gap between entries
+    });
 }

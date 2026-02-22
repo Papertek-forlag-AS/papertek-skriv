@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v2';
+const CACHE_NAME = 'skriv-v5';
 const ASSETS = [
     '/',
     '/index.html',
@@ -20,8 +20,16 @@ const ASSETS = [
     '/js/editor-core/shared/word-counter.js',
     '/js/editor-core/student/editor-toolbar.js',
     '/js/editor-core/student/text-export.js',
+    '/js/editor-core/student/toc-manager.js',
+    '/js/editor-core/student/reference-manager.js',
+    '/js/editor-core/student/frame-parser.js',
+    '/js/editor-core/student/frame-manager.js',
+    '/js/editor-core/student/frame-selector.js',
     '/js/editor-core/locales/nb.js',
     '/js/editor-core/locales/en.js',
+    '/frames/droefting.md',
+    '/frames/analyse.md',
+    '/frames/kronikk.md',
 ];
 
 // Install: cache static assets

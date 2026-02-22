@@ -29,6 +29,17 @@
             padding: 0;
         }
         #editor p { margin-bottom: 0.25em; }
+        /* Preserved headings (structure mode off) keep their visual size */
+        #editor p[data-was-heading="1"] {
+            font-size: 1.5em;
+            margin-top: 0.5em;
+            margin-bottom: 0.25em;
+        }
+        #editor p[data-was-heading="2"] {
+            font-size: 1.25em;
+            margin-top: 0.5em;
+            margin-bottom: 0.25em;
+        }
         #editor h1 {
             font-size: 1.5em;
             font-weight: 700;
@@ -40,6 +51,151 @@
             font-weight: 600;
             margin-top: 0.5em;
             margin-bottom: 0.25em;
+        }
+
+        /* Lists */
+        #editor ul, #editor ol {
+            margin: 0.25em 0;
+            padding-left: 1.5em;
+        }
+        #editor ul { list-style-type: disc; }
+        #editor ol { list-style-type: decimal; }
+        #editor li { margin-bottom: 0.15em; }
+        #editor ul ul { list-style-type: circle; }
+        #editor ul ul ul { list-style-type: square; }
+
+        /* Table of Contents */
+        #editor .skriv-toc {
+            background: #f5f5f4;
+            border: 1px solid #d6d3d1;
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1em;
+            user-select: none;
+        }
+        #editor .skriv-toc .toc-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #44403c;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5em;
+        }
+        #editor .skriv-toc .toc-empty {
+            font-size: 0.8rem;
+            color: #a8a29e;
+            font-style: italic;
+        }
+        #editor .skriv-toc .toc-entry {
+            font-size: 0.875rem;
+            color: #57534e;
+            cursor: pointer;
+            padding: 0.15em 0;
+            transition: color 0.15s;
+        }
+        #editor .skriv-toc .toc-entry:hover {
+            color: #059669;
+        }
+        #editor .skriv-toc .toc-h2 {
+            padding-left: 1.25em;
+        }
+
+        /* Inline reference markers */
+        #editor .skriv-ref {
+            display: inline;
+            font-size: 0.75em;
+            color: #059669;
+            font-weight: 600;
+            cursor: pointer;
+            vertical-align: super;
+            line-height: 1;
+            padding: 0 1px;
+            transition: color 0.15s;
+        }
+        #editor .skriv-ref:hover {
+            color: #047857;
+            text-decoration: underline;
+        }
+
+        /* Reference list / bibliography */
+        #editor .skriv-references {
+            border-top: 1px solid #d6d3d1;
+            margin-top: 2em;
+            padding-top: 1em;
+            user-select: none;
+        }
+        #editor .skriv-references .ref-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #44403c;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5em;
+        }
+        #editor .skriv-references .ref-entry {
+            font-size: 0.8rem;
+            color: #57534e;
+            padding: 0.2em 0;
+            cursor: pointer;
+            transition: color 0.15s;
+            padding-left: 2em;
+            text-indent: -2em;
+        }
+        #editor .skriv-references .ref-entry:hover {
+            color: #059669;
+        }
+        #editor .skriv-references .ref-entry-orphan {
+            opacity: 0.5;
+        }
+
+        /* Frame section headers — emerald themed */
+        #editor .skriv-frame-section {
+            background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+            border: 1px solid #a7f3d0;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            margin: 1.25em 0 0.5em;
+            user-select: none;
+        }
+        #editor .skriv-frame-section:first-child { margin-top: 0; }
+        .frame-section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #065f46;
+            margin: 0;
+        }
+        .frame-section-instruction {
+            font-size: 0.8rem;
+            color: #6ee7b7;
+            font-style: italic;
+            margin: 0.25em 0 0;
+        }
+
+        /* Frame subsections — lighter */
+        #editor .skriv-frame-subsection {
+            border-left: 3px solid #a7f3d0;
+            padding: 0.25rem 0.75rem;
+            margin: 0.75em 0 0.25em;
+            user-select: none;
+        }
+        .frame-subsection-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #047857;
+            margin: 0;
+        }
+
+        /* Frame prompts — ghost text */
+        #editor .skriv-frame-prompt {
+            color: #a8a29e;
+            font-style: italic;
+            border-left: 2px solid #d6d3d1;
+            padding-left: 0.75em;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        #editor .skriv-frame-prompt:hover {
+            color: #78716c;
+            border-color: #a7f3d0;
         }
 
         /* Line clamp for document previews */

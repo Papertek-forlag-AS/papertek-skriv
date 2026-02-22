@@ -18,7 +18,16 @@ export function countWords(text) {
  */
 export function attachWordCounter(element, displayEl, guidance) {
     const getText = () => {
-        return element.value !== undefined ? element.value : (element.innerText || '');
+        if (element.value !== undefined) return element.value;
+        // If frame elements exist, exclude them from word count
+        if (element.querySelector && element.querySelector('.skriv-frame-section')) {
+            const clone = element.cloneNode(true);
+            clone.querySelectorAll('.skriv-frame-section').forEach(el => el.remove());
+            clone.querySelectorAll('.skriv-frame-subsection').forEach(el => el.remove());
+            clone.querySelectorAll('.skriv-frame-prompt').forEach(el => el.remove());
+            return clone.innerText || '';
+        }
+        return element.innerText || '';
     };
 
     const update = () => {

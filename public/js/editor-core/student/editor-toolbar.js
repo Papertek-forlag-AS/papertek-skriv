@@ -1,29 +1,38 @@
 /**
  * Floating formatting toolbar for the writing editor.
  * Appears above text selection as a dark pill (Medium/Notion style).
- * Buttons: B, I, U, H1, H2
+ *
+ * Default buttons: B, I, U
+ * Advanced mode adds: bullet list, numbered list, H1, H2
  *
  * Special characters are rendered separately via initSpecialCharsPanel()
  * as a left-margin panel that follows the cursor vertically.
  *
  * Usage:
- *   const toolbarCleanup = initEditorToolbar(editor);
- *   // ...later:
- *   toolbarCleanup();
+ *   const toolbar = initEditorToolbar(editor);
+ *   toolbar.destroy();                  // cleanup
+ *   toolbar.isAdvancedMode();           // check state
+ *   toolbar.onAdvancedChange(fn);       // listen to toggle
+ *   toolbar.setAdvancedMode(bool);      // set programmatically
  */
 
 import { computePosition, flip, shift, offset } from 'https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.5/+esm';
 import { SPECIAL_CHAR_GROUPS } from '../config.js';
+import { t } from '../shared/i18n.js';
+import { showInPageConfirm } from '../shared/in-page-modal.js';
+import { showToast } from '../shared/toast-notification.js';
 
 /**
  * Initialize the floating editor toolbar.
  * @param {HTMLElement} editor - The contenteditable editor element
- * @returns {Function} destroy - Call to remove all listeners and DOM elements
+ * @returns {Object} toolbar API with destroy(), isAdvancedMode(), onAdvancedChange(), setAdvancedMode()
  */
 export function initEditorToolbar(editor) {
     document.execCommand('defaultParagraphSeparator', false, 'p');
 
     const container = editor.closest('#writing-env') || editor.parentElement;
+    let advancedMode = false;
+    const advancedChangeListeners = [];
 
     // --- Build toolbar DOM ---
     const toolbar = document.createElement('div');
@@ -57,18 +66,37 @@ export function initEditorToolbar(editor) {
         return sep;
     }
 
+    // Always-visible buttons
     const btnBold      = createBtn('B', ['font-bold']);
     const btnItalic    = createBtn('I', ['italic']);
     const btnUnderline = createBtn('U', ['underline']);
-    const btnH1        = createBtn('H1', ['text-xs', 'font-bold']);
-    const btnH2        = createBtn('H2', ['text-xs', 'font-bold']);
 
+    // Advanced mode buttons (hidden by default)
+    const sepLists      = createSeparator();
+    const btnBulletList = createBtn('•', ['text-lg']);
+    const btnOrderedList = createBtn('1.', ['text-xs', 'font-bold']);
+    const sepHeadings   = createSeparator();
+    const btnH1         = createBtn('H1', ['text-xs', 'font-bold']);
+    const btnH2         = createBtn('H2', ['text-xs', 'font-bold']);
+
+    // Always-visible part
     toolbar.appendChild(btnBold);
     toolbar.appendChild(btnItalic);
     toolbar.appendChild(btnUnderline);
-    toolbar.appendChild(createSeparator());
+
+    // Advanced mode: lists
+    toolbar.appendChild(sepLists);
+    toolbar.appendChild(btnBulletList);
+    toolbar.appendChild(btnOrderedList);
+
+    // Advanced mode: headings
+    toolbar.appendChild(sepHeadings);
     toolbar.appendChild(btnH1);
     toolbar.appendChild(btnH2);
+
+    // Hide advanced buttons initially
+    const advancedBtns = [sepLists, btnBulletList, btnOrderedList, sepHeadings, btnH1, btnH2];
+    advancedBtns.forEach(el => { el.style.display = 'none'; });
 
     const toolbarWrapper = document.createElement('div');
     toolbarWrapper.className = 'fixed z-[300]';
@@ -80,6 +108,76 @@ export function initEditorToolbar(editor) {
     toolbarWrapper.addEventListener('mousedown', () => { toolbarMousedown = true; });
     toolbarWrapper.addEventListener('mouseup',   () => { toolbarMousedown = false; });
     document.addEventListener('mouseup', () => { toolbarMousedown = false; });
+
+    // --- Advanced toggle (fixed in top bar, added by standalone-writer) ---
+    // The toolbar exposes API for standalone-writer to control advanced mode.
+
+    function updateAdvancedButtons() {
+        const display = advancedMode ? '' : 'none';
+        advancedBtns.forEach(el => { el.style.display = display; });
+    }
+
+    async function toggleAdvancedMode() {
+        if (advancedMode) {
+            // Check if there are headings in the editor
+            const headings = editor.querySelectorAll('h1, h2');
+            const toc = editor.querySelector('.skriv-toc');
+            if (headings.length > 0 || toc) {
+                const confirmed = await showInPageConfirm(
+                    t('skriv.advancedDisableConfirmTitle'),
+                    t('skriv.advancedDisableConfirmMessage'),
+                    t('skriv.advancedDisableConfirmYes'),
+                    t('common.cancel')
+                );
+                if (!confirmed) return;
+
+                // Convert headings to bold paragraphs with data markers for restoration
+                headings.forEach(h => {
+                    const p = document.createElement('p');
+                    const level = h.tagName.toUpperCase() === 'H1' ? '1' : '2';
+                    p.setAttribute('data-was-heading', level);
+                    p.innerHTML = `<b>${h.innerHTML}</b>`;
+                    h.parentNode.replaceChild(p, h);
+                });
+
+                // Remove TOC
+                if (toc) toc.remove();
+            }
+            advancedMode = false;
+        } else {
+            // Restore marked paragraphs back to headings
+            const markedParas = editor.querySelectorAll('p[data-was-heading]');
+            markedParas.forEach(p => {
+                const level = p.getAttribute('data-was-heading');
+                const tag = level === '1' ? 'h1' : 'h2';
+                const heading = document.createElement(tag);
+                const boldChild = p.querySelector(':scope > b');
+                if (boldChild && p.childNodes.length === 1) {
+                    heading.innerHTML = boldChild.innerHTML;
+                } else {
+                    heading.innerHTML = p.innerHTML;
+                }
+                p.parentNode.replaceChild(heading, p);
+            });
+
+            advancedMode = true;
+        }
+        updateAdvancedButtons();
+        advancedChangeListeners.forEach(fn => fn(advancedMode));
+    }
+
+    // --- Helper: find closest LI ancestor within editor ---
+    function getClosestLI() {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount) return null;
+        let node = sel.getRangeAt(0).startContainer;
+        if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+        while (node && node !== editor) {
+            if (node.tagName === 'LI') return node;
+            node = node.parentNode;
+        }
+        return null;
+    }
 
     // --- Active state management ---
     function getBlockElement() {
@@ -133,6 +231,10 @@ export function initEditorToolbar(editor) {
         btnBold.classList.toggle('bg-stone-600', isActive('bold'));
         btnItalic.classList.toggle('bg-stone-600', isActive('italic'));
         btnUnderline.classList.toggle('bg-stone-600', isActive('underline'));
+
+        // List active states
+        btnBulletList.classList.toggle('bg-stone-600', isActive('insertUnorderedList'));
+        btnOrderedList.classList.toggle('bg-stone-600', isActive('insertOrderedList'));
 
         const blockEl = getBlockElement();
         const tag = blockEl?.tagName?.toUpperCase() || '';
@@ -198,12 +300,21 @@ export function initEditorToolbar(editor) {
         updateActiveStates();
     }
 
+    function applyList(type) {
+        editor.focus();
+        document.execCommand(type);
+        updateActiveStates();
+    }
+
     function applyHeading(tag) {
         const sel = window.getSelection();
         if (!sel || !sel.rangeCount) return;
 
         const blockEl = getBlockElement();
         if (!blockEl || blockEl === editor) return;
+
+        // Don't allow heading inside TOC, reference, or frame blocks
+        if (blockEl.closest('.skriv-toc') || blockEl.closest('.skriv-references') || blockEl.closest('.skriv-frame-section') || blockEl.closest('.skriv-frame-subsection')) return;
 
         const currentTag = blockEl.tagName?.toUpperCase() || '';
 
@@ -222,13 +333,15 @@ export function initEditorToolbar(editor) {
         updateActiveStates();
     }
 
-    btnBold.addEventListener('click',      () => applyInlineFormat('bold'));
-    btnItalic.addEventListener('click',    () => applyInlineFormat('italic'));
-    btnUnderline.addEventListener('click', () => applyInlineFormat('underline'));
-    btnH1.addEventListener('click',        () => applyHeading('H1'));
-    btnH2.addEventListener('click',        () => applyHeading('H2'));
+    btnBold.addEventListener('click',        () => applyInlineFormat('bold'));
+    btnItalic.addEventListener('click',      () => applyInlineFormat('italic'));
+    btnUnderline.addEventListener('click',   () => applyInlineFormat('underline'));
+    btnBulletList.addEventListener('click',  () => applyList('insertUnorderedList'));
+    btnOrderedList.addEventListener('click', () => applyList('insertOrderedList'));
+    btnH1.addEventListener('click',          () => applyHeading('H1'));
+    btnH2.addEventListener('click',          () => applyHeading('H2'));
 
-    // --- Keyboard shortcuts + heading reset on Enter ---
+    // --- Keyboard shortcuts + Enter/Tab handling ---
     function onEditorKeydown(e) {
         if (e.ctrlKey || e.metaKey) {
             const key = e.key.toLowerCase();
@@ -237,11 +350,109 @@ export function initEditorToolbar(editor) {
             if (key === 'u') { e.preventDefault(); applyInlineFormat('underline'); return; }
         }
 
+        // --- Tab / Shift+Tab for list indent/outdent ---
+        if (e.key === 'Tab') {
+            const li = getClosestLI();
+            if (li) {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    document.execCommand('outdent');
+                } else {
+                    document.execCommand('indent');
+                }
+                return;
+            }
+            // If not in a list, let Tab do default (or nothing — we don't trap Tab outside lists)
+        }
+
         if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
             const sel = window.getSelection();
+            if (!sel || !sel.rangeCount) return;
             const range = sel.getRangeAt(0);
             const blockEl = getBlockElement();
+
+            // Don't handle enter inside non-editable blocks
+            if (blockEl && (blockEl.closest('.skriv-toc') || blockEl.closest('.skriv-references') || blockEl.closest('.skriv-frame-section') || blockEl.closest('.skriv-frame-subsection'))) {
+                e.preventDefault();
+                return;
+            }
+
+            // --- List item Enter handling ---
+            const li = getClosestLI();
+            if (li) {
+                const isEmpty = !li.textContent.trim() && !li.querySelector('img');
+                if (isEmpty) {
+                    // Empty LI: exit the list
+                    e.preventDefault();
+                    const list = li.closest('ul, ol');
+                    if (!list) return;
+
+                    // Check if this is a nested list
+                    const parentLI = list.parentElement?.closest('li');
+                    if (parentLI) {
+                        // Nested: outdent instead of exiting completely
+                        li.remove();
+                        if (list.children.length === 0) list.remove();
+                        document.execCommand('outdent');
+                    } else {
+                        // Top-level: exit list, create a <p> after the list
+                        li.remove();
+                        if (list.children.length === 0) list.remove();
+
+                        const p = document.createElement('p');
+                        p.innerHTML = '<br>';
+                        if (list.parentNode) {
+                            if (list.nextSibling) {
+                                list.parentNode.insertBefore(p, list.nextSibling);
+                            } else {
+                                list.parentNode.appendChild(p);
+                            }
+                        } else {
+                            editor.appendChild(p);
+                        }
+
+                        const newRange = document.createRange();
+                        newRange.setStart(p, 0);
+                        newRange.collapse(true);
+                        sel.removeAllRanges();
+                        sel.addRange(newRange);
+                    }
+                } else {
+                    // Non-empty LI: split at cursor and create new LI
+                    e.preventDefault();
+                    const afterRange = document.createRange();
+                    afterRange.setStart(range.endContainer, range.endOffset);
+                    afterRange.setEnd(li, li.childNodes.length);
+                    const afterContent = afterRange.extractContents();
+
+                    const newLI = document.createElement('li');
+                    if (afterContent.textContent.trim() || afterContent.querySelector('*')) {
+                        newLI.appendChild(afterContent);
+                    } else {
+                        newLI.innerHTML = '<br>';
+                    }
+
+                    if (!li.textContent.trim() && !li.querySelector('img, br')) {
+                        li.innerHTML = '<br>';
+                    }
+
+                    if (li.nextSibling) {
+                        li.parentNode.insertBefore(newLI, li.nextSibling);
+                    } else {
+                        li.parentNode.appendChild(newLI);
+                    }
+
+                    const newRange = document.createRange();
+                    newRange.setStart(newLI, 0);
+                    newRange.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                }
+                return;
+            }
+
+            // --- Normal (non-list) Enter handling ---
+            e.preventDefault();
 
             if (!blockEl || blockEl === editor) {
                 const p = document.createElement('p');
@@ -302,7 +513,37 @@ export function initEditorToolbar(editor) {
         }
     }
 
-    return destroy;
+    // --- Check if document already has advanced content ---
+    function detectExistingAdvanced() {
+        const hasHeadings = editor.querySelectorAll('h1, h2').length > 0;
+        const hasToc = !!editor.querySelector('.skriv-toc');
+        const hasLists = editor.querySelectorAll('ul, ol').length > 0;
+        const hasMarkedHeadings = editor.querySelectorAll('p[data-was-heading]').length > 0;
+        const hasFrame = editor.querySelectorAll('.skriv-frame-section').length > 0;
+        if (hasHeadings || hasToc || hasLists || hasFrame) {
+            advancedMode = true;
+            updateAdvancedButtons();
+            advancedChangeListeners.forEach(fn => fn(advancedMode));
+        }
+        // Note: hasMarkedHeadings alone doesn't auto-enable advanced mode —
+        // the student turned it off deliberately. The markers just preserve the ability to restore.
+    }
+
+    // Detect after a short delay to ensure all listeners are registered
+    setTimeout(detectExistingAdvanced, 50);
+
+    return {
+        destroy,
+        isAdvancedMode: () => advancedMode,
+        toggleAdvancedMode,
+        setAdvancedMode: (enabled) => {
+            advancedMode = enabled;
+            updateAdvancedButtons();
+            advancedChangeListeners.forEach(fn => fn(advancedMode));
+        },
+        onAdvancedChange: (fn) => { advancedChangeListeners.push(fn); },
+        getBlockElement,
+    };
 }
 
 

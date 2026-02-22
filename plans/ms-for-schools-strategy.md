@@ -4,9 +4,47 @@ Elever bruker en brøkdel av MS Words funksjoner. Lockdown trenger ikke 1500 fun
 
 ---
 
-## Status: v1 FERDIG — Standalone PWA med kopierte moduler
+## Status: v1 FERDIG — Fase 1+2 FERDIG — Fase 3 FERDIG — Fase 4 FERDIG
 
 > **Oppdatert 22. februar 2026**
+
+### Fase 1 (TOC) + Fase 2 (Referanser) — FERDIG
+
+Begge faser implementert med kun lokal lagring (IndexedDB, ingen Supabase).
+
+| Oppgave | Status |
+|---------|--------|
+| Struktur-toggle (skjul H1/H2 bak toggle) | FERDIG |
+| TOC-modul (auto-generert innholdsfortegnelse) | FERDIG |
+| TOC-oppdatering live i editor | FERDIG |
+| Referanse-dialog (legg til kilde) | FERDIG |
+| Referansesystem (inline [1]-markører + kildeliste) | FERDIG |
+| PDF-eksport med TOC og referanser | FERDIG |
+| CSS-stiler for TOC og referanser | FERDIG |
+| i18n-oversettelser for nye features | FERDIG |
+| Referansedata lagret i IndexedDB | FERDIG |
+| Kilde frakoblet fra Struktur-toggle (alltid synlig) | FERDIG |
+| Overskrifter bevart som markerte avsnitt ved toggle-av | FERDIG |
+| Gjenoppretting av overskrifter ved toggle-på | FERDIG |
+
+### Nye filer opprettet i Fase 1+2
+
+| Fil | Formål |
+|-----|--------|
+| `editor-core/student/toc-manager.js` | Auto-generert innholdsfortegnelse fra H1/H2 |
+| `editor-core/student/reference-manager.js` | Inline kildemarkører, kildeliste, referansedialog |
+
+### Endrede filer i Fase 1+2
+
+| Fil | Endring |
+|-----|---------|
+| `editor-core/student/editor-toolbar.js` | Struktur-toggle, H1/H2 skjult som standard, auto-detect |
+| `app/standalone-writer.js` | Integrert TOC, referanser, Kilde-knapp, Struktur-toggle |
+| `editor-core/student/text-export.js` | PDF-rendering av TOC og kildeliste |
+| `index.html` | CSS for TOC, inline-referanser, kildeliste |
+| `sw.js` | Oppdatert cache (v4) med nye filer |
+| `editor-core/locales/nb.js` | Norske oversettelser for TOC/referanser |
+| `editor-core/locales/en.js` | Engelske oversettelser for TOC/referanser |
 
 ### Hva er gjort
 
@@ -319,20 +357,277 @@ Dialogen maa vaere enkel — maks 4-5 felter synlige om gangen. Elever gir opp h
 
 ---
 
-## Fase 3: Fremtidige utvidelser (ikke planlagt ennå)
+## Fase 3: Punktlister, nummererte lister + Avansert-toggle
 
-Funksjoner vi kan vurdere senere, basert paa laerertilbakemeldinger:
+**Status:** FERDIG ✅
+
+Lister + Avansert-toggle som erstatter Struktur-togglens funksjonalitet. Struktur-knappen beholdes som inert placeholder for fremtidige skriverammer.
+
+### Designbeslutning: Avansert-toggle
+
+```
+Standard:    [B] [I] [U]
++Avansert:   [B] [I] [U] | [•] [1.] | [H1] [H2]
+```
+
+- "Avansert" i topplinjen kontrollerer tilgang til lister, H1/H2
+- "Struktur" er visuelt beholdt men inert (placeholder for skriverammer)
+- TOC auto-genereres naar student bruker H1/H2 (laerer at overskrifter skaper innholdsfortegnelse)
+- Kilde forblir uavhengig (alltid synlig)
+
+### Oppgaver
+
+| Oppgave | Status |
+|---------|--------|
+| Avansert-toggle i topplinjen (erstatter Struktur funksjonelt) | FERDIG |
+| Struktur-knapp beholdt som inert placeholder | FERDIG |
+| UL-knapp i verktoylinjen (punktliste) | FERDIG |
+| OL-knapp i verktoylinjen (nummerert liste) | FERDIG |
+| CSS-stiler for lister i editor | FERDIG |
+| Enter-haandtering i lister (ny LI / exit liste) | FERDIG |
+| Tab/Shift+Tab for innrykk i lister | FERDIG |
+| Aktiv-tilstand for listeknapper | FERDIG |
+| Auto-TOC naar student bruker H1/H2 | FERDIG |
+| PDF-eksport med lister (innrykk, kulepunkt, nummerering) | FERDIG |
+| i18n-oversettelser (nb + en) | FERDIG |
+| Auto-detect avansert innhold ved lasting | FERDIG |
+| SW-cache oppdatert (v4) | FERDIG |
+| Teste i nettleser | FERDIG |
+
+### Endrede filer
+
+| Fil | Endring |
+|-----|---------|
+| `editor-core/student/editor-toolbar.js` | Struktur→Avansert, listeknapper, Enter/Tab for lister |
+| `app/standalone-writer.js` | Avansert-toggle, inert Struktur, auto-TOC |
+| `editor-core/student/text-export.js` | PDF-rendering av UL/OL/LI |
+| `index.html` | CSS for lister |
+| `editor-core/locales/nb.js` | Avansert-oversettelser |
+| `editor-core/locales/en.js` | Advanced translations |
+| `sw.js` | Cache v4 |
+
+---
+
+## Fase 4: Skriverammer (writing frames)
+
+**Status:** FERDIG ✅
+
+Strukturert stoeette for sjangerskrivning. Eleven velger sjanger (droefting, analyse, kronikk, etc.) og faar en ramme med seksjoner og setningsstartere som forsvinner naar eleven skriver.
+
+Se v2-seksjonen for full beskrivelse av skriverammer, trestegsmetoden, og sjangervelger.
+
+### Dataformat: Markdown som kilde, JSON som runtime
+
+**Beslutning:** Skriveramme-data lagres som `.md`-filer — én fil per ramme. Markdown parses til strukturert data ved lasting i nettleseren.
+
+**Hvorfor Markdown som kilde:**
+
+1. **Laererlesbart.** Laerere kan lese, kommentere og foreslaa endringer i rammeinnholdet uten teknisk kompetanse. En `.md`-fil ser ut som et dokument, ikke som kode.
+2. **Fremtidig samarbeid.** Naar Supabase-backend er paa plass, kan vi bygge en enkel visning der laerere ser ramme-innholdet og sender kommentarer/forbedringsforslag. MD-formatet gjoer dette naturlig.
+3. **Versjonskontroll.** Git-diffs av Markdown er lesbare for mennesker. Endringer i setningsstartere eller seksjonstitler er umiddelbart synlige.
+4. **Strukturert nok for parsing.** Ved aa bruke en konsistent struktur (H1 = rammenavn, H2 = seksjoner, `>` = instruksjon, `-` = setningsstartere) kan en liten parser (50-70 linjer JS) trekke ut all strukturert data.
+
+**Hvorfor ikke ren JSON:**
+
+- JSON er uleselig for laerere: `{"sections":[{"title":"Innledning","prompts":["I denne teksten..."]}]}`
+- Redigering krever teknisk kunnskap
+- Git-diffs er vanskelige aa lese
+
+**Fremtidig plattformstoeette (iOS/Mac):**
+
+Markdown fungerer paa alle plattformer, men krever en parser. Strategien:
+
+- **Web (naa):** Liten JS-parser som leser `.md` og returnerer strukturert objekt. Ingen tung MD-lib noedvendig.
+- **iOS/Mac (fremtidig):** To alternativer:
+  1. **Build-steg:** `node scripts/frames-to-json.js` konverterer alle `.md`-filer til `.json` foer app-bygging. Appen leser kun JSON. Enkelt og effektivt.
+  2. **Runtime-parsing:** Swift/Kotlin kan parse den enkle MD-strukturen direkte. Formatet er saa enkelt at det ikke krever et fullt MD-bibliotek.
+- **Uansett tilnaerming:** MD forblir kilden. JSON er et kompilert format som genereres automatisk.
+
+**Eksempel paa ramme-fil (`frames/droefting.md`):**
+
+```markdown
+# Droefting
+
+## Metadata
+- sjanger: droefting
+- nivaa: vgs
+- avsnitt: 5
+
+## Innledning
+> Presenter temaet og problemstillingen
+
+- I denne teksten skal jeg droefte...
+- [Tema] er et aktuelt spoersmaal fordi...
+- Det finnes ulike synspunkter paa...
+
+## Argument 1 (for)
+> Paastaa → Forklaring → Eksempel (trestegsmetoden)
+
+### Paastaa
+- Et viktig argument for [tema] er...
+- Paa den ene siden kan man hevde at...
+
+### Forklaring
+- Dette betyr at...
+- Grunnen til dette er...
+
+### Eksempel
+- Et eksempel paa dette er...
+- [Kilde] viser at...
+
+## Argument 2 (mot)
+> Paastaa → Forklaring → Eksempel (trestegsmetoden)
+
+### Paastaa
+- Paa den andre siden...
+- Et motargument er at...
+
+## Avslutning
+> Oppsummer og ta stilling
+
+- Alt i alt mener jeg at...
+- Selv om det finnes gode argumenter for begge sider...
+```
+
+**Parser-output (runtime):**
+
+```js
+{
+  name: 'Droefting',
+  meta: { sjanger: 'droefting', nivaa: 'vgs', avsnitt: 5 },
+  sections: [
+    {
+      title: 'Innledning',
+      instruction: 'Presenter temaet og problemstillingen',
+      prompts: ['I denne teksten skal jeg droefte...', ...],
+      subsections: []
+    },
+    {
+      title: 'Argument 1 (for)',
+      instruction: 'Paastaa → Forklaring → Eksempel (trestegsmetoden)',
+      prompts: [],
+      subsections: [
+        { title: 'Paastaa', prompts: ['Et viktig argument for [tema] er...', ...] },
+        { title: 'Forklaring', prompts: ['Dette betyr at...', ...] },
+        { title: 'Eksempel', prompts: ['Et eksempel paa dette er...', ...] }
+      ]
+    },
+    // ...
+  ]
+}
+```
+
+**Fremtidig laerersamarbeid (naar Supabase er paa plass):**
+
+- Laerere kan se rammeinnholdet i en lesbar visning
+- Laerere kan sende forslag til endringer (kommentarfelt per seksjon)
+- Admin godkjenner og merger endringer i `.md`-filene
+- Oppdaterte rammer publiseres automatisk til appen
+
+### Oppgaver
+
+| Oppgave | Status |
+|---------|--------|
+| Definere MD-struktur for skriverammer | FERDIG ✅ |
+| `frame-parser.js` (MD → strukturert objekt) | FERDIG ✅ |
+| `frame-manager.js` (skriveramme-modul) | FERDIG ✅ |
+| `frame-selector.js` (sjangervelger-UI) | FERDIG ✅ |
+| Ramme-data: `frames/droefting.md` | FERDIG ✅ |
+| Ramme-data: `frames/analyse.md` | FERDIG ✅ |
+| Ramme-data: `frames/kronikk.md` | FERDIG ✅ |
+| Trestegsmetoden som rammevariant | FERDIG ✅ |
+| Sjangervelger-UI (Struktur-knapp → velg sjanger) | FERDIG ✅ |
+| Fade-out av ledetekster naar eleven skriver | FERDIG ✅ |
+| Skriverammer ekskludert fra ordtelling | FERDIG ✅ |
+| Skriverammer ekskludert fra PDF-eksport | FERDIG ✅ |
+| Skriverammer ekskludert fra .txt-eksport | FERDIG ✅ |
+| Rehydrering av ramme ved gjenåpning | FERDIG ✅ |
+| Guards i toc-manager, reference-manager, editor-toolbar | FERDIG ✅ |
+| i18n-oversettelser (nb + en) | FERDIG ✅ |
+| Service Worker oppdatert (v5) | FERDIG ✅ |
+
+### Endrede/nye filer (Fase 4)
+
+| Fil | Endring |
+|-----|---------|
+| `editor-core/student/frame-parser.js` | NY — MD→objekt parser |
+| `editor-core/student/frame-manager.js` | NY — Ramme-livssyklus: apply, remove, rehydrate, getCleanText |
+| `editor-core/student/frame-selector.js` | NY — Sjangervelger-dropdown fra Struktur-knapp |
+| `frames/droefting.md` | NY — Drøftingsramme med trestegsmetoden |
+| `frames/analyse.md` | NY — Analyseramme med underdeler |
+| `frames/kronikk.md` | NY — Kronikkramme |
+| `app/standalone-writer.js` | Struktur-knapp aktivert, frame-moduler integrert, frameType lagres |
+| `editor-core/student/editor-toolbar.js` | Guards for frame-elementer i heading/Enter-håndtering |
+| `editor-core/student/toc-manager.js` | Skip frame-elementer i TOC-scanning |
+| `editor-core/student/reference-manager.js` | Guard mot referansemarkør i frame-blokker |
+| `editor-core/student/text-export.js` | PDF-ekskludering av frame-scaffold |
+| `editor-core/shared/word-counter.js` | Ordtelling ekskluderer frame-elementer |
+| `index.html` | CSS for frame-sections, subsections, prompts |
+| `editor-core/locales/nb.js` | ~15 frame-relaterte oversettelser |
+| `editor-core/locales/en.js` | ~15 frame-related translations |
+| `sw.js` | Cache v5, nye assets lagt til |
+
+---
+
+## Fase 5: Ordspinner + Gjentakelsesradar
+
+**Status:** PLANLAGT
+
+Pedagogiske skriveverktoy som hjelper eleven med variasjon og ordforraad.
+
+### Oppgaver
+
+| Oppgave | Status |
+|---------|--------|
+| `writing-spinner.js` (spinner-modul) | |
+| `spinner-data-nb.js` (norsk ordbank) | |
+| Scramble-animasjon (gjenbruk fra lockdown) | |
+| Synonym-modus (dobbeltklikk paa ord) | |
+| `word-frequency.js` (gjentakelsesradar) | |
+| Highlight gjentatte ord + kobling til spinner | |
+| i18n-oversettelser | |
+
+---
+
+## Fase 6: Bilder
+
+**Status:** PLANLAGT — skal behandles separat og gjoeres skikkelig
+
+Bildehaandtering i Word er elendig. Vi gjoer det bedre. Denne fasen krever separat planlegging med fokus paa:
+- Enkel innsetting (lim inn, dra inn, velg fil)
+- Bilder som flyter naturlig med teksten (ikke Words forvirrende layout-moduser)
+- Resize med haandtak
+- Bildedata lagret som base64 eller blob i IndexedDB
+- PDF-eksport med bilder
+- Maks bildestorrelse / komprimering for aa holde dokumentet lite
+
+### Oppgaver
+
+| Oppgave | Status |
+|---------|--------|
+| Detaljert design og planlegging | |
+| Bildeinnsetting (paste, drag, file picker) | |
+| Resize-haandtak | |
+| Lagring i IndexedDB (base64/blob) | |
+| PDF-eksport med bilder | |
+| Komprimering / stoerrelsesbegrensning | |
+| i18n-oversettelser | |
+
+---
+
+## Fremtidige utvidelser (ikke planlagt ennaa)
 
 | Funksjon | Kompleksitet | Verdi |
 |----------|-------------|-------|
-| Fotnoter (footnotes) | Middels | Høy for akademisk skriving |
-| Punktlister / nummererte lister | Lav | Høy — brukes mye |
+| Fotnoter (footnotes) | Middels | Hoey for akademisk skriving |
 | Sidetall i editor | Lav | Middels |
-| Stavekontroll-integrasjon | Middels | Høy (nettleseren har dette allerede) |
-| Ordklasseanalyse / skrivehjelp | Høy | Middels (kan komme i konflikt med KI-fri policy) |
-| Maler (oppgavestruktur) | Middels | Høy for laerere |
-| Bildeinnliming | Middels | Middels |
-| Tabeller | Høy | Lav-middels |
+| Stavekontroll-integrasjon | Middels | Hoey (nettleseren har dette allerede) |
+| Maler (oppgavestruktur) | Middels | Hoey for laerere |
+| Tabeller | Hoey | Lav-middels |
+| Setningslengde-visualisering | Middels | Middels |
+| Avsnittskart / minimap | Middels-hoey | Middels |
+| Sjekkliste foer innlevering | Middels | Middels |
+| Supabase-backend (sky-lagring) | Middels-hoey | Hoey — men utsatt |
 
 ---
 
@@ -340,24 +635,14 @@ Funksjoner vi kan vurdere senere, basert paa laerertilbakemeldinger:
 
 ```
 FERDIG:  v1 — Ren editor med lokal lagring, PDF-eksport, PWA
-Neste:   [B] [I] [U] — rent og enkelt (H1/H2 skjult som standard)
-Fase 1:  [TOC-toggle] → viser [H1] [H2] [TOC] naar aktivert
-Fase 2:  [Ref] — ny funksjonalitet, krever dialog-komponent
-Fase 3:  Lister, fotnoter, maler — basert paa tilbakemelding
+FERDIG:  Fase 1 — TOC (innholdsfortegnelse)
+FERDIG:  Fase 2 — Referanser / kildeliste
+FERDIG:  Fase 3 — Punktlister + Avansert-toggle
+Deretter: Fase 4 — Skriverammer (sjangerstoeette)
+Deretter: Fase 5 — Ordspinner + Gjentakelsesradar
+Deretter: Fase 6 — Bilder (separat planlegging, gjoeres skikkelig)
+Senere:  Supabase, fotnoter, tabeller, etc.
 ```
-
-**Fase 1 (TOC) bør komme først** fordi:
-- Bygger direkte paa H1/H2 som allerede finnes — men gjemmer dem bak en toggle
-- Rydder opp i dagens verktøylinje (fjerner H1/H2 fra standard-visning)
-- Gir H1/H2 en tydelig hensikt: de finnes for dokumentstruktur, ikke som "stor tekst"
-- Laerer elevene at overskrifter hører sammen med innholdsfortegnelse
-- Relativt lav kompleksitet
-
-**Fase 2 (Referanser) er viktigere for elever** men mer kompleks:
-- Krever ny dialog-komponent
-- Krever state management for referansedata
-- Krever renummerering-logikk
-- Kan implementeres stegvis (enkel versjon først)
 
 ---
 
