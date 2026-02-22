@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whitepaper — Skriv by Papertek</title>
+    <meta name="description" content="Whitepaper for Skriv by Papertek. Apenhet, sikkerhet og langsiktighet for norske skoler.">
+    <meta name="theme-color" content="#059669">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* Smooth scroll for anchor links */
+        html { scroll-behavior: smooth; }
+
+        /* Print-friendly styles */
+        @media print {
+            .no-print { display: none !important; }
+            body { font-size: 11pt; }
+            .print-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased">
+
+    <!-- Navigation bar -->
+    <nav class="no-print sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-stone-200">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/" class="text-sm font-semibold text-emerald-700 hover:text-emerald-800 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                Tilbake til Skriv
+            </a>
+            <span class="text-xs text-stone-400">Whitepaper v1.0 &middot; Februar 2026</span>
+        </div>
+    </nav>
+
+    <!-- Hero / title section -->
+    <header class="max-w-3xl mx-auto px-4 pt-16 pb-12">
+        <p class="text-sm font-semibold text-emerald-600 tracking-wide uppercase mb-3">Whitepaper</p>
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-stone-900 leading-tight mb-4">
+            Skriv by Papertek
+        </h1>
+        <p class="text-xl text-stone-500 leading-relaxed max-w-2xl">
+            Et gratis skriveverktoy for norske skoler &mdash; bygget pa apenhet,
+            langsiktighet og personvern.
+        </p>
+        <div class="flex items-center gap-4 mt-8 text-sm text-stone-400">
+            <span>Papertek Forlag AS</span>
+            <span>&middot;</span>
+            <span>Februar 2026</span>
+        </div>
+    </header>
+
+    <!-- Table of contents -->
+    <div class="max-w-3xl mx-auto px-4 mb-12">
+        <div class="bg-white border border-stone-200 rounded-xl p-6">
+            <h2 class="text-sm font-semibold text-stone-500 uppercase tracking-wide mb-4">Innhold</h2>
+            <ol class="space-y-2 text-sm">
+                <li><a href="#sammendrag" class="text-emerald-700 hover:text-emerald-800 hover:underline">1. Sammendrag</a></li>
+                <li><a href="#bakgrunn" class="text-emerald-700 hover:text-emerald-800 hover:underline">2. Bakgrunn og motivasjon</a></li>
+                <li><a href="#hva-er-skriv" class="text-emerald-700 hover:text-emerald-800 hover:underline">3. Hva er Skriv?</a></li>
+                <li><a href="#arkitektur" class="text-emerald-700 hover:text-emerald-800 hover:underline">4. Arkitektur og teknologi</a></li>
+                <li><a href="#apenhet" class="text-emerald-700 hover:text-emerald-800 hover:underline">5. Apenhet uten tradisjonell open source</a></li>
+                <li><a href="#personvern" class="text-emerald-700 hover:text-emerald-800 hover:underline">6. Personvern</a></li>
+                <li><a href="#langsiktighet" class="text-emerald-700 hover:text-emerald-800 hover:underline">7. Langsiktighet og abandonment-klausul</a></li>
+                <li><a href="#for-skoler" class="text-emerald-700 hover:text-emerald-800 hover:underline">8. Hva dette betyr for skoler</a></li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <main class="max-w-3xl mx-auto px-4 pb-24">
+
+        <!-- 1. Sammendrag -->
+        <section id="sammendrag" class="mb-16">
+            <h2 class="text-2xl font-bold text-stone-900 mb-4">1. Sammendrag</h2>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-stone-800 leading-relaxed space-y-3">
+                <p>
+                    <strong>Skriv by Papertek</strong> er et gratis, nettbasert skriveverktoy laget for elever i norske skoler.
+                    Verktoyett er en Progressive Web App (PWA) som fungerer i nettleseren, kan installeres pa enheten,
+                    og virker uten nettilkobling.
+                </p>
+                <p>
+                    Dette whitepaperet beskriver de tekniske og organisatoriske valgene bak Skriv, med sarlig vekt pa
+                    tre temaer som er viktige for skoler: <strong>apenhet</strong>, <strong>personvern</strong> og
+                    <strong>langsiktighet</strong>.
+                </p>
+                <p>
+                    Papertek forplikter seg til at Skriv forblir gratis og tilgjengelig. Dersom Papertek Forlag AS
+                    skulle opphore, sikrer en abandonment-klausul at kode og drift overtas av en uavhengig stiftelse.
+                </p>
+            </div>
+        </section>
+
+        <!-- 2. Bakgrunn -->
+        <section id="bakgrunn" class="mb-16">
+            <h2 class="text-2xl font-bold text-stone-900 mb-4">2. Bakgrunn og motivasjon</h2>
+            <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
+                <p>
+                    Norske skoler bruker i dag en rekke ulike verktoy for skriving: Microsoft Word, Google Docs,
+                    og diverse nettbaserte losninger. Mange av disse krever lisenser, er avhengige av skylagring
+                    hos utenlandske selskaper, og gir skolene begrenset innsyn i hvordan elevdata behandles.
+                </p>
+                <p>
+                    Papertek utvikler allerede <strong>Papertek &ndash; skriveprove</strong>, et proveverktoy for
+                    skriftlige prover i bruk i norske skoler. Gjennom dette arbeidet har vi bygget opp solid
+                    kompetanse og en moden kodebase for nettbasert skriving.
+                </p>
+                <p>
+                    <strong>Skriv</strong> bygger videre pa denne erfaringen og gjor skrivemiljoet tilgjengelig
+                    for daglig bruk &mdash; lekser, notater, stiler og oppgaver &mdash; helt gratis og uten
+                    provekontekst.
+                </p>
+            </div>
+        </section>
+
+        <!-- 3. Hva er Skriv? -->
+        <section id="hva-er-skriv" class="mb-16">
+            <h2 class="text-2xl font-bold text-stone-900 mb-4">3. Hva er Skriv?</h2>
+            <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
+                <p>
+                    Skriv er et skriveverktoy bygget som en selvstendig webapp. Det er designet for a vaere
+                    det enkleste og mest tilgjengelige alternativet for skriving i skolen.
+                </p>
+
+                <div class="grid sm:grid-cols-2 gap-4 my-6">
+                    <div class="bg-white border border-stone-200 rounded-xl p-5">
+                        <div class="text-2xl mb-2">&#9997;&#65039;</div>
+                        <h3 class="font-semibold text-stone-900 mb-1">Skriv og formater</h3>
+                        <p class="text-sm text-stone-500">Teksteditor med formatering: fet, kursiv, understreking, overskrifter og spesialtegn.</p>
+                    </div>
+                    <div class="bg-white border border-stone-200 rounded-xl p-5">
+                        <div class="text-2xl mb-2">&#128190;</div>
+                        <h3 class="font-semibold text-stone-900 mb-1">Automatisk lagring</h3>
+                        <p class="text-sm text-stone-500">Dokumentene lagres automatisk lokalt pa enheten. Ingenting sendes til en server.</p>
+                    </div>
+                    <div class="bg-white border border-stone-200 rounded-xl p-5">
+                        <div class="text-2xl mb-2">&#128196;</div>
+                        <h3 class="font-semibold text-stone-900 mb-1">Eksporter til PDF</h3>
+                        <p class="text-sm text-stone-500">Last ned dokumentet som PDF eller ren tekst, klar til innlevering.</p>
+                    </div>
+                    <div class="bg-white border border-stone-200 rounded-xl p-5">
+                        <div class="text-2xl mb-2">&#128246;</div>
+                        <h3 class="font-semibold text-stone-900 mb-1">Fungerer offline</h3>
+                        <p class="text-sm text-stone-500">PWA-teknologi gjor at appen virker uten nett etter forste besok.</p>
+                    </div>
+                </div>
+
+                <p>
+                    Skriv krever ingen innlogging, ingen lisens og ingen oppsett. Eleven apner nettleseren og begynner a skrive.
+                </p>
+            </div>
+        </section>
+
+        <!-- 4. Arkitektur -->
+        <section id="arkitektur" class="mb-16 print-break">
+            <h2 class="text-2xl font-bold text-stone-900 mb-4">4. Arkitektur og teknologi</h2>
+            <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
+                <p>
+                    Skriv er bevisst bygget med en enkel og gjennomsiktig arkitektur. Det finnes ingen skjulte
+                    serverkomponenter, ingen datainnsamling og ingen avhengigheter som krever tillit til tredjeparter.
+                </p>
+
+                <div class="bg-stone-100 rounded-xl p-6 my-6 font-mono text-sm leading-loose text-stone-700">
+                    <div class="text-stone-400 mb-3">&lt;!-- Hele teknologistabelen --&gt;</div>
+                    <div><span class="text-emerald-700 font-semibold">Frontend:</span> HTML, CSS (Tailwind), JavaScript (vanilla)</div>
+                    <div><span class="text-emerald-700 font-semibold">Lagring:</span> IndexedDB (lokal i nettleseren)</div>
+                    <div><span class="text-emerald-700 font-semibold">Offline:</span> Service Worker (PWA)</div>
+                    <div><span class="text-emerald-700 font-semibold">PDF:</span> jsPDF (klientside)</div>
+                    <div><span class="text-emerald-700 font-semibold">Backend:</span> Ingen</div>
+                </div>
+
+                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Frontend-only</h3>
+                <p>
+                    Skriv er en ren frontend-applikasjon. All kode kjorer i elevens nettleser. Det er ingen
+                    backend-server, ingen database i skyen, og ingen API-kall. Dette betyr at:
+                </p>
+                <ul class="list-disc list-inside space-y-1 text-stone-700 ml-2">
+                    <li>Ingen elevdata forlater enheten</li>
+                    <li>Ingen tredjeparter har tilgang til innholdet</li>
+                    <li>Appen fungerer uten internettilkobling etter installasjon</li>
+                    <li>Koden kan inspiseres direkte i nettleseren</li>
+                </ul>
+
+                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Delt kodebase</h3>
+                <p>
+                    Skriv deler skrivemiljo-komponenter med Papertek &ndash; skriveprove. Dette betyr at
+                    forbedringer i editoren kommer begge produktene til gode. Nye funksjoner utvikles og
+                    proves ut i Skriv forst, og innfores i skriveproveverktoyett etter utproving.
+                </p>
+            </div>
+        </section>
+
+        <!-- 5. Apenhet -->
+        <section id="apenhet" class="mb-16">
+            <h2 class="text-2xl font-bold text-stone-900 mb-4">5. Apenhet uten tradisjonell open source</h2>
+            <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
+                <p>
+                    Skriv har en uvanlig modell for apenhet. All kildekode er tilgjengelig og kan inspiseres
+                    av hvem som helst &mdash; men prosjektet bruker ikke en tradisjonell open source-lisens som MIT eller GPL.
+                </p>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 my-6">
+                    <h3 class="font-semibold text-stone-900 mb-3 flex items-center gap-2">
+                        <span class="text-lg">&#128270;</span> Hva betyr dette i praksis?
+                    </h3>
+                    <ul class="space-y-3 text-stone-700">
+                        <li class="flex items-start gap-3">
+                            <span class="text-emerald-600 font-bold mt-0.5">&#10003;</span>
+                            <span><strong>Full innsyn:</strong> Kildekoden er apent tilgjengelig. Skoler, kommuner og IT-avdelinger kan inspisere noyaktig hva koden gjor.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-emerald-600 font-bold mt-0.5">&#10003;</span>
+                            <span><strong>Naturlig transparens:</strong> Fordi Skriv er en ren frontend-app, er koden allerede synlig for alle som apner utviklerverktoyene i nettleseren.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-emerald-600 font-bold mt-0.5">&#10003;</span>
+                            <span><strong>Ingen skjulte komponenter:</strong> Det er ingen server-side kode, ingen skjulte prosesser, og ingen datainnsamling som ikke er synlig i kildekoden.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-stone-400 font-bold mt-0.5">&#9679;</span>
+                            <span><strong>Ikke fri gjenbruk:</strong> Koden er ikke lisensiert for fri kopiering eller redistribusjon. Papertek beholder opphavsretten.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <p>
+                    Denne modellen gir skoler den tryggheten som folger med apenhet &mdash; full innsyn i hva
+                    verktoyett gjor &mdash; uten at kodebasen fritt kan kopieres av kommersielle konkurrenter.
+                </p>
+            </div>
+        </section>
+
+        <!-- 6. Personvern -->
+        <section id="personvern" class="mb-16 print-break">
+            <h2 class="text-2xl font-bold text-stone-900 mb-4">6. Personvern</h2>
+            <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
+                <p>
+                    Personvern er ikke en funksjon i Skriv &mdash; det er en konsekvens av arkitekturen.
+                </p>
+
+                <div class="overflow-x-auto my-6">
+                    <table class="w-full text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-stone-100">
+                                <th class="text-left p-3 font-semibold text-stone-700 rounded-tl-lg">Tema</th>
+                                <th class="text-left p-3 font-semibold text-stone-700 rounded-tr-lg">Skriv by Papertek</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-200">
+                            <tr>
+                                <td class="p-3 text-stone-600">Innlogging</td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen krav</span></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 text-stone-600">Datalagring</td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Lokalt pa enheten (IndexedDB)</span></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 text-stone-600">Skylagring</td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen</span></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 text-stone-600">Sporing / analyse</td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen</span></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 text-stone-600">Tredjepartstilgang</td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen</span></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 text-stone-600">Data sendt til server</td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingenting</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p>
+                    Fordi Skriv ikke har noen backend, finnes det rett og slett ingen mekanisme for a samle inn
+                    eller sende elevdata. Det er ingen cookies, ingen sporingspiksler, ingen analyse-tjenester.
+                    Elevens tekst eksisterer kun pa elevens egen enhet.
+                </p>
+                <p>
+                    Dette gjor Skriv til det tryggeste alternativet for skoler som er opptatt av GDPR-etterlevelse
+                    og elevenes personvern: <em>det er umulig a lekke data som aldri forlater enheten</em>.
+                </p>
+            </div>
+        </section>
+
+        <!-- 7. Langsiktighet -->
+        <section id="langsiktighet" class="mb-16">
+            <h2 class="text-2xl font-bold text-stone-900 mb-4">7. Langsiktighet og abandonment-klausul</h2>
+            <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
+                <p>
+                    Nar en skole tar i bruk et digitalt verktoy, investerer de tid i opplaering, rutiner og
+                    tilpasning. En av de storste risikoene med digitale verktoy er at leverandoren forsvinner
+                    eller endrer forretningsmodell.
+                </p>
+                <p>
+                    Papertek adresserer dette med en <strong>abandonment-klausul</strong>:
+                </p>
+
+                <div class="bg-stone-900 text-stone-100 rounded-xl p-6 my-6">
+                    <h3 class="font-semibold text-white mb-4 text-lg">Abandonment-klausulen</h3>
+                    <div class="space-y-4 text-stone-300 leading-relaxed">
+                        <div class="flex items-start gap-3">
+                            <span class="bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+                            <p>Dersom Papertek Forlag AS <strong class="text-white">opphorer</strong>, gar konkurs, eller forlater prosjektet, overtar en uavhengig stiftelse all kildekode og driftsansvar.</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+                            <p>Stiftelsen sikrer at Skriv <strong class="text-white">forblir gratis og tilgjengelig</strong> for skoler i Norge.</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+                            <p>Frontend-only-arkitekturen gjor dette praktisk mulig: <strong class="text-white">driftskostnadene er minimale</strong> (kun statisk webhosting), og det trengs ingen kompleks serverinfrastruktur.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <p>
+                    Dette gir skoler en juridisk garanti: verktoyett de investerer tid i vil ikke forsvinne,
+                    uansett hva som skjer med Papertek som selskap. Kombinert med den apne kildekoden betyr
+                    det at enhver kompetent utvikler kan drifte og vedlikeholde Skriv videre.
+                </p>
+            </div>
+        </section>
+
+        <!-- 8. For skoler -->
+        <section id="for-skoler" class="mb-16 print-break">
+            <h2 class="text-2xl font-bold text-stone-900 mb-4">8. Hva dette betyr for skoler</h2>
+            <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
+
+                <div class="grid gap-4 my-6">
+                    <div class="bg-white border border-stone-200 rounded-xl p-6">
+                        <h3 class="font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                            <span class="text-emerald-600 text-xl">&#128176;</span> Ingen kostnad
+                        </h3>
+                        <p class="text-stone-600 text-sm">
+                            Skriv er og forblir gratis. Det er ingen lisenskostnader, ingen brukerbetaling,
+                            og ingen skjulte avgifter. Skoler kan ta det i bruk umiddelbart.
+                        </p>
+                    </div>
+
+                    <div class="bg-white border border-stone-200 rounded-xl p-6">
+                        <h3 class="font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                            <span class="text-emerald-600 text-xl">&#128272;</span> Trygg for elever
+                        </h3>
+                        <p class="text-stone-600 text-sm">
+                            Ingen data forlater elevens enhet. Ingen innlogging betyr ingen brukerdata
+                            a administrere. Skoler slipper databehandleravtaler for Skriv.
+                        </p>
+                    </div>
+
+                    <div class="bg-white border border-stone-200 rounded-xl p-6">
+                        <h3 class="font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                            <span class="text-emerald-600 text-xl">&#128209;</span> Gjennomsiktig
+                        </h3>
+                        <p class="text-stone-600 text-sm">
+                            All kode er synlig og kan inspiseres. IT-avdelinger kan verifisere at appen
+                            gjor noyaktig det den lover &mdash; ingenting mer.
+                        </p>
+                    </div>
+
+                    <div class="bg-white border border-stone-200 rounded-xl p-6">
+                        <h3 class="font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                            <span class="text-emerald-600 text-xl">&#127919;</span> Langsiktig trygghet
+                        </h3>
+                        <p class="text-stone-600 text-sm">
+                            Abandonment-klausulen garanterer at verktoyett ikke forsvinner.
+                            Frontend-only-arkitekturen gjor fortsatt drift rimelig og enkelt.
+                        </p>
+                    </div>
+
+                    <div class="bg-white border border-stone-200 rounded-xl p-6">
+                        <h3 class="font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                            <span class="text-emerald-600 text-xl">&#9889;</span> Null oppsett
+                        </h3>
+                        <p class="text-stone-600 text-sm">
+                            Ingen installasjon, ingen kontoer, ingen IT-stotte nodvendig. Eleven apner
+                            en nettadresse og begynner a skrive. Ferdig.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-stone-200 pt-8 mt-16">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <p class="font-semibold text-stone-900">Papertek Forlag AS</p>
+                    <p class="text-sm text-stone-400 mt-1">
+                        Whitepaper v1.0 &middot; Februar 2026
+                    </p>
+                </div>
+                <div class="flex items-center gap-4 text-sm">
+                    <a href="/" class="text-emerald-700 hover:text-emerald-800 hover:underline transition-colors">
+                        Apne Skriv
+                    </a>
+                </div>
+            </div>
+            <p class="text-xs text-stone-300 mt-6">
+                &copy; 2026 Papertek Forlag AS. Alle rettigheter forbeholdt.
+            </p>
+        </footer>
+
+    </main>
+
+</body>
+</html>

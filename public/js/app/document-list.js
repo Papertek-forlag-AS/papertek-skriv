@@ -32,6 +32,18 @@ export async function renderDocumentList(container, onOpenDocument) {
     `;
     container.appendChild(header);
 
+    // Footer with whitepaper link
+    const footer = document.createElement('div');
+    footer.className = 'max-w-2xl mx-auto px-4 mt-auto';
+    footer.innerHTML = `
+        <div class="border-t border-stone-200 py-4 flex items-center justify-between text-xs text-stone-400">
+            <span>&copy; ${new Date().getFullYear()} Papertek Forlag AS</span>
+            <a href="/whitepaper.html" class="text-emerald-600 hover:text-emerald-700 hover:underline transition-colors">
+                Whitepaper
+            </a>
+        </div>
+    `;
+
     // Document list container
     const listEl = document.createElement('div');
     listEl.className = 'max-w-2xl mx-auto px-4 pb-8';
@@ -53,6 +65,7 @@ export async function renderDocumentList(container, onOpenDocument) {
                 <p class="text-stone-400 text-sm">${t('skriv.noDocuments')}</p>
             </div>
         `;
+        container.appendChild(footer);
         return;
     }
 
@@ -115,6 +128,9 @@ export async function renderDocumentList(container, onOpenDocument) {
 
         listEl.appendChild(card);
     });
+
+    // Append footer at the bottom
+    container.appendChild(footer);
 }
 
 /**

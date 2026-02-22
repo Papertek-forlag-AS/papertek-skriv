@@ -3,10 +3,11 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v1';
+const CACHE_NAME = 'skriv-v2';
 const ASSETS = [
     '/',
     '/index.html',
+    '/whitepaper.html',
     '/manifest.json',
     '/js/app/main.js',
     '/js/app/standalone-writer.js',
