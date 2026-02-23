@@ -24,7 +24,7 @@ import { initWordFrequency } from '../editor-core/student/word-frequency.js';
 import { initSentenceLength } from '../editor-core/student/sentence-length.js';
 import { initParagraphMap } from '../editor-core/student/paragraph-map.js';
 // import { initImageManager } from '../editor-core/student/image-manager.js'; // Deactivated
-import { initMatte } from '../editor-core/student/matte.js';
+// import { initMatte } from '../editor-core/student/matte.js'; // Deactivated — re-enable when subject choice is added
 import { showSubmissionChecklist } from '../editor-core/student/submission-checklist.js';
 import { downloadText, downloadPDF } from '../editor-core/student/text-export.js';
 import { escapeAttr } from '../editor-core/shared/html-escape.js';
@@ -209,7 +209,7 @@ export async function launchEditor(container, docId, onBack) {
 
     // --- Initialize modules ---
     const toolbarApi = initEditorToolbar(editor);
-    const matteApi = initMatte(editor, toolbarApi.toolbarEl);
+    // const matteApi = initMatte(editor, toolbarApi.toolbarEl); // Deactivated
     const tocApi = initTOC(editor);
     const refsApi = initReferences(editor, { onSave: autoSave.schedule });
     const frameApi = initFrameManager(editor, { onSave: autoSave.schedule });
@@ -371,7 +371,7 @@ export async function launchEditor(container, docId, onBack) {
         autoSave.saveNow();
         autoSave.destroy();
         toolbarApi.destroy();
-        matteApi.destroy();
+        // matteApi.destroy(); // Deactivated
         tocApi.destroy();
         refsApi.destroy();
         frameApi.destroy();

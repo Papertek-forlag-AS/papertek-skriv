@@ -281,13 +281,18 @@ export function initEditorToolbar(editor) {
         toolbar.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
         toolbar.classList.add('opacity-100', 'scale-100');
 
+        // Use the last line of the selection as anchor so the toolbar
+        // appears near the cursor end and doesn't cover selected text.
+        const rects = range.getClientRects();
+        const anchorRect = rects.length > 0 ? rects[rects.length - 1] : range.getBoundingClientRect();
+
         const virtualEl = {
-            getBoundingClientRect: () => range.getBoundingClientRect(),
-            getClientRects: () => range.getClientRects(),
+            getBoundingClientRect: () => anchorRect,
+            getClientRects: () => [anchorRect],
         };
 
         computePosition(virtualEl, toolbarWrapper, {
-            placement: 'top',
+            placement: 'bottom',
             middleware: [offset(8), flip(), shift({ padding: 8 })],
         }).then(({ x, y }) => {
             toolbarWrapper.style.left = `${x}px`;
