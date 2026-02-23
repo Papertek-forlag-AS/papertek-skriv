@@ -54,67 +54,67 @@ export async function launchEditor(container, docId, onBack) {
     // --- Build editor UI ---
     const writingEnv = document.createElement('div');
     writingEnv.id = 'writing-env';
-    writingEnv.className = 'flex flex-col h-screen bg-white';
+    writingEnv.className = 'flex flex-col h-screen bg-white dark:bg-stone-900';
 
     // Top bar
     const topBar = document.createElement('div');
-    topBar.className = 'flex items-center gap-2 px-4 py-2 border-b border-stone-200 bg-stone-50 flex-shrink-0';
+    topBar.className = 'flex items-center gap-2 px-4 py-2 border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 flex-shrink-0';
     topBar.innerHTML = `
-        <button id="btn-back" class="text-sm text-stone-500 hover:text-stone-700 transition-colors flex items-center gap-1">
+        <button id="btn-back" class="text-sm text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             ${t('skriv.backToDocuments')}
         </button>
         <div class="flex-1"></div>
         <span id="save-status" class="text-xs text-stone-400"></span>
         <div class="skriv-toolbar-buttons flex items-center gap-1.5 min-w-0">
-            <button id="btn-structure" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+            <button id="btn-structure" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('skriv.strukturTooltip')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"/></svg>
                 Struktur
             </button>
-            <button id="btn-advanced" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+            <button id="btn-advanced" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('skriv.advancedToggle')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
                 ${t('skriv.advancedToggle')}
             </button>
-            <button id="btn-ref" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+            <button id="btn-ref" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('skriv.refButton')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 ${t('skriv.refButton')}
             </button>
-            <button id="btn-image" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+            <button id="btn-image" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('image.button')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 ${t('image.button')}
             </button>
-            <button id="btn-spinner" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+            <button id="btn-spinner" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('spinner.title')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 ${t('spinner.title')}
             </button>
-            <button id="btn-radar" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+            <button id="btn-radar" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('radar.button')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                 ${t('radar.button')}
             </button>
-            <button id="btn-sentence-length" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+            <button id="btn-sentence-length" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('sentence.button')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 ${t('sentence.button')}
             </button>
-            <button id="btn-paragraph-map" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-500 hover:bg-stone-100 transition-colors flex items-center gap-1.5"
+            <button id="btn-paragraph-map" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('paragraphMap.button')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
                 ${t('paragraphMap.button')}
             </button>
         </div>
         <div class="relative flex-shrink-0">
-            <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-100 transition-colors">
+            <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors">
                 ${t('skriv.exportTitle')} &#9660;
             </button>
-            <div id="export-menu" class="hidden absolute right-0 top-full mt-1 bg-white border border-stone-200 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
-                <button id="btn-download-txt" class="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors">${t('skriv.downloadTxt')}</button>
-                <button id="btn-download-pdf" class="block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors">${t('skriv.downloadPdf')}</button>
+            <div id="export-menu" class="hidden absolute right-0 top-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
+                <button id="btn-download-txt" class="block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">${t('skriv.downloadTxt')}</button>
+                <button id="btn-download-pdf" class="block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">${t('skriv.downloadPdf')}</button>
             </div>
         </div>
     `;
@@ -126,7 +126,7 @@ export async function launchEditor(container, docId, onBack) {
         <input id="doc-title" type="text"
             placeholder="${escapeAttr(t('skriv.titlePlaceholder'))}"
             value="${escapeAttr(doc.title || '')}"
-            class="w-full text-2xl font-bold text-stone-900 placeholder-stone-300 border-none outline-none bg-transparent" />
+            class="w-full text-2xl font-bold text-stone-900 dark:text-stone-100 placeholder-stone-300 dark:placeholder-stone-600 border-none outline-none bg-transparent" />
     `;
 
     // Tag editor (below title)
@@ -146,7 +146,7 @@ export async function launchEditor(container, docId, onBack) {
     const editor = document.createElement('div');
     editor.id = 'editor';
     editor.contentEditable = 'true';
-    editor.className = 'min-h-[60vh] outline-none text-stone-800 text-base leading-relaxed';
+    editor.className = 'min-h-[60vh] outline-none text-stone-800 dark:text-stone-200 text-base leading-relaxed';
     editor.setAttribute('data-placeholder', t('skriv.placeholder'));
 
     // Load existing content
@@ -161,7 +161,7 @@ export async function launchEditor(container, docId, onBack) {
 
     // Word counter bar
     const wordCountBar = document.createElement('div');
-    wordCountBar.className = 'px-4 py-2 border-t border-stone-200 bg-stone-50 flex-shrink-0';
+    wordCountBar.className = 'px-4 py-2 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 flex-shrink-0';
     const wordCountDisplay = document.createElement('div');
     wordCountDisplay.className = 'max-w-3xl mx-auto text-xs text-stone-500';
     wordCountBar.appendChild(wordCountDisplay);
