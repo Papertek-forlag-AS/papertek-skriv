@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v14';
+const CACHE_NAME = 'skriv-v15';
 const ASSETS = [
     '/',
     '/index.html',
@@ -38,6 +38,7 @@ const ASSETS = [
     '/js/editor-core/student/sentence-length.js',
     '/js/editor-core/student/paragraph-map.js',
     '/js/editor-core/student/image-manager.js',
+    '/js/editor-core/student/matte.js',
     '/js/editor-core/student/submission-checklist.js',
     '/js/editor-core/locales/nb.js',
     '/js/editor-core/locales/nn.js',

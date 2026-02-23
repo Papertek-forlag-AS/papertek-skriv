@@ -534,6 +534,7 @@ export function initEditorToolbar(editor) {
 
     return {
         destroy,
+        toolbarEl: toolbar,
         isAdvancedMode: () => advancedMode,
         toggleAdvancedMode,
         setAdvancedMode: (enabled) => {

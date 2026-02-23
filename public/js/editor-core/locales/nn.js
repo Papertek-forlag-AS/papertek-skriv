@@ -152,6 +152,11 @@ export default {
         },
     },
 
+    matte: {
+        superscriptTooltip: 'Heva skrift (Ctrl+.)',
+        subscriptTooltip: 'Senka skrift (Ctrl+,)',
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',
