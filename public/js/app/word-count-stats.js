@@ -23,7 +23,7 @@ export function showWordCountStats(docs) {
     const totalWords = docs.reduce((sum, d) => sum + (d.wordCount || 0), 0);
     const avgWords = docs.length > 0 ? Math.round(totalWords / docs.length) : 0;
 
-    // Build monthly activity data from last 12 months
+    // Build monthly activity data for the current school year (Aug–Jul)
     const monthlyData = buildMonthlyActivity(docs);
     const maxMonthWords = Math.max(...monthlyData.map(m => m.words), 1);
 
@@ -121,21 +121,53 @@ export function showWordCountStats(docs) {
 }
 
 /**
- * Build monthly word-count activity for the last 12 months.
+ * Get the current school year boundaries.
+ * A school year runs from August 1st to July 31st.
+ * @param {Date} [referenceDate] - Date to determine school year (defaults to now)
+ * @returns {{ startYear: number, endYear: number, start: Date, end: Date, label: string }}
+ */
+function getSchoolYear(referenceDate) {
+    const d = referenceDate || new Date();
+    // If we're in Jan-Jul, the school year started the previous August
+    // If we're in Aug-Dec, the school year started this August
+    const startYear = d.getMonth() < 7 ? d.getFullYear() - 1 : d.getFullYear();
+    const endYear = startYear + 1;
+    return {
+        startYear,
+        endYear,
+        start: new Date(startYear, 7, 1),   // August 1st
+        end: new Date(endYear, 6, 31, 23, 59, 59), // July 31st
+        label: `${startYear}/${endYear}`,
+    };
+}
+
+/**
+ * Build monthly word-count activity for the current school year.
+ * Shows Aug–Jul, only up to the current month.
  * Uses document updatedAt to attribute words to the month of last edit.
+ *
+ * Prepared for future school-year selector: pass a different referenceDate
+ * to getSchoolYear() to view historical years.
  */
 function buildMonthlyActivity(docs) {
     const monthNames = t('stats.monthNames').split(',');
     const now = new Date();
+    const schoolYear = getSchoolYear(now);
     const months = [];
 
-    // Generate last 12 months (oldest first)
-    for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    // Generate months from August to current month (or July if viewing past year)
+    const schoolMonthOrder = [7, 8, 9, 10, 11, 0, 1, 2, 3, 4, 5, 6]; // Aug=7 through Jul=6
+    for (const monthIdx of schoolMonthOrder) {
+        const year = monthIdx >= 7 ? schoolYear.startYear : schoolYear.endYear;
+        const monthDate = new Date(year, monthIdx, 1);
+
+        // Don't show future months
+        if (monthDate > now) break;
+
         months.push({
-            year: d.getFullYear(),
-            month: d.getMonth(),
-            label: monthNames[d.getMonth()],
+            year,
+            month: monthIdx,
+            label: monthNames[monthIdx],
             words: 0,
         });
     }
