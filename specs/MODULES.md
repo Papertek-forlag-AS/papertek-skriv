@@ -8,14 +8,17 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 
 | Module                 | Exports                                          | Depends on                          | Purpose                                |
 |----------------------- |------------------------------------------------- |------------------------------------ |--------------------------------------- |
-| `main.js`              | (self-executing)                                 | i18n, document-list, standalone-writer, trash-store | Hash router, app init         |
-| `document-store.js`    | `createDocument`, `getDocument`, `saveDocument`, `listDocuments`, `deleteDocument` | (none) | IndexedDB CRUD for documents           |
-| `trash-store.js`       | `moveToTrash`, `restoreFromTrash`, `listTrash`, `purgeExpired`, `deletePermanently` | (none) | Soft-delete with 30-day retention |
-| `document-list.js`     | `renderDocumentList`                             | document-store, trash-store, word-count-stats, document-search, i18n, toast-notification | Dashboard/home screen UI   |
+| `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store | Hash router, app init         |
+| `document-store.js`    | `createDocument`, `getDocument`, `saveDocument`, `listDocuments`, `deleteDocument` | subject-store | IndexedDB CRUD for documents           |
+| `trash-store.js`       | `trashDocument`, `restoreDocument`, `listTrashedDocuments`, `permanentlyDelete`, `emptyTrash`, `getTrashCount`, `purgeExpired`, `getRetentionDays` | (none) | Soft-delete with 30-day retention |
+| `document-list.js`     | `renderDocumentList`                             | document-store, trash-store, word-count-stats, document-search, document-tags, sidebar, subject-picker, subject-store, i18n, html-escape, in-page-modal, toast-notification, theme | Dashboard/home screen UI with sidebar   |
 | `document-search.js`  | `createSearchBar`, `filterDocuments`              | i18n                                | Search bar with debounced filtering and Ctrl/Cmd+K shortcut |
 | `document-tags.js`    | `createTagFilter`, `collectTags`, `filterByTag`, `createTagEditor` | i18n, html-escape | Tag chips for filtering + inline tag editor |
-| `standalone-writer.js` | `launchEditor`                                   | 13 student modules, 5 shared modules, document-store, document-tags | Editor orchestrator |
-| `word-count-stats.js`  | `showWordCountStats`                             | document-store, i18n                | Statistics overlay with monthly chart  |
+| `standalone-writer.js` | `launchEditor`                                   | 13 student modules, 5 shared modules, document-store, document-tags, subject-picker | Editor orchestrator |
+| `word-count-stats.js`  | `showWordCountStats`                             | subject-store, html-escape, i18n    | Statistics overlay with monthly chart  |
+| `subject-store.js`     | `PREDEFINED_SUBJECTS`, `PERSONAL_SUBJECT`, `getSchoolYear`, `getCurrentSchoolYear`, `setCurrentSchoolYear`, `getCustomSubjects`, `addCustomSubject`, `removeCustomSubject`, `getAllSubjects`, `getAvailableSchoolYears` | (none) | Subject list CRUD + school year logic |
+| `sidebar.js`           | `createSidebar`                                  | subject-store, i18n, html-escape    | Sidebar navigation with subject folders |
+| `subject-picker.js`    | `createSubjectPicker`, `createSubjectBadge`      | subject-store, i18n, html-escape    | Subject assignment dropdown + badge    |
 
 ## editor-core/shared/ — Cross-product utilities
 

@@ -29,6 +29,11 @@ function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
+        request.onblocked = () => {
+            console.warn('[trash-store] DB upgrade blocked — closing stale connections');
+            if (_db) { _db.close(); _db = null; }
+        };
+
         request.onupgradeneeded = (e) => {
             const db = e.target.result;
             const tx = e.target.transaction;
@@ -59,6 +64,11 @@ function openDB() {
 
         request.onsuccess = (e) => {
             _db = e.target.result;
+            // Close this connection if another tab/module requests a version upgrade
+            _db.onversionchange = () => {
+                _db.close();
+                _db = null;
+            };
             resolve(_db);
         };
 

@@ -27,7 +27,7 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v15)
+├── sw.js                   ← Service Worker (cache v19)
 ├── icons/                  ← PWA icons (192, 512)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md
@@ -40,9 +40,14 @@ public/
     │   ├── main.js         ← Router, init
     │   ├── document-store.js
     │   ├── document-list.js
+    │   ├── document-search.js
+    │   ├── document-tags.js
     │   ├── trash-store.js
     │   ├── standalone-writer.js  ← Editor orchestrator
-    │   └── word-count-stats.js
+    │   ├── word-count-stats.js
+    │   ├── subject-store.js      ← Subject list + school year logic
+    │   ├── sidebar.js            ← Subject folder navigation
+    │   └── subject-picker.js     ← Subject assignment dropdown
     └── editor-core/
         ├── config.js       ← Constants (special chars)
         ├── shared/         ← Cross-product utilities (8 modules)

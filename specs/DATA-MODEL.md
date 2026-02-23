@@ -5,7 +5,7 @@
 ## IndexedDB
 
 - **Database name:** `skriv-documents`
-- **Version:** 2
+- **Version:** 3
 
 ### Object store: `documents`
 
@@ -23,6 +23,8 @@ Key path: `id`
 | `references` | array    | no       |          | Array of citation objects          |
 | `tags`       | array    | no       |          | Array of user-defined tag strings (default `[]`) |
 | `frameType`  | string   | no       |          | Active writing frame (`analyse`, `droefting`, `kronikk`, or `null`) |
+| `subject`    | string   | no       | yes      | Subject folder name, `'__personal__'`, or `null` (orphan). Added in v3. |
+| `schoolYear` | string   | no       | yes      | School year label e.g. `'2025/2026'`. Aug 1 – Jul 31. Added in v3. |
 
 ### Object store: `trash`
 
@@ -38,17 +40,30 @@ Key path: `id`
 | `createdAt`  | string   | yes      |          | Preserved from document           |
 | `updatedAt`  | string   | yes      |          | Preserved from document           |
 | `trashedAt`  | string   | yes      | yes      | ISO 8601 — when it was trashed    |
+| `expiresAt`  | string   | yes      |          | ISO 8601 — when auto-purge fires  |
 | `references` | array    | no       |          | Preserved from document           |
 | `frameType`  | string   | no       |          | Preserved from document           |
+| `subject`    | string   | no       |          | Preserved from document           |
+| `schoolYear` | string   | no       |          | Preserved from document           |
 
-**Trash retention:** 30 days. `purgeExpired()` runs on app startup and deletes documents where `trashedAt` is older than 30 days.
+**Trash retention:** 30 days. `purgeExpired()` runs on app startup and deletes documents where `expiresAt` has passed.
+
+### DB migration history
+
+| Version | Changes |
+|---------|---------|
+| 1       | `documents` store with `updatedAt` index |
+| 2       | `trash` store with `trashedAt` index |
+| 3       | `subject` and `schoolYear` indexes on `documents`. Backfill: existing docs get `subject: null`, `schoolYear` derived from `createdAt`. |
 
 ## localStorage
 
-| Key            | Type   | Purpose                                     |
-|--------------- |------- |-------------------------------------------- |
-| `skriv-lang`   | string | Selected UI language (nb/nn/en)              |
-| `skriv_theme`  | string | Theme preference (`light`, `dark`, `system`) |
+| Key                      | Type   | Purpose                                     |
+|------------------------- |------- |-------------------------------------------- |
+| `skriv-lang`             | string | Selected UI language (nb/nn/en)              |
+| `skriv_theme`            | string | Theme preference (`light`, `dark`, `system`) |
+| `skriv_custom_subjects`  | string | JSON array of student-created subject names  |
+| `skriv_school_year`      | string | Active school year label e.g. `'2025/2026'`  |
 
 ## Other storage
 

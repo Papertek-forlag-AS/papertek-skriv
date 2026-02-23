@@ -25,14 +25,30 @@ Hash-based SPA routing in `main.js`. No history API.
 
 ## Document list screen (`#/`)
 
-**Components:**
-- Header with app title, language selector, create-new button
+**Layout:** Two-column: sidebar (left) + main content (right).
+
+**Sidebar** (`sidebar.js`):
+- School year selector (`<select>`, Aug–Jul, auto-detects current year)
+- "Siste dokumenter" — all documents (default view)
+- Subject folders — one per subject, with document count badge
+- "+ Legg til fag" — inline input to create custom subjects
+- "Uten fag" — orphan documents (no subject assigned), amber indicator when count > 0
+- "Personlig mappe" — personal folder (`subject === '__personal__'`)
+
+**Mobile (< 768px):** Sidebar is hidden; hamburger button opens it as an overlay drawer.
+
+**Main content:**
+- Header with app title, theme toggle, trash button, create-new button
 - Search bar (`document-search.js`) — filters documents by title and content, `Ctrl/Cmd+K` shortcut
+- Tag filter chips (`document-tags.js`)
 - Stats bar (document count, total word count → opens statistics overlay)
-- Document cards (title, word count, last edited, frame type badge)
-- "No results" state when search matches nothing
-- Trash section (expandable, shows soft-deleted docs)
-- Restore / permanent delete actions on trashed docs
+- Document cards (title, preview, word count, last edited, subject badge, tags)
+  - Cards with no subject show a "Velg fag" button with subject picker dropdown
+  - Cards are `draggable="true"` with `data-doc-id` (prep for future drag-drop)
+- "No results" state when filters match nothing
+- Trash view — separate screen (replaces document list) with restore/permanent delete actions
+
+**Filter pipeline:** school year → subject → tag → search
 
 ## Editor screen (`#/doc/{id}`)
 
@@ -42,6 +58,8 @@ Hash-based SPA routing in `main.js`. No history API.
 │ ← Back  [save status]  [toolbar buttons...] │  ← Top bar
 ├─────────────────────────────────────────────┤
 │ Document title input                         │
+│ + Ny merkelapp (tag editor)                  │
+│ Fag: [subject badge/picker]                  │  ← Subject picker row
 ├─────────────────────────────────────────────┤
 │                                              │
 │  [contenteditable editor]                    │  ← Scrollable

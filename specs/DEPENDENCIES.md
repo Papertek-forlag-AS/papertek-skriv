@@ -22,8 +22,10 @@ These are the only external dependencies. There is no `package.json` or npm.
 ```
 app/main.js
   ├── shared/i18n.js
+  ├── shared/theme.js
   ├── app/document-list.js
   │     ├── app/document-store.js
+  │     │     └── app/subject-store.js
   │     ├── app/trash-store.js
   │     ├── app/document-search.js
   │     │     └── shared/i18n.js
@@ -31,12 +33,27 @@ app/main.js
   │     │     ├── shared/i18n.js
   │     │     └── shared/html-escape.js
   │     ├── app/word-count-stats.js
-  │     │     ├── app/document-store.js
+  │     │     ├── app/subject-store.js
+  │     │     ├── shared/html-escape.js
   │     │     └── shared/i18n.js
+  │     ├── app/sidebar.js
+  │     │     ├── app/subject-store.js
+  │     │     ├── shared/i18n.js
+  │     │     └── shared/html-escape.js
+  │     ├── app/subject-picker.js
+  │     │     ├── app/subject-store.js
+  │     │     ├── shared/i18n.js
+  │     │     └── shared/html-escape.js
+  │     ├── app/subject-store.js
   │     ├── shared/i18n.js
-  │     └── shared/toast-notification.js
+  │     ├── shared/html-escape.js
+  │     ├── shared/in-page-modal.js
+  │     ├── shared/toast-notification.js
+  │     └── shared/theme.js
   ├── app/standalone-writer.js
   │     ├── app/document-store.js
+  │     ├── app/document-tags.js
+  │     ├── app/subject-picker.js
   │     ├── shared/i18n.js
   │     ├── shared/html-escape.js
   │     ├── shared/word-counter.js
