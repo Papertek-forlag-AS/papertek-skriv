@@ -61,6 +61,22 @@ export default {
         goalMax: '(goal: max {{max}})',
     },
 
+    stats: {
+        title: 'Writing Statistics',
+        totalWords: 'Total words',
+        totalDocuments: {
+            one: '{{count}} document',
+            other: '{{count}} documents',
+        },
+        avgPerDocument: 'Average per document',
+        perDocument: 'Words per document',
+        writingActivity: 'Writing activity',
+        noData: 'No documents to show statistics for yet.',
+        close: 'Close',
+        wordsUnit: 'words',
+        monthNames: 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec',
+    },
+
     language: {
         label: 'Language',
     },
