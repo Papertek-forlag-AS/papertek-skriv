@@ -6,6 +6,7 @@
 
 import { escapeHtml } from '../editor-core/shared/html-escape.js';
 import { t } from '../editor-core/shared/i18n.js';
+import { getSchoolYear } from './subject-store.js';
 
 /**
  * Show a word-count statistics panel as a full-screen overlay.
@@ -118,27 +119,6 @@ export function showWordCountStats(docs) {
         }
     };
     document.addEventListener('keydown', onKeyDown);
-}
-
-/**
- * Get the current school year boundaries.
- * A school year runs from August 1st to July 31st.
- * @param {Date} [referenceDate] - Date to determine school year (defaults to now)
- * @returns {{ startYear: number, endYear: number, start: Date, end: Date, label: string }}
- */
-function getSchoolYear(referenceDate) {
-    const d = referenceDate || new Date();
-    // If we're in Jan-Jul, the school year started the previous August
-    // If we're in Aug-Dec, the school year started this August
-    const startYear = d.getMonth() < 7 ? d.getFullYear() - 1 : d.getFullYear();
-    const endYear = startYear + 1;
-    return {
-        startYear,
-        endYear,
-        start: new Date(startYear, 7, 1),   // August 1st
-        end: new Date(endYear, 6, 31, 23, 59, 59), // July 31st
-        label: `${startYear}/${endYear}`,
-    };
 }
 
 /**

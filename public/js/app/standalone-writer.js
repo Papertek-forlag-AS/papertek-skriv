@@ -34,6 +34,7 @@ import { showToast } from '../editor-core/shared/toast-notification.js';
 import { t } from '../editor-core/shared/i18n.js';
 import { getDocument, saveDocument } from './document-store.js';
 import { createTagEditor } from './document-tags.js';
+import { createSubjectPicker, createSubjectBadge } from './subject-picker.js';
 
 /**
  * Launch the standalone editor for a given document.
@@ -133,8 +134,32 @@ export async function launchEditor(container, docId, onBack) {
 
     // Tag editor (below title)
     const tagRow = document.createElement('div');
-    tagRow.className = 'px-4 pb-2 max-w-3xl mx-auto w-full';
+    tagRow.className = 'px-4 pb-1 max-w-3xl mx-auto w-full';
     const tagEditorApi = createTagEditor(tagRow, doc.tags || [], (updatedTags) => {
+        autoSave.schedule();
+    });
+
+    // Subject picker (below tags)
+    const subjectRow = document.createElement('div');
+    subjectRow.className = 'px-4 pb-2 max-w-3xl mx-auto w-full flex items-center gap-2';
+    const subjectLabel = document.createElement('span');
+    subjectLabel.className = 'text-xs text-stone-400 dark:text-stone-500';
+    subjectLabel.textContent = t('sidebar.subjectLabel') + ':';
+    subjectRow.appendChild(subjectLabel);
+    const subjectBadge = createSubjectBadge(doc.subject || null);
+    subjectRow.appendChild(subjectBadge);
+    let currentSubject = doc.subject || null;
+    const subjectPickerApi = createSubjectPicker(subjectBadge, currentSubject, (newSubject) => {
+        currentSubject = newSubject;
+        // Update badge display
+        const newBadge = createSubjectBadge(newSubject);
+        subjectBadge.replaceWith(newBadge);
+        subjectPickerApi.setSubject(newSubject);
+        // Re-attach picker to new badge
+        newBadge.addEventListener('click', (e) => {
+            e.stopPropagation();
+            subjectBadge.click();
+        });
         autoSave.schedule();
     });
 
@@ -172,6 +197,7 @@ export async function launchEditor(container, docId, onBack) {
     writingEnv.appendChild(topBar);
     writingEnv.appendChild(titleRow);
     writingEnv.appendChild(tagRow);
+    writingEnv.appendChild(subjectRow);
     writingEnv.appendChild(editorWrap);
     writingEnv.appendChild(wordCountBar);
     container.appendChild(writingEnv);
@@ -196,6 +222,7 @@ export async function launchEditor(container, docId, onBack) {
                 references: refsApi.getReferences(),
                 frameType: frameApi.getActiveFrame(),
                 tags: tagEditorApi.getTags(),
+                subject: currentSubject,
             };
         },
         statusEl: saveStatusEl,

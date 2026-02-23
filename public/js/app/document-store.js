@@ -2,11 +2,13 @@
  * Document storage using IndexedDB.
  * Stores documents locally in the browser — no server, no login.
  *
- * Each document: { id, title, html, plainText, wordCount, createdAt, updatedAt, tags }
+ * Each document: { id, title, html, plainText, wordCount, createdAt, updatedAt, tags, subject, schoolYear }
  */
 
+import { getSchoolYear, getCurrentSchoolYear } from './subject-store.js';
+
 const DB_NAME = 'skriv-documents';
-const DB_VERSION = 2;               // v2: added trash store
+const DB_VERSION = 3;               // v3: added subject + schoolYear fields
 const STORE_NAME = 'documents';
 
 let _db = null;
@@ -22,6 +24,8 @@ function openDB() {
 
         request.onupgradeneeded = (e) => {
             const db = e.target.result;
+            const tx = e.target.transaction;
+
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                 store.createIndex('updatedAt', 'updatedAt', { unique: false });
@@ -30,6 +34,34 @@ function openDB() {
             if (!db.objectStoreNames.contains('trash')) {
                 const trashStore = db.createObjectStore('trash', { keyPath: 'id' });
                 trashStore.createIndex('trashedAt', 'trashedAt', { unique: false });
+            }
+            // v3: subject + schoolYear fields on documents
+            if (e.oldVersion < 3) {
+                const store = tx.objectStore(STORE_NAME);
+                if (!store.indexNames.contains('subject')) {
+                    store.createIndex('subject', 'subject', { unique: false });
+                }
+                if (!store.indexNames.contains('schoolYear')) {
+                    store.createIndex('schoolYear', 'schoolYear', { unique: false });
+                }
+                // Backfill existing documents
+                store.openCursor().onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        const doc = cursor.value;
+                        let changed = false;
+                        if (doc.subject === undefined) {
+                            doc.subject = null;
+                            changed = true;
+                        }
+                        if (!doc.schoolYear) {
+                            doc.schoolYear = getSchoolYear(new Date(doc.createdAt)).label;
+                            changed = true;
+                        }
+                        if (changed) cursor.update(doc);
+                        cursor.continue();
+                    }
+                };
             }
         };
 
@@ -66,6 +98,8 @@ export async function createDocument(title = '') {
         plainText: '',
         wordCount: 0,
         tags: [],
+        subject: null,
+        schoolYear: getCurrentSchoolYear(),
         createdAt: now,
         updatedAt: now,
     };

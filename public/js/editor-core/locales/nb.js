@@ -85,6 +85,30 @@ export default {
         filter: 'Filtrer etter merkelapp',
     },
 
+    sidebar: {
+        title: 'Fag',
+        recentDocs: 'Siste dokumenter',
+        orphans: 'Uten fag',
+        personalFolder: 'Personlig mappe',
+        addSubject: 'Legg til fag',
+        removeSubject: 'Fjern fag',
+        chooseSubject: 'Velg fag',
+        schoolYear: 'Skoleår',
+        orphanPrompt: {
+            one: '{{count}} dokument uten fag',
+            other: '{{count}} dokumenter uten fag',
+        },
+        moved: 'Flyttet til {{subject}}',
+        dragHint: 'Dra til en mappe',
+        dropHere: 'Slipp her',
+        personalDesc: 'Personlige tekster',
+        customSubjectPlaceholder: 'Fagnavn...',
+        deleteSubject: 'Fjern fag fra listen',
+        deleteSubjectConfirm: 'Fjerne «{{subject}}» fra listen? Dokumenter beholder sitt fag.',
+        noSubject: 'Ingen fag',
+        subjectLabel: 'Fag',
+    },
+
     language: {
         label: 'Språk',
     },

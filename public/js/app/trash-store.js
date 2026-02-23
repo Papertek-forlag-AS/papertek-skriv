@@ -12,7 +12,7 @@
  */
 
 const DB_NAME = 'skriv-documents';
-const DB_VERSION = 2;                // Bumped from 1 to add trash store
+const DB_VERSION = 3;                // v3: added subject + schoolYear on documents
 const DOCS_STORE = 'documents';
 const TRASH_STORE = 'trash';
 const RETENTION_DAYS = 30;
@@ -31,6 +31,7 @@ function openDB() {
 
         request.onupgradeneeded = (e) => {
             const db = e.target.result;
+            const tx = e.target.transaction;
 
             // Original documents store (created in v1)
             if (!db.objectStoreNames.contains(DOCS_STORE)) {
@@ -42,6 +43,17 @@ function openDB() {
             if (!db.objectStoreNames.contains(TRASH_STORE)) {
                 const trashStore = db.createObjectStore(TRASH_STORE, { keyPath: 'id' });
                 trashStore.createIndex('trashedAt', 'trashedAt', { unique: false });
+            }
+
+            // v3: subject + schoolYear indexes on documents
+            if (e.oldVersion < 3) {
+                const store = tx.objectStore(DOCS_STORE);
+                if (!store.indexNames.contains('subject')) {
+                    store.createIndex('subject', 'subject', { unique: false });
+                }
+                if (!store.indexNames.contains('schoolYear')) {
+                    store.createIndex('schoolYear', 'schoolYear', { unique: false });
+                }
             }
         };
 

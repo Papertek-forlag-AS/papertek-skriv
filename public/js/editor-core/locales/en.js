@@ -94,6 +94,30 @@ export default {
         filter: 'Filter by tag',
     },
 
+    sidebar: {
+        title: 'Subjects',
+        recentDocs: 'Recent documents',
+        orphans: 'No subject',
+        personalFolder: 'Personal folder',
+        addSubject: 'Add subject',
+        removeSubject: 'Remove subject',
+        chooseSubject: 'Choose subject',
+        schoolYear: 'School year',
+        orphanPrompt: {
+            one: '{{count}} document without subject',
+            other: '{{count}} documents without subject',
+        },
+        moved: 'Moved to {{subject}}',
+        dragHint: 'Drag to a folder',
+        dropHere: 'Drop here',
+        personalDesc: 'Personal texts',
+        customSubjectPlaceholder: 'Subject name...',
+        deleteSubject: 'Remove subject from list',
+        deleteSubjectConfirm: 'Remove "{{subject}}" from list? Documents keep their subject.',
+        noSubject: 'No subject',
+        subjectLabel: 'Subject',
+    },
+
     language: {
         label: 'Language',
     },
