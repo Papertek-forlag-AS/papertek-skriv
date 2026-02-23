@@ -55,6 +55,22 @@ export default {
         goalMax: '(mål: maks {{max}})',
     },
 
+    stats: {
+        title: 'Skrivestatistikk',
+        totalWords: 'Totalt antall ord',
+        totalDocuments: {
+            one: '{{count}} dokument',
+            other: '{{count}} dokumenter',
+        },
+        avgPerDocument: 'Snitt per dokument',
+        perDocument: 'Ord per dokument',
+        writingActivity: 'Skriveaktivitet',
+        noData: 'Ingen dokumenter å vise statistikk for ennå.',
+        close: 'Lukk',
+        wordsUnit: 'ord',
+        monthNames: 'jan,feb,mar,apr,mai,jun,jul,aug,sep,okt,nov,des',
+    },
+
     language: {
         label: 'Språk',
     },

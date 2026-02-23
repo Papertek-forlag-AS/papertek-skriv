@@ -14,6 +14,7 @@ import { countWords } from '../editor-core/shared/word-counter.js';
 import { showInPageConfirm } from '../editor-core/shared/in-page-modal.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
 import { t, getDateLocale } from '../editor-core/shared/i18n.js';
+import { showWordCountStats } from './word-count-stats.js';
 
 /**
  * Render the document list into a container.
@@ -95,9 +96,16 @@ export async function renderDocumentList(container, onOpenDocument) {
     statsBar.className = 'text-xs text-stone-400 mb-4 flex gap-4';
     statsBar.innerHTML = `
         <span>${t('skriv.documentsCount', { count: docs.length })}</span>
-        <span>${t('skriv.wordsWritten', { count: totalWords })}</span>
+        <button id="btn-word-stats" class="skriv-word-stats-badge" title="${t('stats.title')}">
+            ${t('skriv.wordsWritten', { count: totalWords })}
+        </button>
     `;
     listEl.appendChild(statsBar);
+
+    // Word count stats button
+    statsBar.querySelector('#btn-word-stats').addEventListener('click', () => {
+        showWordCountStats(docs);
+    });
 
     // Document cards
     docs.forEach(doc => {

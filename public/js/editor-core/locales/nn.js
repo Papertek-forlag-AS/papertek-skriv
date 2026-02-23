@@ -55,6 +55,22 @@ export default {
         goalMax: '(mål: maks {{max}})',
     },
 
+    stats: {
+        title: 'Skrivestatistikk',
+        totalWords: 'Totalt tal på ord',
+        totalDocuments: {
+            one: '{{count}} dokument',
+            other: '{{count}} dokument',
+        },
+        avgPerDocument: 'Snitt per dokument',
+        perDocument: 'Ord per dokument',
+        writingActivity: 'Skriveaktivitet',
+        noData: 'Ingen dokument å vise statistikk for enno.',
+        close: 'Lukk',
+        wordsUnit: 'ord',
+        monthNames: 'jan,feb,mar,apr,mai,jun,jul,aug,sep,okt,nov,des',
+    },
+
     language: {
         label: 'Språk',
     },
