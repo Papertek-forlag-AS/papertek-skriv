@@ -15,6 +15,9 @@ import { showInPageConfirm } from '../editor-core/shared/in-page-modal.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
 import { t, getDateLocale } from '../editor-core/shared/i18n.js';
 import { showWordCountStats } from './word-count-stats.js';
+import { createSearchBar, filterDocuments } from './document-search.js';
+import { createTagFilter, collectTags, filterByTag } from './document-tags.js';
+import { cycleTheme, getTheme } from '../editor-core/shared/theme.js';
 
 /**
  * Render the document list into a container.
@@ -32,11 +35,14 @@ export async function renderDocumentList(container, onOpenDocument) {
     header.innerHTML = `
         <div class="flex items-center justify-between mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-stone-900">${t('skriv.appName')}</h1>
-                <p class="text-sm text-stone-500 mt-1">${t('skriv.tagline')}</p>
+                <h1 class="text-2xl font-bold text-stone-900 dark:text-stone-100">${t('skriv.appName')}</h1>
+                <p class="text-sm text-stone-500 dark:text-stone-400 mt-1">${t('skriv.tagline')}</p>
             </div>
             <div class="flex items-center gap-2">
-                <button id="btn-trash" class="relative px-3 py-2.5 text-stone-400 hover:text-stone-600 rounded-lg text-sm transition-colors" title="${t('skriv.trashButton')}">
+                <button id="btn-theme" class="px-3 py-2.5 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg text-sm transition-colors" title="${t('theme.toggle')}">
+                    ${getThemeIconSVG()}
+                </button>
+                <button id="btn-trash" class="relative px-3 py-2.5 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg text-sm transition-colors" title="${t('skriv.trashButton')}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     ${trashCount > 0 ? `<span class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">${trashCount > 9 ? '9+' : trashCount}</span>` : ''}
                 </button>
@@ -71,12 +77,19 @@ export async function renderDocumentList(container, onOpenDocument) {
         onOpenDocument(doc.id);
     });
 
+    // Theme toggle button
+    header.querySelector('#btn-theme').addEventListener('click', () => {
+        const newTheme = cycleTheme();
+        header.querySelector('#btn-theme').innerHTML = getThemeIconSVG();
+        showToast(t(`theme.${newTheme}`), { duration: 1500 });
+    });
+
     // Trash button
     header.querySelector('#btn-trash').addEventListener('click', () => {
         renderTrashView(container, onOpenDocument);
     });
 
-    // Load and render documents
+    // Load all documents once
     const docs = await listDocuments();
 
     if (docs.length === 0) {
@@ -90,32 +103,114 @@ export async function renderDocumentList(container, onOpenDocument) {
         return;
     }
 
-    // Stats bar
-    const totalWords = docs.reduce((sum, d) => sum + (d.wordCount || 0), 0);
-    const statsBar = document.createElement('div');
-    statsBar.className = 'text-xs text-stone-400 mb-4 flex gap-4';
-    statsBar.innerHTML = `
-        <span>${t('skriv.documentsCount', { count: docs.length })}</span>
-        <button id="btn-word-stats" class="skriv-word-stats-badge" title="${t('stats.title')}">
-            ${t('skriv.wordsWritten', { count: totalWords })}
-        </button>
-    `;
-    listEl.appendChild(statsBar);
+    // Filter state
+    let currentQuery = '';
+    let currentTag = null;
 
-    // Word count stats button
-    statsBar.querySelector('#btn-word-stats').addEventListener('click', () => {
-        showWordCountStats(docs);
+    function applyFilters() {
+        let filtered = filterByTag(docs, currentTag);
+        filtered = filterDocuments(filtered, currentQuery);
+        renderDocumentCards(listEl, docs, filtered, currentQuery, currentTag, onOpenDocument, container);
+    }
+
+    // Search bar (only shown when there are documents)
+    const searchBar = createSearchBar(listEl, (query) => {
+        currentQuery = query;
+        applyFilters();
     });
 
+    // Tag filter (only shown when tags exist)
+    const allTags = collectTags(docs);
+    let tagFilter = null;
+    if (allTags.length > 0) {
+        const tagContainer = document.createElement('div');
+        tagContainer.className = 'max-w-2xl mx-auto';
+        listEl.appendChild(tagContainer);
+        tagFilter = createTagFilter(tagContainer, allTags, (tag) => {
+            currentTag = tag;
+            applyFilters();
+        });
+    }
+
+    // Initial render of cards
+    applyFilters();
+
+    // Append footer at the bottom
+    container.appendChild(footer);
+}
+
+/**
+ * Render document cards into the list element.
+ * Preserves the search bar and tag filter (first N children), clears cards and re-renders.
+ */
+function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, onOpenDocument, container) {
+    // Keep search bar and tag filter wrapper, remove everything after
+    const keepCount = listEl.querySelectorAll('.relative, [class*="flex-wrap"]').length || 1;
+    while (listEl.children.length > keepCount) {
+        listEl.removeChild(listEl.lastChild);
+    }
+
+    const isFiltering = query || activeTag;
+
+    // Stats bar
+    const totalWords = allDocs.reduce((sum, d) => sum + (d.wordCount || 0), 0);
+    const statsBar = document.createElement('div');
+    statsBar.className = 'text-xs text-stone-400 mb-4 flex gap-4';
+
+    if (isFiltering && filteredDocs.length !== allDocs.length) {
+        statsBar.innerHTML = `
+            <span>${t('search.resultsCount', { count: filteredDocs.length, total: allDocs.length })}</span>
+            <button id="btn-word-stats" class="skriv-word-stats-badge" title="${t('stats.title')}">
+                ${t('skriv.wordsWritten', { count: totalWords })}
+            </button>
+        `;
+    } else {
+        statsBar.innerHTML = `
+            <span>${t('skriv.documentsCount', { count: allDocs.length })}</span>
+            <button id="btn-word-stats" class="skriv-word-stats-badge" title="${t('stats.title')}">
+                ${t('skriv.wordsWritten', { count: totalWords })}
+            </button>
+        `;
+    }
+    listEl.appendChild(statsBar);
+
+    statsBar.querySelector('#btn-word-stats').addEventListener('click', () => {
+        showWordCountStats(allDocs);
+    });
+
+    // No results state
+    if (filteredDocs.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'text-center py-12';
+        noResults.innerHTML = `
+            <div class="text-4xl mb-3 opacity-30">&#128269;</div>
+            <p class="text-stone-400 text-sm">${t('search.noResults')}</p>
+        `;
+        listEl.appendChild(noResults);
+        return;
+    }
+
     // Document cards
-    docs.forEach(doc => {
+    const cardList = document.createElement('div');
+    cardList.setAttribute('role', 'list');
+    cardList.setAttribute('aria-label', t('skriv.backToDocuments'));
+    listEl.appendChild(cardList);
+
+    filteredDocs.forEach(doc => {
         const card = document.createElement('div');
+        card.setAttribute('role', 'listitem');
         card.className = 'group bg-white border border-stone-200 rounded-xl p-4 mb-3 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer';
 
         const title = doc.title || t('skriv.untitled');
         const wordCount = doc.wordCount || 0;
         const updatedAt = doc.updatedAt ? formatRelativeTime(doc.updatedAt) : '';
         const preview = doc.plainText ? doc.plainText.substring(0, 120).trim() : '';
+        const tags = doc.tags && doc.tags.length > 0
+            ? doc.tags.map(tag => `<span class="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">${escapeHtml(tag)}</span>`).join(' ')
+            : '';
+
+        const cardLabel = `${title}, ${t('wordCounter.count', { count: wordCount })}, ${updatedAt}`;
+        card.setAttribute('aria-label', cardLabel);
 
         card.innerHTML = `
             <div class="flex items-start justify-between gap-3">
@@ -125,21 +220,20 @@ export async function renderDocumentList(container, onOpenDocument) {
                     <div class="flex items-center gap-3 mt-2 text-xs text-stone-400">
                         <span>${wordCount} ${t('wordCounter.count', { count: wordCount }).split(' ').pop()}</span>
                         <span>${updatedAt}</span>
+                        ${tags ? `<span class="flex gap-1">${tags}</span>` : ''}
                     </div>
                 </div>
-                <button data-delete-id="${doc.id}" class="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-all" title="${t('skriv.trashMoveToTrash')}">
+                <button data-delete-id="${doc.id}" class="p-1.5 rounded-lg text-stone-300 hover:text-red-500 hover:bg-red-50 transition-all focus:opacity-100" title="${t('skriv.trashMoveToTrash')}" aria-label="${t('skriv.trashMoveToTrash')}: ${escapeHtml(title)}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
             </div>
         `;
 
-        // Open on card click (but not delete button)
         card.addEventListener('click', (e) => {
             if (e.target.closest('[data-delete-id]')) return;
             onOpenDocument(doc.id);
         });
 
-        // Delete button — now soft-deletes to trash
         card.querySelector('[data-delete-id]').addEventListener('click', async (e) => {
             e.stopPropagation();
             const days = getRetentionDays();
@@ -158,11 +252,8 @@ export async function renderDocumentList(container, onOpenDocument) {
             }
         });
 
-        listEl.appendChild(card);
+        cardList.appendChild(card);
     });
-
-    // Append footer at the bottom
-    container.appendChild(footer);
 }
 
 /**
@@ -314,4 +405,21 @@ function formatRelativeTime(isoString) {
     if (diffDays < 7) return t('time.daysAgo', { count: diffDays });
 
     return date.toLocaleDateString(getDateLocale(), { day: 'numeric', month: 'short' });
+}
+
+/**
+ * Get the SVG icon for the current theme.
+ */
+function getThemeIconSVG() {
+    const theme = getTheme();
+    if (theme === 'dark') {
+        // Moon icon
+        return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>';
+    }
+    if (theme === 'light') {
+        // Sun icon
+        return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>';
+    }
+    // System (monitor) icon
+    return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>';
 }

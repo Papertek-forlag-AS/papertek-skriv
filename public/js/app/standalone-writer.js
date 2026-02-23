@@ -33,6 +33,7 @@ import { createAutoSave } from '../editor-core/shared/auto-save.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
 import { t } from '../editor-core/shared/i18n.js';
 import { getDocument, saveDocument } from './document-store.js';
+import { createTagEditor } from './document-tags.js';
 
 /**
  * Launch the standalone editor for a given document.
@@ -120,13 +121,20 @@ export async function launchEditor(container, docId, onBack) {
 
     // Title input
     const titleRow = document.createElement('div');
-    titleRow.className = 'px-4 pt-6 pb-2 max-w-3xl mx-auto w-full';
+    titleRow.className = 'px-4 pt-6 pb-1 max-w-3xl mx-auto w-full';
     titleRow.innerHTML = `
         <input id="doc-title" type="text"
             placeholder="${escapeAttr(t('skriv.titlePlaceholder'))}"
             value="${escapeAttr(doc.title || '')}"
             class="w-full text-2xl font-bold text-stone-900 placeholder-stone-300 border-none outline-none bg-transparent" />
     `;
+
+    // Tag editor (below title)
+    const tagRow = document.createElement('div');
+    tagRow.className = 'px-4 pb-2 max-w-3xl mx-auto w-full';
+    const tagEditorApi = createTagEditor(tagRow, doc.tags || [], (updatedTags) => {
+        autoSave.schedule();
+    });
 
     // Editor area
     const editorWrap = document.createElement('div');
@@ -161,6 +169,7 @@ export async function launchEditor(container, docId, onBack) {
     // Assemble
     writingEnv.appendChild(topBar);
     writingEnv.appendChild(titleRow);
+    writingEnv.appendChild(tagRow);
     writingEnv.appendChild(editorWrap);
     writingEnv.appendChild(wordCountBar);
     container.appendChild(writingEnv);
@@ -184,6 +193,7 @@ export async function launchEditor(container, docId, onBack) {
                 wordCount: countWords(plainText),
                 references: refsApi.getReferences(),
                 frameType: frameApi.getActiveFrame(),
+                tags: tagEditorApi.getTags(),
             };
         },
         statusEl: saveStatusEl,
@@ -369,6 +379,7 @@ export async function launchEditor(container, docId, onBack) {
         sentenceApi.destroy();
         paragraphMapApi.destroy();
         imageApi.destroy();
+        tagEditorApi.destroy();
         counterCleanup();
         onBack();
     });

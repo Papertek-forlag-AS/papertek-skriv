@@ -4,11 +4,13 @@
  */
 
 import { initI18n } from '../editor-core/shared/i18n.js';
+import { initTheme } from '../editor-core/shared/theme.js';
 import { renderDocumentList } from './document-list.js';
 import { launchEditor } from './standalone-writer.js';
 import { purgeExpired } from './trash-store.js';
 
 async function init() {
+    initTheme();
     await initI18n();
 
     // Purge expired trash documents on startup (silent, non-blocking)

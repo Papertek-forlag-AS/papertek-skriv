@@ -2,7 +2,7 @@
  * Document storage using IndexedDB.
  * Stores documents locally in the browser — no server, no login.
  *
- * Each document: { id, title, html, plainText, wordCount, createdAt, updatedAt }
+ * Each document: { id, title, html, plainText, wordCount, createdAt, updatedAt, tags }
  */
 
 const DB_NAME = 'skriv-documents';
@@ -65,6 +65,7 @@ export async function createDocument(title = '') {
         html: '',
         plainText: '',
         wordCount: 0,
+        tags: [],
         createdAt: now,
         updatedAt: now,
     };

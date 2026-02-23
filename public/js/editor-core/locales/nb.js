@@ -71,8 +71,29 @@ export default {
         monthNames: 'jan,feb,mar,apr,mai,jun,jul,aug,sep,okt,nov,des',
     },
 
+    search: {
+        placeholder: 'Søk i dokumenter...',
+        noResults: 'Ingen dokumenter funnet',
+        clear: 'Tøm søk',
+        resultsCount: '{{count}} av {{total}} dokumenter',
+    },
+
+    tags: {
+        all: 'Alle',
+        addTag: 'Ny merkelapp',
+        removeTag: 'Fjern merkelapp',
+        filter: 'Filtrer etter merkelapp',
+    },
+
     language: {
         label: 'Språk',
+    },
+
+    theme: {
+        toggle: 'Bytt tema',
+        light: 'Lyst tema',
+        dark: 'Mørkt tema',
+        system: 'Følger systeminnstilling',
     },
 
     spinner: {

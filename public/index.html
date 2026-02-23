@@ -13,6 +13,7 @@
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
 
     <!-- jsPDF for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -783,10 +784,106 @@
             #btn-back { font-size: 0; gap: 0 !important; }
             #btn-back svg { font-size: initial; }
         }
+        /* ==========================================
+         * DARK MODE
+         * ========================================== */
+        .dark body,
+        html.dark body {
+            background-color: #1c1917; /* stone-900 */
+            color: #e7e5e4; /* stone-200 */
+        }
+
+        /* Editor text */
+        .dark #editor { color: #e7e5e4; }
+        .dark #editor h1, .dark #editor h2 { color: #fafaf9; }
+        .dark #editor p[data-was-heading="1"],
+        .dark #editor p[data-was-heading="2"] { color: #fafaf9; }
+
+        /* Title input */
+        .dark #doc-title {
+            color: #fafaf9;
+        }
+        .dark #doc-title::placeholder { color: #78716c; }
+
+        /* Cards & borders */
+        .dark .group { background-color: #292524; border-color: #44403c; }
+        .dark .group:hover { border-color: #57534e; }
+
+        /* Frame sections */
+        .dark .skriv-frame-section {
+            background: linear-gradient(135deg, #1a2e23, #1c2721) !important;
+            border-color: #2d5a3f !important;
+        }
+
+        /* TOC */
+        .dark .skriv-toc-container {
+            background: #292524 !important;
+            border-color: #44403c !important;
+        }
+        .dark .skriv-toc-container a { color: #6ee7b7 !important; }
+
+        /* References */
+        .dark .skriv-ref-list {
+            background: #292524 !important;
+            border-color: #44403c !important;
+        }
+        .dark .skriv-ref-marker { color: #6ee7b7; }
+
+        /* Modal overlay */
+        .dark .skriv-modal-overlay { background: rgba(0, 0, 0, 0.7) !important; }
+        .dark .skriv-modal-box {
+            background: #292524 !important;
+            border-color: #44403c !important;
+            color: #e7e5e4 !important;
+        }
+        .dark .skriv-modal-box input,
+        .dark .skriv-modal-box select {
+            background: #1c1917 !important;
+            border-color: #44403c !important;
+            color: #e7e5e4 !important;
+        }
+
+        /* Toast */
+        .dark .skriv-toast {
+            background: #292524 !important;
+            color: #e7e5e4 !important;
+            border-color: #44403c !important;
+        }
+
+        /* Floating toolbar */
+        .dark .skriv-floating-toolbar {
+            background: #292524 !important;
+            border-color: #44403c !important;
+        }
+        .dark .skriv-floating-toolbar button { color: #e7e5e4 !important; }
+        .dark .skriv-floating-toolbar button:hover { background: #44403c !important; }
+
+        /* Search input */
+        .dark #doc-search {
+            background: #292524;
+            border-color: #44403c;
+            color: #e7e5e4;
+        }
+        .dark #doc-search:focus { border-color: #059669; }
+
+        /* Rhythm bar & minimap */
+        .dark .skriv-rhythm-bar { background: #292524 !important; border-color: #44403c !important; }
+        .dark .skriv-paragraph-map { background: #292524 !important; border-color: #44403c !important; }
+
+        /* Word stats overlay */
+        .dark .skriv-word-stats-overlay { background: #292524 !important; border-color: #44403c !important; color: #e7e5e4 !important; }
+
+        /* Image blocks */
+        .dark #editor .skriv-image-block { border-color: #44403c; }
+        .dark #editor .skriv-image-block.selected { border-color: #059669; }
+
+        /* Spinner panel */
+        .dark .skriv-spinner-panel { background: #292524 !important; border-color: #44403c !important; }
     </style>
 </head>
-<body class="bg-stone-50 text-stone-900 antialiased">
-    <div id="app"></div>
+<body class="bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-200 antialiased">
+    <a href="#app" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold">Hopp til innhold</a>
+    <main id="app" role="main"></main>
 
     <script type="module" src="/js/app/main.js"></script>
 

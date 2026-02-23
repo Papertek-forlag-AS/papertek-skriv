@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v15';
+const CACHE_NAME = 'skriv-v18';
 const ASSETS = [
     '/',
     '/index.html',
@@ -13,6 +13,8 @@ const ASSETS = [
     '/js/app/standalone-writer.js',
     '/js/app/document-store.js',
     '/js/app/document-list.js',
+    '/js/app/document-search.js',
+    '/js/app/document-tags.js',
     '/js/app/trash-store.js',
     '/js/editor-core/config.js',
     '/js/editor-core/shared/i18n.js',
@@ -23,6 +25,8 @@ const ASSETS = [
     '/js/editor-core/shared/dom-helpers.js',
     '/js/editor-core/shared/frame-elements.js',
     '/js/editor-core/shared/auto-save.js',
+    '/js/editor-core/shared/theme.js',
+    '/js/editor-core/shared/aria-live.js',
     '/js/editor-core/student/editor-toolbar.js',
     '/js/editor-core/student/text-export.js',
     '/js/editor-core/student/toc-manager.js',

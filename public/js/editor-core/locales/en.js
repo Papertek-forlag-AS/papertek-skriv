@@ -77,8 +77,32 @@ export default {
         monthNames: 'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec',
     },
 
+    search: {
+        placeholder: 'Search documents...',
+        noResults: 'No documents found',
+        clear: 'Clear search',
+        resultsCount: {
+            one: '{{count}} of {{total}} document',
+            other: '{{count}} of {{total}} documents',
+        },
+    },
+
+    tags: {
+        all: 'All',
+        addTag: 'Add tag',
+        removeTag: 'Remove tag',
+        filter: 'Filter by tag',
+    },
+
     language: {
         label: 'Language',
+    },
+
+    theme: {
+        toggle: 'Switch theme',
+        light: 'Light mode',
+        dark: 'Dark mode',
+        system: 'System preference',
     },
 
     spinner: {

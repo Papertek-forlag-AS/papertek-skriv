@@ -37,6 +37,8 @@ export function initEditorToolbar(editor) {
     // --- Build toolbar DOM ---
     const toolbar = document.createElement('div');
     toolbar.id = 'editor-floating-toolbar';
+    toolbar.setAttribute('role', 'toolbar');
+    toolbar.setAttribute('aria-label', 'Formatting');
     toolbar.className = [
         'fixed', 'z-[300]',
         'flex', 'items-center', 'gap-0.5',
@@ -68,16 +70,30 @@ export function initEditorToolbar(editor) {
 
     // Always-visible buttons
     const btnBold      = createBtn('B', ['font-bold']);
+    btnBold.setAttribute('aria-label', 'Bold');
+    btnBold.setAttribute('aria-pressed', 'false');
     const btnItalic    = createBtn('I', ['italic']);
+    btnItalic.setAttribute('aria-label', 'Italic');
+    btnItalic.setAttribute('aria-pressed', 'false');
     const btnUnderline = createBtn('U', ['underline']);
+    btnUnderline.setAttribute('aria-label', 'Underline');
+    btnUnderline.setAttribute('aria-pressed', 'false');
 
     // Advanced mode buttons (hidden by default)
     const sepLists      = createSeparator();
     const btnBulletList = createBtn('•', ['text-lg']);
+    btnBulletList.setAttribute('aria-label', 'Bullet list');
+    btnBulletList.setAttribute('aria-pressed', 'false');
     const btnOrderedList = createBtn('1.', ['text-xs', 'font-bold']);
+    btnOrderedList.setAttribute('aria-label', 'Numbered list');
+    btnOrderedList.setAttribute('aria-pressed', 'false');
     const sepHeadings   = createSeparator();
     const btnH1         = createBtn('H1', ['text-xs', 'font-bold']);
+    btnH1.setAttribute('aria-label', 'Heading 1');
+    btnH1.setAttribute('aria-pressed', 'false');
     const btnH2         = createBtn('H2', ['text-xs', 'font-bold']);
+    btnH2.setAttribute('aria-label', 'Heading 2');
+    btnH2.setAttribute('aria-pressed', 'false');
 
     // Always-visible part
     toolbar.appendChild(btnBold);
@@ -228,18 +244,33 @@ export function initEditorToolbar(editor) {
             try { return document.queryCommandState(cmd); } catch { return false; }
         };
 
-        btnBold.classList.toggle('bg-stone-600', isActive('bold'));
-        btnItalic.classList.toggle('bg-stone-600', isActive('italic'));
-        btnUnderline.classList.toggle('bg-stone-600', isActive('underline'));
+        const boldActive = isActive('bold');
+        const italicActive = isActive('italic');
+        const underlineActive = isActive('underline');
+        const bulletActive = isActive('insertUnorderedList');
+        const orderedActive = isActive('insertOrderedList');
+
+        btnBold.classList.toggle('bg-stone-600', boldActive);
+        btnBold.setAttribute('aria-pressed', String(boldActive));
+        btnItalic.classList.toggle('bg-stone-600', italicActive);
+        btnItalic.setAttribute('aria-pressed', String(italicActive));
+        btnUnderline.classList.toggle('bg-stone-600', underlineActive);
+        btnUnderline.setAttribute('aria-pressed', String(underlineActive));
 
         // List active states
-        btnBulletList.classList.toggle('bg-stone-600', isActive('insertUnorderedList'));
-        btnOrderedList.classList.toggle('bg-stone-600', isActive('insertOrderedList'));
+        btnBulletList.classList.toggle('bg-stone-600', bulletActive);
+        btnBulletList.setAttribute('aria-pressed', String(bulletActive));
+        btnOrderedList.classList.toggle('bg-stone-600', orderedActive);
+        btnOrderedList.setAttribute('aria-pressed', String(orderedActive));
 
         const blockEl = getBlockElement();
         const tag = blockEl?.tagName?.toUpperCase() || '';
-        btnH1.classList.toggle('bg-stone-600', tag === 'H1');
-        btnH2.classList.toggle('bg-stone-600', tag === 'H2');
+        const h1Active = tag === 'H1';
+        const h2Active = tag === 'H2';
+        btnH1.classList.toggle('bg-stone-600', h1Active);
+        btnH1.setAttribute('aria-pressed', String(h1Active));
+        btnH2.classList.toggle('bg-stone-600', h2Active);
+        btnH2.setAttribute('aria-pressed', String(h2Active));
     }
 
     // --- Show/hide toolbar ---
