@@ -24,7 +24,7 @@ export function createSearchBar(container, onFilter) {
         <input type="text"
             id="doc-search"
             placeholder="${t('search.placeholder')}"
-            class="w-full pl-10 pr-10 py-2.5 text-sm border border-stone-200 rounded-lg bg-white text-stone-800 placeholder-stone-400 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors" />
+            class="w-full pl-10 pr-10 py-2.5 text-sm border border-stone-200 dark:border-stone-700 rounded-lg bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200 placeholder-stone-400 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-colors" />
         <button id="search-clear" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-stone-400 hover:text-stone-600 transition-colors hidden" title="${t('search.clear')}">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
