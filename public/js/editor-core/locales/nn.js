@@ -107,6 +107,8 @@ export default {
         deleteSubjectConfirm: 'Fjerne «{{subject}}» frå lista? Dokument held på faget sitt.',
         noSubject: 'Ingen fag',
         subjectLabel: 'Fag',
+        showAllSubjects: 'Vis alle fag ({{count}})',
+        hideSubjects: 'Vis færre fag',
     },
 
     language: {

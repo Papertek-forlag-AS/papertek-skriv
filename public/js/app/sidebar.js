@@ -89,8 +89,15 @@ export function createSidebar(container, options) {
         // Divider + section label
         list.appendChild(createDivider(t('sidebar.title')));
 
-        // Subject folders
-        for (const subject of subjects) {
+        // Subject folders — show only subjects with documents or custom subjects
+        const visibleSubjects = subjects.filter(s =>
+            (counts[s] || 0) > 0 || customSubjects.includes(s)
+        );
+        const hiddenSubjects = subjects.filter(s =>
+            (counts[s] || 0) === 0 && !customSubjects.includes(s)
+        );
+
+        for (const subject of visibleSubjects) {
             const count = counts[subject] || 0;
             const isCustom = customSubjects.includes(subject);
             list.appendChild(createItem(
@@ -100,6 +107,50 @@ export function createSidebar(container, options) {
                 `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>`,
                 isCustom
             ));
+        }
+
+        // "Show all subjects" toggle when there are hidden subjects
+        if (hiddenSubjects.length > 0) {
+            const showAllBtn = document.createElement('button');
+            showAllBtn.className = 'flex items-center gap-2 w-full px-3 py-1 text-[11px] text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors rounded-lg';
+            showAllBtn.innerHTML = `
+                <svg class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                ${t('sidebar.showAllSubjects', { count: hiddenSubjects.length })}
+            `;
+            let expanded = false;
+            const expandedContainer = document.createElement('div');
+            expandedContainer.className = 'hidden';
+
+            for (const subject of hiddenSubjects) {
+                expandedContainer.appendChild(createItem(
+                    subject,
+                    subject,
+                    0,
+                    `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>`,
+                    false
+                ));
+            }
+
+            showAllBtn.addEventListener('click', () => {
+                expanded = !expanded;
+                expandedContainer.classList.toggle('hidden', !expanded);
+                showAllBtn.querySelector('svg').style.transform = expanded ? 'rotate(180deg)' : '';
+                showAllBtn.lastElementChild?.remove();
+                const label = document.createElement('span');
+                label.textContent = expanded
+                    ? t('sidebar.hideSubjects')
+                    : t('sidebar.showAllSubjects', { count: hiddenSubjects.length });
+                showAllBtn.appendChild(label);
+            });
+
+            // Wrap label in span for replacement
+            const labelSpan = document.createElement('span');
+            labelSpan.textContent = t('sidebar.showAllSubjects', { count: hiddenSubjects.length });
+            showAllBtn.innerHTML = `<svg class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>`;
+            showAllBtn.appendChild(labelSpan);
+
+            list.appendChild(showAllBtn);
+            list.appendChild(expandedContainer);
         }
 
         // Add subject button

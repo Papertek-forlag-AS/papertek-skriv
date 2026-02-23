@@ -141,7 +141,7 @@ export async function launchEditor(container, docId, onBack) {
 
     // Subject picker (below tags)
     const subjectRow = document.createElement('div');
-    subjectRow.className = 'px-4 pb-2 max-w-3xl mx-auto w-full flex items-center gap-2';
+    subjectRow.className = 'px-4 pb-2 pt-1 max-w-3xl mx-auto w-full flex items-center gap-2 border-t border-stone-100 dark:border-stone-800';
     const subjectLabel = document.createElement('span');
     subjectLabel.className = 'text-xs text-stone-400 dark:text-stone-500';
     subjectLabel.textContent = t('sidebar.subjectLabel') + ':';

@@ -116,6 +116,8 @@ export default {
         deleteSubjectConfirm: 'Remove "{{subject}}" from list? Documents keep their subject.',
         noSubject: 'No subject',
         subjectLabel: 'Subject',
+        showAllSubjects: 'Show all subjects ({{count}})',
+        hideSubjects: 'Show fewer',
     },
 
     language: {

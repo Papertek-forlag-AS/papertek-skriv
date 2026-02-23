@@ -303,7 +303,7 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, su
             ? (doc.subject === PERSONAL_SUBJECT
                 ? `<span class="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800">${escapeHtml(t('sidebar.personalFolder'))}</span>`
                 : `<span class="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">${escapeHtml(doc.subject)}</span>`)
-            : `<button class="subject-assign-btn inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-stone-50 dark:bg-stone-700 text-stone-400 dark:text-stone-500 border border-dashed border-stone-300 dark:border-stone-600 hover:border-emerald-400 hover:text-emerald-600 transition-colors" data-assign-subject="${doc.id}">${t('sidebar.chooseSubject')}</button>`;
+            : `<button class="subject-assign-btn inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-dashed border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-400 transition-colors" data-assign-subject="${doc.id}"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>${t('sidebar.chooseSubject')}</button>`;
 
         const cardLabel = `${title}, ${t('wordCounter.count', { count: wordCount })}, ${updatedAt}`;
         card.setAttribute('aria-label', cardLabel);
