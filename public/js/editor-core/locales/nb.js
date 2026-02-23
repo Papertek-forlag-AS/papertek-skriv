@@ -152,6 +152,11 @@ export default {
         },
     },
 
+    matte: {
+        superscriptTooltip: 'Hevet skrift (Ctrl+.)',
+        subscriptTooltip: 'Senket skrift (Ctrl+,)',
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',

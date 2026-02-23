@@ -158,6 +158,11 @@ export default {
         },
     },
 
+    matte: {
+        superscriptTooltip: 'Superscript (Ctrl+.)',
+        subscriptTooltip: 'Subscript (Ctrl+,)',
+    },
+
     // Skriv-specific
     skriv: {
         appName: 'Papertek Skriv',
