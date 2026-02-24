@@ -120,6 +120,12 @@ export default {
         hideSubjects: 'Show fewer',
     },
 
+    sw: {
+        updateAvailable: 'A new version is available.',
+        updateNow: 'Update now',
+        updating: 'Updating...',
+    },
+
     language: {
         label: 'Language',
     },

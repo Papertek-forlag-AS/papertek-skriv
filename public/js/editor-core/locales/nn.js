@@ -111,6 +111,12 @@ export default {
         hideSubjects: 'Vis færre fag',
     },
 
+    sw: {
+        updateAvailable: 'Ei ny utgåve er tilgjengeleg.',
+        updateNow: 'Oppdater no',
+        updating: 'Oppdaterer...',
+    },
+
     language: {
         label: 'Språk',
     },

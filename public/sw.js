@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v20';
+const CACHE_NAME = 'skriv-v21';
 const ASSETS = [
     '/',
     '/index.html',
@@ -19,6 +19,7 @@ const ASSETS = [
     '/js/app/subject-store.js',
     '/js/app/sidebar.js',
     '/js/app/subject-picker.js',
+    '/js/app/sw-manager.js',
     '/js/editor-core/config.js',
     '/js/editor-core/shared/i18n.js',
     '/js/editor-core/shared/in-page-modal.js',
@@ -63,6 +64,13 @@ const ASSETS = [
     '/frames/analyse.md',
     '/frames/kronikk.md',
 ];
+
+// Listen for SKIP_WAITING message from sw-manager.js
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
 
 // Install: cache static assets
 self.addEventListener('install', (event) => {

@@ -8,7 +8,7 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 
 | Module                 | Exports                                          | Depends on                          | Purpose                                |
 |----------------------- |------------------------------------------------- |------------------------------------ |--------------------------------------- |
-| `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store | Hash router, app init         |
+| `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store, sw-manager | Hash router, app init         |
 | `document-store.js`    | `createDocument`, `getDocument`, `saveDocument`, `listDocuments`, `deleteDocument` | subject-store | IndexedDB CRUD for documents           |
 | `trash-store.js`       | `trashDocument`, `restoreDocument`, `listTrashedDocuments`, `permanentlyDelete`, `emptyTrash`, `getTrashCount`, `purgeExpired`, `getRetentionDays` | (none) | Soft-delete with 30-day retention |
 | `document-list.js`     | `renderDocumentList`                             | document-store, trash-store, word-count-stats, document-search, document-tags, sidebar, subject-picker, subject-store, i18n, html-escape, in-page-modal, toast-notification, theme | Dashboard/home screen UI with sidebar   |
@@ -19,6 +19,7 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 | `subject-store.js`     | `PREDEFINED_SUBJECTS`, `PERSONAL_SUBJECT`, `getSchoolYear`, `getCurrentSchoolYear`, `setCurrentSchoolYear`, `getCustomSubjects`, `addCustomSubject`, `removeCustomSubject`, `getAllSubjects`, `getAvailableSchoolYears` | (none) | Subject list CRUD + school year logic |
 | `sidebar.js`           | `createSidebar`                                  | subject-store, i18n, html-escape    | Sidebar navigation with subject folders |
 | `subject-picker.js`    | `createSubjectPicker`, `createSubjectBadge`      | subject-store, i18n, html-escape    | Subject assignment dropdown + badge    |
+| `sw-manager.js`        | `initServiceWorker`                              | i18n, toast-notification            | SW registration, update prompt, dev-mode disable |
 
 ## editor-core/shared/ — Cross-product utilities
 

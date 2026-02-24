@@ -8,9 +8,11 @@ import { initTheme } from '../editor-core/shared/theme.js';
 import { renderDocumentList } from './document-list.js';
 import { launchEditor } from './standalone-writer.js';
 import { purgeExpired } from './trash-store.js';
+import { initServiceWorker } from './sw-manager.js';
 
 async function init() {
     initTheme();
+    initServiceWorker();
     await initI18n();
 
     // Purge expired trash documents on startup (silent, non-blocking)
