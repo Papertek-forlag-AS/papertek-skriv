@@ -22,9 +22,15 @@ function openDB() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
+        // If blocked for more than 3s, reload to clear stale connections
+        let blockedTimer = null;
         request.onblocked = () => {
             console.warn('[document-store] DB upgrade blocked — closing stale connections');
             if (_db) { _db.close(); _db = null; }
+            blockedTimer = setTimeout(() => {
+                console.warn('[document-store] DB still blocked after 3s — reloading');
+                window.location.reload();
+            }, 3000);
         };
 
         request.onupgradeneeded = (e) => {
@@ -71,6 +77,7 @@ function openDB() {
         };
 
         request.onsuccess = (e) => {
+            if (blockedTimer) clearTimeout(blockedTimer);
             _db = e.target.result;
             // Close this connection if another tab/module requests a version upgrade
             _db.onversionchange = () => {
@@ -81,6 +88,7 @@ function openDB() {
         };
 
         request.onerror = (e) => {
+            if (blockedTimer) clearTimeout(blockedTimer);
             console.error('IndexedDB open failed:', e.target.error);
             reject(e.target.error);
         };
