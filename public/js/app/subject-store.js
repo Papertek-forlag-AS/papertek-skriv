@@ -3,9 +3,14 @@
  * Subjects are used to organize documents into folders.
  * School years run from August 1st to July 31st.
  *
+ * Level-aware: when a school level is set (via onboarding), only level-relevant
+ * subjects are shown. Falls back to full list when no level is set.
+ *
  * Predefined subjects + student-created custom subjects.
  * Custom subjects are persisted in localStorage.
  */
+
+import { getSchoolLevel, getSubjectsForLevel } from './school-level.js';
 
 const LS_CUSTOM_SUBJECTS = 'skriv_custom_subjects';
 const LS_SCHOOL_YEAR = 'skriv_school_year';
@@ -91,13 +96,16 @@ export function getCustomSubjects() {
 
 /**
  * Add a custom subject.
+ * Only adds if not already a predefined or level-based subject.
  * @param {string} name - Subject name (trimmed, max 30 chars)
  */
 export function addCustomSubject(name) {
     const trimmed = name.trim().slice(0, 30);
     if (!trimmed) return;
     const customs = getCustomSubjects();
-    if (!customs.includes(trimmed) && !PREDEFINED_SUBJECTS.includes(trimmed)) {
+    const level = getSchoolLevel();
+    const base = level ? getSubjectsForLevel(level) : PREDEFINED_SUBJECTS;
+    if (!customs.includes(trimmed) && !base.includes(trimmed)) {
         customs.push(trimmed);
         localStorage.setItem(LS_CUSTOM_SUBJECTS, JSON.stringify(customs));
     }
@@ -113,12 +121,15 @@ export function removeCustomSubject(name) {
 }
 
 /**
- * Get all subjects (predefined + custom), sorted alphabetically.
+ * Get all subjects (level-based or predefined + custom), sorted alphabetically.
+ * When a school level is set, uses level-specific subjects.
+ * Falls back to full predefined list when no level is set.
  * @returns {string[]}
  */
 export function getAllSubjects() {
-    const all = new Set([...PREDEFINED_SUBJECTS, ...getCustomSubjects()]);
-    return [...all].sort((a, b) => a.localeCompare(b, 'nb'));
+    const level = getSchoolLevel();
+    const base = level ? getSubjectsForLevel(level) : PREDEFINED_SUBJECTS;
+    return [...new Set([...base, ...getCustomSubjects()])].sort((a, b) => a.localeCompare(b, 'nb'));
 }
 
 /**

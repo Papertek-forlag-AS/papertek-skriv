@@ -1,6 +1,6 @@
 # UI & Routes
 
-> Last updated: 2026-02-23
+> Last updated: 2026-02-24
 
 ## Routing
 
@@ -14,6 +14,10 @@ Hash-based SPA routing in `main.js`. No history API.
 **Navigation flow:**
 
 ```
+App init
+  └── First visit (no school level) → Onboarding modal (must pick level)
+        └── Picks level → saves to localStorage → continues to #/
+
 #/ (Document list)
   ├── Click document → #/doc/{id}
   ├── Create new doc → creates doc in IndexedDB → #/doc/{id}
@@ -34,6 +38,7 @@ Hash-based SPA routing in `main.js`. No history API.
 - "+ Legg til fag" — inline input to create custom subjects
 - "Uten fag" — orphan documents (no subject assigned), amber indicator when count > 0
 - "Personlig mappe" — personal folder (`subject === '__personal__'`)
+- "Bytt trinn" — change school level button at bottom, opens onboarding modal (cancellable)
 
 **Mobile (< 768px):** Sidebar is hidden; hamburger button opens it as an overlay drawer.
 

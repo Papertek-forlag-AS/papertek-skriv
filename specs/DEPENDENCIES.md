@@ -1,6 +1,6 @@
 # Dependencies
 
-> Last updated: 2026-02-23
+> Last updated: 2026-02-24
 
 ## External (CDN)
 
@@ -23,6 +23,12 @@ These are the only external dependencies. There is no `package.json` or npm.
 app/main.js
   ├── shared/i18n.js
   ├── shared/theme.js
+  ├── app/school-level.js
+  ├── app/onboarding-modal.js
+  │     ├── app/school-level.js
+  │     ├── shared/i18n.js
+  │     ├── shared/html-escape.js
+  │     └── shared/dom-helpers.js
   ├── app/document-list.js
   │     ├── app/document-store.js
   │     │     └── app/subject-store.js
@@ -38,6 +44,9 @@ app/main.js
   │     │     └── shared/i18n.js
   │     ├── app/sidebar.js
   │     │     ├── app/subject-store.js
+  │     │     │     └── app/school-level.js
+  │     │     ├── app/school-level.js
+  │     │     ├── app/onboarding-modal.js
   │     │     ├── shared/i18n.js
   │     │     └── shared/html-escape.js
   │     ├── app/subject-picker.js
@@ -45,6 +54,7 @@ app/main.js
   │     │     ├── shared/i18n.js
   │     │     └── shared/html-escape.js
   │     ├── app/subject-store.js
+  │     │     └── app/school-level.js
   │     ├── shared/i18n.js
   │     ├── shared/html-escape.js
   │     ├── shared/in-page-modal.js

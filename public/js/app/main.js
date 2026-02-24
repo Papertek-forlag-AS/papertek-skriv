@@ -9,11 +9,19 @@ import { renderDocumentList } from './document-list.js';
 import { launchEditor } from './standalone-writer.js';
 import { purgeExpired } from './trash-store.js';
 import { initServiceWorker } from './sw-manager.js';
+import { hasSchoolLevel, setSchoolLevel } from './school-level.js';
+import { showOnboardingModal } from './onboarding-modal.js';
 
 async function init() {
     initTheme();
     initServiceWorker();
     await initI18n();
+
+    // First-time onboarding: ask student for school level
+    if (!hasSchoolLevel()) {
+        const levelId = await showOnboardingModal();
+        setSchoolLevel(levelId);
+    }
 
     // Purge expired trash documents on startup (silent, non-blocking)
     purgeExpired().then(count => {

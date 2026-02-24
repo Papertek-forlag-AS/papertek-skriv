@@ -126,6 +126,23 @@ export default {
         updating: 'Updating...',
     },
 
+    level: {
+        choose: 'Choose level',
+        title: 'What grade level are you in?',
+        subtitle: 'We will adjust the subjects to your level. You can change this later.',
+        barneskole: 'Primary school',
+        barneskoleSub: 'Grades 1–7',
+        ungdomsskole: 'Lower secondary',
+        ungdomsskoleSub: 'Grades 8–10',
+        vg1: 'Upper secondary year 1',
+        vg1Sub: 'First year of upper secondary',
+        vg2: 'Upper secondary year 2',
+        vg2Sub: 'Second year of upper secondary',
+        vg3: 'Upper secondary year 3',
+        vg3Sub: 'Third year of upper secondary',
+        changeLevel: 'Change level',
+    },
+
     language: {
         label: 'Language',
     },

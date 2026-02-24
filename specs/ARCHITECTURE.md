@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-02-23
+> Last updated: 2026-02-24
 
 ## What is this?
 
@@ -27,7 +27,7 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v21)
+├── sw.js                   ← Service Worker (cache v22)
 ├── icons/                  ← PWA icons (192, 512)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md
@@ -47,7 +47,9 @@ public/
     │   ├── word-count-stats.js
     │   ├── subject-store.js      ← Subject list + school year logic
     │   ├── sidebar.js            ← Subject folder navigation
-    │   └── subject-picker.js     ← Subject assignment dropdown
+    │   ├── subject-picker.js     ← Subject assignment dropdown
+    │   ├── school-level.js       ← School level data + persistence
+    │   └── onboarding-modal.js   ← First-time level selection modal
     └── editor-core/
         ├── config.js       ← Constants (special chars)
         ├── shared/         ← Cross-product utilities (8 modules)

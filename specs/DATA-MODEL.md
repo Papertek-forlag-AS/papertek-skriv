@@ -1,6 +1,6 @@
 # Data Model
 
-> Last updated: 2026-02-23
+> Last updated: 2026-02-24
 
 ## IndexedDB
 
@@ -64,6 +64,7 @@ Key path: `id`
 | `skriv_theme`            | string | Theme preference (`light`, `dark`, `system`) |
 | `skriv_custom_subjects`  | string | JSON array of student-created subject names  |
 | `skriv_school_year`      | string | Active school year label e.g. `'2025/2026'`  |
+| `skriv_school_level`     | string | Selected school level ID (`barneskole`, `ungdomsskole`, `vg1`, `vg2`, `vg3`) |
 
 ## Other storage
 

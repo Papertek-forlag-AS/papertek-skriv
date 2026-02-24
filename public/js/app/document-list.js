@@ -192,7 +192,7 @@ export async function renderDocumentList(container, onOpenDocument) {
         filtered = filterByTag(filtered, currentTag);
         filtered = filterDocuments(filtered, currentQuery);
 
-        renderDocumentCards(listEl, docs, filtered, currentQuery, currentTag, currentSubjectFilter, currentSchoolYear, onOpenDocument, container);
+        renderDocumentCards(cardsContainer, docs, filtered, currentQuery, currentTag, currentSubjectFilter, currentSchoolYear, onOpenDocument, container);
 
         // Update sidebar counts
         desktopSidebar.update({ docs, activeFilter: currentSubjectFilter, schoolYear: currentSchoolYear });
@@ -218,6 +218,11 @@ export async function renderDocumentList(container, onOpenDocument) {
         });
     }
 
+    // Cards container — separate div so re-renders only clear cards, not search/tags
+    const cardsContainer = document.createElement('div');
+    cardsContainer.setAttribute('data-cards-container', '');
+    listEl.appendChild(cardsContainer);
+
     // Initial render
     applyFilters();
 
@@ -228,11 +233,8 @@ export async function renderDocumentList(container, onOpenDocument) {
  * Render document cards into the list element.
  */
 function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, subjectFilter, schoolYear, onOpenDocument, container) {
-    // Keep search bar and tag filter, remove everything after
-    const keepCount = listEl.querySelectorAll('.relative, [class*="flex-wrap"]').length || 1;
-    while (listEl.children.length > keepCount) {
-        listEl.removeChild(listEl.lastChild);
-    }
+    // Clear all cards — search bar and tag filter live outside this container
+    listEl.innerHTML = '';
 
     const isFiltering = query || activeTag || subjectFilter !== 'all';
 

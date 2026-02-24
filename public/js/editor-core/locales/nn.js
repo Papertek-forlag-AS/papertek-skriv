@@ -117,6 +117,23 @@ export default {
         updating: 'Oppdaterer...',
     },
 
+    level: {
+        choose: 'Vel trinn',
+        title: 'Kva trinn går du på?',
+        subtitle: 'Vi tilpassar faga til trinnet ditt. Du kan endre dette seinare.',
+        barneskole: 'Barneskule',
+        barneskoleSub: '1.–7. trinn',
+        ungdomsskole: 'Ungdomsskule',
+        ungdomsskoleSub: '8.–10. trinn',
+        vg1: 'VG1 Studiespesialisering',
+        vg1Sub: 'Første år på vidaregåande',
+        vg2: 'VG2 Studiespesialisering',
+        vg2Sub: 'Andre år på vidaregåande',
+        vg3: 'VG3 Studiespesialisering',
+        vg3Sub: 'Tredje år på vidaregåande',
+        changeLevel: 'Byt trinn',
+    },
+
     language: {
         label: 'Språk',
     },

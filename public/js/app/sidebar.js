@@ -11,6 +11,8 @@ import {
     setCurrentSchoolYear, addCustomSubject, removeCustomSubject,
     PERSONAL_SUBJECT, PREDEFINED_SUBJECTS, getCustomSubjects,
 } from './subject-store.js';
+import { getSchoolLevel, setSchoolLevel, SCHOOL_LEVELS } from './school-level.js';
+import { showOnboardingModal } from './onboarding-modal.js';
 
 /**
  * Create the sidebar navigation component.
@@ -186,6 +188,37 @@ export function createSidebar(container, options) {
         ));
 
         nav.appendChild(list);
+
+        // "Bytt trinn" (Change level) button at the bottom
+        const levelId = getSchoolLevel();
+        if (levelId) {
+            const levelData = SCHOOL_LEVELS.find(l => l.id === levelId);
+            const levelSection = document.createElement('div');
+            levelSection.className = 'px-3 py-3 mt-auto border-t border-stone-200 dark:border-stone-700';
+
+            const changeLevelBtn = document.createElement('button');
+            changeLevelBtn.className = 'flex items-center gap-2 w-full px-3 py-2 text-xs text-stone-500 dark:text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-stone-100 dark:hover:bg-stone-700/50 rounded-lg transition-colors';
+            changeLevelBtn.innerHTML = `
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"/></svg>
+                <span class="flex flex-col text-left">
+                    <span class="font-medium">${escapeHtml(t('level.changeLevel'))}</span>
+                    <span class="text-[10px] text-stone-400 dark:text-stone-500">${levelData ? escapeHtml(t(levelData.labelKey)) : ''}</span>
+                </span>
+            `;
+
+            changeLevelBtn.addEventListener('click', async () => {
+                const newLevel = await showOnboardingModal({ allowCancel: true });
+                if (newLevel) {
+                    setSchoolLevel(newLevel);
+                    state.activeFilter = 'all';
+                    state.onFilterChange('all');
+                    // No explicit render() needed — onFilterChange → applyFilters → sidebar.update → render
+                }
+            });
+
+            levelSection.appendChild(changeLevelBtn);
+            nav.appendChild(levelSection);
+        }
     }
 
     function createItem(filterValue, label, count, iconSvg, isCustom = false, hasAttention = false) {
