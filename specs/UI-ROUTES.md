@@ -1,6 +1,6 @@
 # UI & Routes
 
-> Last updated: 2026-02-24
+> Last updated: 2026-02-26
 
 ## Routing
 
@@ -34,11 +34,13 @@ App init
 **Sidebar** (`sidebar.js`):
 - School year selector (`<select>`, Aug–Jul, auto-detects current year)
 - "Siste dokumenter" — all documents (default view)
-- Subject folders — one per subject, with document count badge
-- "+ Legg til fag" — inline input to create custom subjects
-- "Uten fag" — orphan documents (no subject assigned), amber indicator when count > 0
-- "Personlig mappe" — personal folder (`subject === '__personal__'`)
+- Collapsible folder tree — hierarchical folders (up to 3 levels), with document count badges (includes descendants)
+- "+ Legg til mappe" — inline input to create folders at root level
+- Context menu on custom folders: rename, add subfolder (if depth < 3), delete
+- "Uten mappe" — orphan documents (`folderIds.length === 0`), amber indicator when count > 0
+- "Personlig mappe" — personal folder (`folderIds` includes `sys___personal__`)
 - "Bytt trinn" — change school level button at bottom, opens onboarding modal (cancellable)
+- Level-aware filtering: only shows system folders relevant to selected school level (or folders with documents)
 
 **Mobile (< 768px):** Sidebar is hidden; hamburger button opens it as an overlay drawer.
 
@@ -47,13 +49,13 @@ App init
 - Search bar (`document-search.js`) — filters documents by title and content, `Ctrl/Cmd+K` shortcut
 - Tag filter chips (`document-tags.js`)
 - Stats bar (document count, total word count → opens statistics overlay)
-- Document cards (title, preview, word count, last edited, subject badge, tags)
-  - Cards with no subject show a "Velg fag" button with subject picker dropdown
-  - Cards are `draggable="true"` with `data-doc-id` (prep for future drag-drop)
+- Document cards (title, preview, word count, last edited, folder badges, tags)
+  - Cards with no folder show a "Velg mappe" button with folder picker dropdown (multi-select)
+  - Cards are `draggable="true"` with `data-doc-id` — drag to sidebar folders to assign
 - "No results" state when filters match nothing
 - Trash view — separate screen (replaces document list) with restore/permanent delete actions
 
-**Filter pipeline:** school year → subject → tag → search
+**Filter pipeline:** school year → folder (with descendant inclusion) → tag → search
 
 ## Editor screen (`#/doc/{id}`)
 
@@ -64,7 +66,7 @@ App init
 ├─────────────────────────────────────────────┤
 │ Document title input                         │
 │ + Ny merkelapp (tag editor)                  │
-│ Fag: [subject badge/picker]                  │  ← Subject picker row
+│ Mappe: [folder badges/picker]                 │  ← Folder picker row (multi-select)
 ├─────────────────────────────────────────────┤
 │                                              │
 │  [contenteditable editor]                    │  ← Scrollable

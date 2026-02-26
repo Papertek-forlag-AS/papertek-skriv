@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-02-24
+> Last updated: 2026-02-26
 
 ## What is this?
 
@@ -12,7 +12,7 @@ Papertek Skriv is a privacy-first PWA for student writing in Norwegian schools. 
 |------------- |------------------------ |------------------------------- |
 | Language     | Vanilla JS (ES6 modules)| No framework, no bundler       |
 | CSS          | Tailwind CSS (CDN)      | `https://cdn.tailwindcss.com`  |
-| Storage      | IndexedDB               | Database: `skriv-documents`    |
+| Storage      | IndexedDB               | Database: `skriv-documents` v4 |
 | PDF export   | jsPDF 2.5.1 (CDN)       | cdnjs.cloudflare.com           |
 | Positioning  | Floating UI 1.7.5 (CDN) | For toolbar popover            |
 | PWA          | Service Worker + manifest| Offline-first, installable     |
@@ -27,7 +27,7 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v22)
+├── sw.js                   ← Service Worker (cache v23)
 ├── icons/                  ← PWA icons (192, 512)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md
@@ -45,9 +45,9 @@ public/
     │   ├── trash-store.js
     │   ├── standalone-writer.js  ← Editor orchestrator
     │   ├── word-count-stats.js
-    │   ├── subject-store.js      ← Subject list + school year logic
-    │   ├── sidebar.js            ← Subject folder navigation
-    │   ├── subject-picker.js     ← Subject assignment dropdown
+    │   ├── folder-store.js       ← Folder CRUD, tree helpers, school year logic
+    │   ├── sidebar.js            ← Collapsible folder tree navigation
+    │   ├── folder-picker.js      ← Multi-select folder assignment dropdown
     │   ├── school-level.js       ← School level data + persistence
     │   └── onboarding-modal.js   ← First-time level selection modal
     └── editor-core/
