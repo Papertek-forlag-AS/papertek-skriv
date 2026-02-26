@@ -109,6 +109,23 @@ export default {
         subjectLabel: 'Fag',
         showAllSubjects: 'Vis alle fag ({{count}})',
         hideSubjects: 'Vis færre fag',
+        // Folder system
+        folders: 'Mapper',
+        addFolder: 'Legg til mappe',
+        addSubfolder: 'Legg til undermappe',
+        renameFolder: 'Endre navn',
+        deleteFolder: 'Slett mappe',
+        deleteFolderConfirm: 'Slette «{{name}}»? Dokumenter flyttes til overmappe.',
+        moveFolder: 'Flytt til...',
+        maxDepthReached: 'Maks mappenivå nådd',
+        chooseFolder: 'Velg mappe',
+        chooseFolders: 'Velg mapper',
+        removeAllFolders: 'Fjern alle',
+        folderPickerDone: 'Ferdig',
+        folderLabel: 'Mappe',
+        folderNamePlaceholder: 'Mappenavn...',
+        noFolder: 'Ingen mappe',
+        movedToFolder: 'Lagt til i {{folder}}',
     },
 
     sw: {

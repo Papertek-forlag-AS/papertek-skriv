@@ -118,6 +118,23 @@ export default {
         subjectLabel: 'Subject',
         showAllSubjects: 'Show all subjects ({{count}})',
         hideSubjects: 'Show fewer',
+        // Folder system
+        folders: 'Folders',
+        addFolder: 'Add folder',
+        addSubfolder: 'Add subfolder',
+        renameFolder: 'Rename',
+        deleteFolder: 'Delete folder',
+        deleteFolderConfirm: 'Delete "{{name}}"? Documents will be moved to parent folder.',
+        moveFolder: 'Move to...',
+        maxDepthReached: 'Maximum folder depth reached',
+        chooseFolder: 'Choose folder',
+        chooseFolders: 'Choose folders',
+        removeAllFolders: 'Remove all',
+        folderPickerDone: 'Done',
+        folderLabel: 'Folder',
+        folderNamePlaceholder: 'Folder name...',
+        noFolder: 'No folder',
+        movedToFolder: 'Added to {{folder}}',
     },
 
     sw: {
