@@ -5,7 +5,7 @@
  * Each document: { id, title, html, plainText, wordCount, createdAt, updatedAt, tags, subject, schoolYear }
  */
 
-import { getSchoolYear, getCurrentSchoolYear } from './subject-store.js';
+import { getSchoolYear, getCurrentSchoolYear } from './folder-store.js';
 
 const DB_NAME = 'skriv-documents';
 const DB_VERSION = 4;               // v4: folders store + folderIds on documents
