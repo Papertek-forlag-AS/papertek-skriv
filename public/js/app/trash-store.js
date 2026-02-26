@@ -12,9 +12,10 @@
  */
 
 const DB_NAME = 'skriv-documents';
-const DB_VERSION = 3;                // v3: added subject + schoolYear on documents
+const DB_VERSION = 4;                // v4: folders store + folderIds on documents
 const DOCS_STORE = 'documents';
 const TRASH_STORE = 'trash';
+const PERSONAL_FOLDER_NAME = '__personal__';
 const RETENTION_DAYS = 30;
 
 let _db = null;
@@ -66,6 +67,10 @@ function openDB() {
                     store.createIndex('schoolYear', 'schoolYear', { unique: false });
                 }
             }
+            // v4: folders store + folderIds on documents
+            if (e.oldVersion < 4) {
+                _runV4Migration(db, tx);
+            }
         };
 
         request.onsuccess = (e) => {
@@ -85,6 +90,91 @@ function openDB() {
             reject(e.target.error);
         };
     });
+}
+
+/**
+ * DB v4 migration — creates folders store, seeds folders, sets folderIds.
+ * Duplicated in document-store.js, trash-store.js, and folder-store.js.
+ */
+function _runV4Migration(db, tx) {
+    const now = new Date().toISOString();
+    const nameToId = new Map();
+
+    function normName(n) {
+        return n.toLowerCase()
+            .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
+            .replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    }
+
+    if (!db.objectStoreNames.contains('folders')) {
+        const fs = db.createObjectStore('folders', { keyPath: 'id' });
+        fs.createIndex('parentId', 'parentId', { unique: false });
+        fs.createIndex('schoolYear', 'schoolYear', { unique: false });
+    }
+
+    const docStore = tx.objectStore(DOCS_STORE);
+    if (!docStore.indexNames.contains('folderIds')) {
+        docStore.createIndex('folderIds', 'folderIds', { unique: false, multiEntry: true });
+    }
+
+    const foldersStore = tx.objectStore('folders');
+
+    function addFolder(id, name, isSystem, sortOrder) {
+        nameToId.set(name, id);
+        const req = foldersStore.add({
+            id, name, parentId: null, isSystem,
+            schoolYear: null, sortOrder, createdAt: now,
+        });
+        req.onerror = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
+    }
+
+    addFolder('sys___personal__', PERSONAL_FOLDER_NAME, true, 0);
+
+    const SUBJECTS = [
+        'Engelsk', 'Fremmedspråk', 'Geografi', 'Historie', 'IT', 'KRLE',
+        'Kroppsøving', 'Kunst og håndverk', 'Matematikk', 'Musikk',
+        'Naturfag', 'Norsk', 'Religion og etikk', 'Samfunnsfag', 'Samfunnskunnskap',
+    ];
+    SUBJECTS.forEach((name, i) => addFolder('sys_' + normName(name), name, true, i + 1));
+
+    try {
+        const raw = localStorage.getItem('skriv_custom_subjects');
+        const customs = raw ? JSON.parse(raw) : [];
+        customs.forEach((name, i) => {
+            if (!nameToId.has(name)) {
+                addFolder('cust_' + normName(name), name, false, 100 + i);
+            }
+        });
+    } catch (_) { /* ignore */ }
+
+    docStore.openCursor().onsuccess = (ev) => {
+        const cursor = ev.target.result;
+        if (!cursor) return;
+        try {
+            const doc = cursor.value;
+            if (doc.folderIds !== undefined) { cursor.continue(); return; }
+            const fid = doc.subject ? nameToId.get(doc.subject) : null;
+            doc.folderIds = fid ? [fid] : [];
+            cursor.update(doc);
+        } catch (_) { /* skip */ }
+        cursor.continue();
+    };
+
+    if (db.objectStoreNames.contains(TRASH_STORE)) {
+        const trashStore = tx.objectStore(TRASH_STORE);
+        trashStore.openCursor().onsuccess = (ev) => {
+            const cursor = ev.target.result;
+            if (!cursor) return;
+            try {
+                const doc = cursor.value;
+                if (doc.folderIds !== undefined) { cursor.continue(); return; }
+                const fid = doc.subject ? nameToId.get(doc.subject) : null;
+                doc.folderIds = fid ? [fid] : [];
+                cursor.update(doc);
+            } catch (_) { /* skip */ }
+            cursor.continue();
+        };
+    }
 }
 
 /**
