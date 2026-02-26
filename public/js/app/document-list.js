@@ -1,7 +1,7 @@
 /**
  * Document list UI — the "home screen" of Skriv.
- * Two-column layout: sidebar (subject folders) + main content (document cards).
- * Includes search, tag filtering, subject filtering, and trash view.
+ * Two-column layout: sidebar (folder tree) + main content (document cards).
+ * Includes search, tag filtering, folder filtering, and trash view.
  */
 
 import { listDocuments, createDocument, getDocument, saveDocument } from './document-store.js';
@@ -19,8 +19,11 @@ import { createSearchBar, filterDocuments } from './document-search.js';
 import { createTagFilter, collectTags, filterByTag } from './document-tags.js';
 import { cycleTheme, getTheme } from '../editor-core/shared/theme.js';
 import { createSidebar } from './sidebar.js';
-import { createSubjectPicker, createSubjectBadge } from './subject-picker.js';
-import { getCurrentSchoolYear, PERSONAL_SUBJECT } from './subject-store.js';
+import { createFolderPicker, createFolderBadges } from './folder-picker.js';
+import {
+    getCurrentSchoolYear, getAllFolders, setDocFolders,
+    isPersonalFolder, PERSONAL_FOLDER_NAME,
+} from './folder-store.js';
 
 /**
  * Render the document list into a container.
@@ -36,8 +39,9 @@ export async function renderDocumentList(container, onOpenDocument) {
     // Filter state
     let currentQuery = '';
     let currentTag = null;
-    let currentSubjectFilter = 'all';
+    let currentFolderFilter = 'all';
     let currentSchoolYear = getCurrentSchoolYear();
+    let allFolders = await getAllFolders();
 
     // Two-column layout
     const layout = document.createElement('div');
@@ -143,10 +147,10 @@ export async function renderDocumentList(container, onOpenDocument) {
     // Sidebar options
     const sidebarOptions = {
         docs,
-        activeFilter: currentSubjectFilter,
+        activeFilter: currentFolderFilter,
         schoolYear: currentSchoolYear,
         onFilterChange: (filter) => {
-            currentSubjectFilter = filter;
+            currentFolderFilter = filter;
             closeMobileSidebar();
             applyFilters();
         },
@@ -155,7 +159,6 @@ export async function renderDocumentList(container, onOpenDocument) {
             closeMobileSidebar();
             applyFilters();
         },
-        onAddSubject: () => applyFilters(),
     };
 
     // Create sidebars (desktop + mobile)
@@ -173,30 +176,50 @@ export async function renderDocumentList(container, onOpenDocument) {
         return;
     }
 
+    function getDescendantFolderIds(folderId) {
+        const result = new Set([folderId]);
+        function collect(parentId) {
+            for (const f of allFolders) {
+                if (f.parentId === parentId && !result.has(f.id)) {
+                    result.add(f.id);
+                    collect(f.id);
+                }
+            }
+        }
+        collect(folderId);
+        return result;
+    }
+
     function applyFilters() {
         let filtered = docs;
 
         // School year filter
         filtered = filtered.filter(d => d.schoolYear === currentSchoolYear);
 
-        // Subject filter
-        if (currentSubjectFilter === 'orphans') {
-            filtered = filtered.filter(d => !d.subject);
-        } else if (currentSubjectFilter === 'personal') {
-            filtered = filtered.filter(d => d.subject === PERSONAL_SUBJECT);
-        } else if (currentSubjectFilter !== 'all') {
-            filtered = filtered.filter(d => d.subject === currentSubjectFilter);
+        // Folder filter
+        if (currentFolderFilter === 'orphans') {
+            filtered = filtered.filter(d => !d.folderIds || d.folderIds.length === 0);
+        } else if (currentFolderFilter === 'personal') {
+            const personalFolder = allFolders.find(f => isPersonalFolder(f));
+            if (personalFolder) {
+                filtered = filtered.filter(d => d.folderIds?.includes(personalFolder.id));
+            }
+        } else if (currentFolderFilter !== 'all') {
+            const descendantSet = getDescendantFolderIds(currentFolderFilter);
+            filtered = filtered.filter(d =>
+                d.folderIds?.some(fid => descendantSet.has(fid))
+            );
         }
 
         // Tag + search filters
         filtered = filterByTag(filtered, currentTag);
         filtered = filterDocuments(filtered, currentQuery);
 
-        renderDocumentCards(cardsContainer, docs, filtered, currentQuery, currentTag, currentSubjectFilter, currentSchoolYear, onOpenDocument, container);
+        renderDocumentCards(cardsContainer, docs, filtered, currentQuery, currentTag, currentFolderFilter, currentSchoolYear, onOpenDocument, container, allFolders);
 
         // Update sidebar counts
-        desktopSidebar.update({ docs, activeFilter: currentSubjectFilter, schoolYear: currentSchoolYear });
-        mobileSidebarInstance.update({ docs, activeFilter: currentSubjectFilter, schoolYear: currentSchoolYear });
+        desktopSidebar.update({ docs, activeFilter: currentFolderFilter, schoolYear: currentSchoolYear });
+        mobileSidebarInstance.update({ docs, activeFilter: currentFolderFilter, schoolYear: currentSchoolYear });
     }
 
     // Search bar
@@ -232,11 +255,11 @@ export async function renderDocumentList(container, onOpenDocument) {
 /**
  * Render document cards into the list element.
  */
-function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, subjectFilter, schoolYear, onOpenDocument, container) {
+function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, folderFilter, schoolYear, onOpenDocument, container, folders) {
     // Clear all cards — search bar and tag filter live outside this container
     listEl.innerHTML = '';
 
-    const isFiltering = query || activeTag || subjectFilter !== 'all';
+    const isFiltering = query || activeTag || folderFilter !== 'all';
 
     // Filter allDocs by school year for stats
     const yearDocs = allDocs.filter(d => d.schoolYear === schoolYear);
@@ -300,13 +323,6 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, su
             ? doc.tags.map(tag => `<span class="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300">${escapeHtml(tag)}</span>`).join(' ')
             : '';
 
-        // Subject badge
-        const subjectDisplay = doc.subject
-            ? (doc.subject === PERSONAL_SUBJECT
-                ? `<span class="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800">${escapeHtml(t('sidebar.personalFolder'))}</span>`
-                : `<span class="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">${escapeHtml(doc.subject)}</span>`)
-            : `<button class="subject-assign-btn inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-dashed border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-400 transition-colors" data-assign-subject="${doc.id}"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m6-6H6"/></svg>${t('sidebar.chooseSubject')}</button>`;
-
         const cardLabel = `${title}, ${t('wordCounter.count', { count: wordCount })}, ${updatedAt}`;
         card.setAttribute('aria-label', cardLabel);
 
@@ -318,7 +334,7 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, su
                     <div class="flex items-center gap-2 mt-2 text-xs text-stone-400 flex-wrap">
                         <span>${wordCount} ${t('wordCounter.count', { count: wordCount }).split(' ').pop()}</span>
                         <span>${updatedAt}</span>
-                        ${subjectDisplay}
+                        <span class="folder-badges-container"></span>
                         ${tags ? `<span class="flex gap-1">${tags}</span>` : ''}
                     </div>
                 </div>
@@ -328,9 +344,14 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, su
             </div>
         `;
 
+        // Folder badges
+        const badgesContainer = card.querySelector('.folder-badges-container');
+        const badges = createFolderBadges(doc.folderIds || [], folders || []);
+        badgesContainer.appendChild(badges);
+
         // Open document
         card.addEventListener('click', (e) => {
-            if (e.target.closest('[data-delete-id]') || e.target.closest('[data-assign-subject]')) return;
+            if (e.target.closest('[data-delete-id]') || e.target.closest('.folder-assign-btn')) return;
             onOpenDocument(doc.id);
         });
 
@@ -353,12 +374,12 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, su
             }
         });
 
-        // Subject assign button for orphans
-        const assignBtn = card.querySelector('[data-assign-subject]');
+        // Folder assign button for orphans (the "Choose folder" badge)
+        const assignBtn = badgesContainer.querySelector('.folder-assign-btn');
         if (assignBtn) {
-            const picker = createSubjectPicker(assignBtn, null, async (subject) => {
-                await saveDocument(doc.id, { subject });
-                doc.subject = subject;
+            createFolderPicker(assignBtn, [], async (newFolderIds) => {
+                await setDocFolders(doc.id, newFolderIds);
+                doc.folderIds = newFolderIds;
                 renderDocumentList(container, onOpenDocument);
             });
         }
