@@ -114,6 +114,8 @@ export default {
         folderNamePlaceholder: 'Mappenavn...',
         noFolder: 'Ingen mappe',
         movedToFolder: 'Lagt til i {{folder}}',
+        orphanSection: 'Uten mappe',
+        orphanCleanupHint: 'Dra til en mappe eller klikk for å velge',
     },
 
     sw: {

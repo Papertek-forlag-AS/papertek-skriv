@@ -40,6 +40,7 @@ export function createSidebar(container, options) {
     let state = { ...options };
     let cachedFolders = [];
     const expandedSet = new Set();
+    let isDragActive = false;
 
     // --- Counts ---
 
@@ -188,6 +189,8 @@ export function createSidebar(container, options) {
 
         // "Change level" button
         renderLevelButton(nav);
+
+        if (isDragActive) applyDragCues();
     }
 
     // --- Recursive folder tree rendering ---
@@ -244,21 +247,46 @@ export function createSidebar(container, options) {
         });
 
         // Drag-drop target
+        let autoExpandTimer = null;
         btn.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
-            btn.classList.add('ring-2', 'ring-emerald-400', 'bg-emerald-50', 'dark:bg-emerald-900/20');
+            btn.classList.remove('ring-1', 'ring-emerald-200', 'dark:ring-emerald-800');
+            btn.classList.add('ring-2', 'ring-emerald-400', 'bg-emerald-50', 'dark:bg-emerald-900/20', 'scale-[1.02]', 'shadow-sm');
+            if (!btn.querySelector('.skriv-drag-plus')) {
+                const plus = document.createElement('span');
+                plus.className = 'skriv-drag-plus text-emerald-500 text-[10px] font-bold';
+                plus.textContent = '+';
+                btn.appendChild(plus);
+            }
+            // Auto-expand collapsed folder with children after 600ms
+            if (hasChildren && !isExpanded && !autoExpandTimer) {
+                autoExpandTimer = setTimeout(() => {
+                    expandedSet.add(node.id);
+                    render();
+                }, 600);
+            }
         });
         btn.addEventListener('dragleave', () => {
-            btn.classList.remove('ring-2', 'ring-emerald-400', 'bg-emerald-50', 'dark:bg-emerald-900/20');
+            btn.classList.remove('ring-2', 'ring-emerald-400', 'bg-emerald-50', 'dark:bg-emerald-900/20', 'scale-[1.02]', 'shadow-sm');
+            btn.querySelector('.skriv-drag-plus')?.remove();
+            if (isDragActive) {
+                btn.classList.add('ring-1', 'ring-emerald-200', 'dark:ring-emerald-800');
+            }
+            if (autoExpandTimer) { clearTimeout(autoExpandTimer); autoExpandTimer = null; }
         });
         btn.addEventListener('drop', async (e) => {
             e.preventDefault();
-            btn.classList.remove('ring-2', 'ring-emerald-400', 'bg-emerald-50', 'dark:bg-emerald-900/20');
+            btn.classList.remove('ring-2', 'ring-emerald-400', 'bg-emerald-50', 'dark:bg-emerald-900/20', 'scale-[1.02]', 'shadow-sm');
+            btn.querySelector('.skriv-drag-plus')?.remove();
+            if (autoExpandTimer) { clearTimeout(autoExpandTimer); autoExpandTimer = null; }
             const docId = e.dataTransfer.getData('text/plain');
             if (docId) {
                 await addDocToFolder(docId, node.id);
                 showToast(t('sidebar.movedToFolder', { folder: node.name }));
+                // Success flash
+                btn.classList.add('bg-emerald-100', 'dark:bg-emerald-900/40');
+                setTimeout(() => btn.classList.remove('bg-emerald-100', 'dark:bg-emerald-900/40'), 400);
                 state.onFilterChange(state.activeFilter); // refresh
             }
         });
@@ -416,20 +444,30 @@ export function createSidebar(container, options) {
 
         // Drag-drop for orphans → personal
         if (filterValue === 'personal') {
+            btn.classList.add('skriv-drop-target');
             btn.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'copy';
-                btn.classList.add('ring-2', 'ring-violet-400');
+                btn.classList.remove('ring-1', 'ring-emerald-200', 'dark:ring-emerald-800');
+                btn.classList.add('ring-2', 'ring-violet-400', 'scale-[1.02]', 'shadow-sm');
             });
-            btn.addEventListener('dragleave', () => btn.classList.remove('ring-2', 'ring-violet-400'));
+            btn.addEventListener('dragleave', () => {
+                btn.classList.remove('ring-2', 'ring-violet-400', 'scale-[1.02]', 'shadow-sm');
+                if (isDragActive) {
+                    btn.classList.add('ring-1', 'ring-emerald-200', 'dark:ring-emerald-800');
+                }
+            });
             btn.addEventListener('drop', async (e) => {
                 e.preventDefault();
-                btn.classList.remove('ring-2', 'ring-violet-400');
+                btn.classList.remove('ring-2', 'ring-violet-400', 'scale-[1.02]', 'shadow-sm');
                 const docId = e.dataTransfer.getData('text/plain');
                 const personalFolder = cachedFolders.find(f => isPersonalFolder(f));
                 if (docId && personalFolder) {
                     await addDocToFolder(docId, personalFolder.id);
                     showToast(t('sidebar.movedToFolder', { folder: t('sidebar.personalFolder') }));
+                    // Success flash
+                    btn.classList.add('bg-violet-100', 'dark:bg-violet-900/40');
+                    setTimeout(() => btn.classList.remove('bg-violet-100', 'dark:bg-violet-900/40'), 400);
                     state.onFilterChange(state.activeFilter);
                 }
             });
@@ -479,6 +517,7 @@ export function createSidebar(container, options) {
             const newLevel = await showOnboardingModal({ allowCancel: true });
             if (newLevel) {
                 setSchoolLevel(newLevel);
+                render();
                 state.activeFilter = 'all';
                 state.onFilterChange('all');
             }
@@ -486,6 +525,18 @@ export function createSidebar(container, options) {
 
         levelSection.appendChild(changeLevelBtn);
         nav.appendChild(levelSection);
+    }
+
+    // --- Drag cues ---
+
+    function applyDragCues() {
+        nav.querySelectorAll('[data-folder-id], .skriv-drop-target').forEach(btn => {
+            if (isDragActive) {
+                btn.classList.add('ring-1', 'ring-emerald-200', 'dark:ring-emerald-800');
+            } else {
+                btn.classList.remove('ring-1', 'ring-emerald-200', 'dark:ring-emerald-800');
+            }
+        });
     }
 
     // --- Init ---
@@ -498,6 +549,10 @@ export function createSidebar(container, options) {
         update(newOptions) {
             Object.assign(state, newOptions);
             render();
+        },
+        setDragActive(active) {
+            isDragActive = active;
+            applyDragCues();
         },
     };
 }

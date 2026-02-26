@@ -123,6 +123,8 @@ export default {
         folderNamePlaceholder: 'Folder name...',
         noFolder: 'No folder',
         movedToFolder: 'Added to {{folder}}',
+        orphanSection: 'No folder',
+        orphanCleanupHint: 'Drag to a folder or click to choose',
     },
 
     sw: {

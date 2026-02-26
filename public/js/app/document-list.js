@@ -246,6 +246,16 @@ export async function renderDocumentList(container, onOpenDocument) {
     cardsContainer.setAttribute('data-cards-container', '');
     listEl.appendChild(cardsContainer);
 
+    // Broadcast drag state to sidebar for visual drop cues
+    cardsContainer.addEventListener('dragstart', () => {
+        desktopSidebar.setDragActive(true);
+        mobileSidebarInstance.setDragActive(true);
+    });
+    cardsContainer.addEventListener('dragend', () => {
+        desktopSidebar.setDragActive(false);
+        mobileSidebarInstance.setDragActive(false);
+    });
+
     // Initial render
     applyFilters();
 
@@ -258,6 +268,14 @@ export async function renderDocumentList(container, onOpenDocument) {
 function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, folderFilter, schoolYear, onOpenDocument, container, folders) {
     // Clear all cards — search bar and tag filter live outside this container
     listEl.innerHTML = '';
+
+    // Split docs: when viewing "all", separate filed and orphan docs
+    let mainDocs = filteredDocs;
+    let orphanDocs = [];
+    if (folderFilter === 'all') {
+        mainDocs = filteredDocs.filter(d => d.folderIds && d.folderIds.length > 0);
+        orphanDocs = filteredDocs.filter(d => !d.folderIds || d.folderIds.length === 0);
+    }
 
     const isFiltering = query || activeTag || folderFilter !== 'all';
 
@@ -308,7 +326,7 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, fo
     cardList.setAttribute('aria-label', t('skriv.backToDocuments'));
     listEl.appendChild(cardList);
 
-    filteredDocs.forEach(doc => {
+    mainDocs.forEach(doc => {
         const card = document.createElement('div');
         card.setAttribute('role', 'listitem');
         card.setAttribute('draggable', 'true');
@@ -389,6 +407,16 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, fo
             e.dataTransfer.setData('text/plain', doc.id);
             e.dataTransfer.effectAllowed = 'move';
             card.classList.add('opacity-50');
+            // Custom drag image pill
+            const ghost = document.createElement('div');
+            ghost.className = 'px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-full shadow-lg whitespace-nowrap';
+            ghost.style.position = 'fixed';
+            ghost.style.top = '-100px';
+            const truncTitle = title.length > 30 ? title.substring(0, 30) + '\u2026' : title;
+            ghost.textContent = truncTitle;
+            document.body.appendChild(ghost);
+            e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
+            requestAnimationFrame(() => ghost.remove());
         });
         card.addEventListener('dragend', () => {
             card.classList.remove('opacity-50');
@@ -396,6 +424,89 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, fo
 
         cardList.appendChild(card);
     });
+
+    // Orphan cleanup section (only in "all" view)
+    if (orphanDocs.length > 0) {
+        const GRIP_ICON = '<svg class="w-4 h-5" viewBox="0 0 16 20" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="10" r="1.5"/><circle cx="11" cy="10" r="1.5"/><circle cx="5" cy="16" r="1.5"/><circle cx="11" cy="16" r="1.5"/></svg>';
+
+        const divider = document.createElement('div');
+        divider.className = 'flex items-center gap-3 mt-8 mb-4';
+        divider.innerHTML = `
+            <div class="flex-1 border-t border-amber-200 dark:border-amber-800"></div>
+            <span class="text-xs font-medium text-amber-600 dark:text-amber-400">${escapeHtml(t('sidebar.orphanSection'))} (${orphanDocs.length})</span>
+            <div class="flex-1 border-t border-amber-200 dark:border-amber-800"></div>
+        `;
+        listEl.appendChild(divider);
+
+        const hint = document.createElement('p');
+        hint.className = 'text-xs text-stone-400 dark:text-stone-500 mb-3';
+        hint.textContent = t('sidebar.orphanCleanupHint');
+        listEl.appendChild(hint);
+
+        const orphanList = document.createElement('div');
+        orphanList.setAttribute('role', 'list');
+        orphanList.setAttribute('aria-label', t('sidebar.orphanSection'));
+        listEl.appendChild(orphanList);
+
+        orphanDocs.forEach(doc => {
+            const oCard = document.createElement('div');
+            oCard.setAttribute('role', 'listitem');
+            oCard.setAttribute('draggable', 'true');
+            oCard.setAttribute('data-doc-id', doc.id);
+            oCard.className = 'group bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 border-l-4 border-l-amber-400 rounded-xl p-3 mb-2 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-sm transition-all cursor-pointer';
+
+            const oTitle = doc.title || t('skriv.untitled');
+            const oWordCount = doc.wordCount || 0;
+
+            oCard.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="cursor-grab text-stone-300 dark:text-stone-600 hover:text-stone-500 dark:hover:text-stone-400 flex-shrink-0" title="${t('sidebar.dragHint')}">${GRIP_ICON}</span>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-medium text-sm text-stone-900 dark:text-stone-100 truncate">${escapeHtml(oTitle)}</h3>
+                        <span class="text-xs text-stone-400">${oWordCount} ${t('wordCounter.count', { count: oWordCount }).split(' ').pop()}</span>
+                    </div>
+                    <button class="orphan-assign-btn px-2.5 py-1 text-xs rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors flex-shrink-0">
+                        ${escapeHtml(t('sidebar.chooseFolder'))}
+                    </button>
+                </div>
+            `;
+
+            // Click to open document
+            oCard.addEventListener('click', (e) => {
+                if (e.target.closest('.orphan-assign-btn')) return;
+                onOpenDocument(doc.id);
+            });
+
+            // Folder picker on "Velg mappe" button
+            const assignBtn = oCard.querySelector('.orphan-assign-btn');
+            createFolderPicker(assignBtn, [], async (newFolderIds) => {
+                await setDocFolders(doc.id, newFolderIds);
+                doc.folderIds = newFolderIds;
+                renderDocumentList(container, onOpenDocument);
+            });
+
+            // Drag start
+            oCard.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', doc.id);
+                e.dataTransfer.effectAllowed = 'move';
+                oCard.classList.add('opacity-50');
+                const ghost = document.createElement('div');
+                ghost.className = 'px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-full shadow-lg whitespace-nowrap';
+                ghost.style.position = 'fixed';
+                ghost.style.top = '-100px';
+                const truncName = oTitle.length > 30 ? oTitle.substring(0, 30) + '\u2026' : oTitle;
+                ghost.textContent = truncName;
+                document.body.appendChild(ghost);
+                e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
+                requestAnimationFrame(() => ghost.remove());
+            });
+            oCard.addEventListener('dragend', () => {
+                oCard.classList.remove('opacity-50');
+            });
+
+            orphanList.appendChild(oCard);
+        });
+    }
 }
 
 /**
