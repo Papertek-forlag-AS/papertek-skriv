@@ -34,7 +34,8 @@ import { showToast } from '../editor-core/shared/toast-notification.js';
 import { t } from '../editor-core/shared/i18n.js';
 import { getDocument, saveDocument } from './document-store.js';
 import { createTagEditor } from './document-tags.js';
-import { createSubjectPicker, createSubjectBadge } from './subject-picker.js';
+import { createFolderPicker, createFolderBadges } from './folder-picker.js';
+import { getAllFolders } from './folder-store.js';
 
 /**
  * Launch the standalone editor for a given document.
@@ -139,27 +140,30 @@ export async function launchEditor(container, docId, onBack) {
         autoSave.schedule();
     });
 
-    // Subject picker (below tags)
-    const subjectRow = document.createElement('div');
-    subjectRow.className = 'px-4 pb-2 pt-1 max-w-3xl mx-auto w-full flex items-center gap-2 border-t border-stone-100 dark:border-stone-800';
-    const subjectLabel = document.createElement('span');
-    subjectLabel.className = 'text-xs text-stone-400 dark:text-stone-500';
-    subjectLabel.textContent = t('sidebar.subjectLabel') + ':';
-    subjectRow.appendChild(subjectLabel);
-    const subjectBadge = createSubjectBadge(doc.subject || null);
-    subjectRow.appendChild(subjectBadge);
-    let currentSubject = doc.subject || null;
-    const subjectPickerApi = createSubjectPicker(subjectBadge, currentSubject, (newSubject) => {
-        currentSubject = newSubject;
-        // Update badge display
-        const newBadge = createSubjectBadge(newSubject);
-        subjectBadge.replaceWith(newBadge);
-        subjectPickerApi.setSubject(newSubject);
-        // Re-attach picker to new badge
-        newBadge.addEventListener('click', (e) => {
-            e.stopPropagation();
-            subjectBadge.click();
-        });
+    // Folder picker (below tags)
+    const folders = await getAllFolders();
+    const folderRow = document.createElement('div');
+    folderRow.className = 'px-4 pb-2 pt-1 max-w-3xl mx-auto w-full flex items-center gap-2 border-t border-stone-100 dark:border-stone-800';
+    const folderLabel = document.createElement('span');
+    folderLabel.className = 'text-xs text-stone-400 dark:text-stone-500 flex-shrink-0';
+    folderLabel.textContent = t('sidebar.folderLabel') + ':';
+    folderRow.appendChild(folderLabel);
+
+    let currentFolderIds = doc.folderIds || [];
+    const badgesContainer = document.createElement('span');
+    badgesContainer.className = 'flex items-center gap-1 flex-wrap cursor-pointer';
+    folderRow.appendChild(badgesContainer);
+
+    function renderFolderBadges() {
+        badgesContainer.innerHTML = '';
+        badgesContainer.appendChild(createFolderBadges(currentFolderIds, folders));
+    }
+    renderFolderBadges();
+
+    const folderPickerApi = createFolderPicker(badgesContainer, currentFolderIds, (newFolderIds) => {
+        currentFolderIds = newFolderIds;
+        folderPickerApi.setFolderIds(newFolderIds);
+        renderFolderBadges();
         autoSave.schedule();
     });
 
@@ -197,7 +201,7 @@ export async function launchEditor(container, docId, onBack) {
     writingEnv.appendChild(topBar);
     writingEnv.appendChild(titleRow);
     writingEnv.appendChild(tagRow);
-    writingEnv.appendChild(subjectRow);
+    writingEnv.appendChild(folderRow);
     writingEnv.appendChild(editorWrap);
     writingEnv.appendChild(wordCountBar);
     container.appendChild(writingEnv);
@@ -222,7 +226,8 @@ export async function launchEditor(container, docId, onBack) {
                 references: refsApi.getReferences(),
                 frameType: frameApi.getActiveFrame(),
                 tags: tagEditorApi.getTags(),
-                subject: currentSubject,
+                subject: null,
+                folderIds: currentFolderIds,
             };
         },
         statusEl: saveStatusEl,
