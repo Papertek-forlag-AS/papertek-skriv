@@ -6,7 +6,7 @@
 
 import { escapeHtml } from '../editor-core/shared/html-escape.js';
 import { t } from '../editor-core/shared/i18n.js';
-import { getSchoolYear } from './subject-store.js';
+import { getSchoolYear } from './folder-store.js';
 
 /**
  * Show a word-count statistics panel as a full-screen overlay.
