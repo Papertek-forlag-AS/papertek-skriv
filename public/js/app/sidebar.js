@@ -283,6 +283,12 @@ export function createSidebar(container, options) {
             const docId = e.dataTransfer.getData('text/plain');
             if (docId) {
                 await addDocToFolder(docId, node.id);
+                // Update in-memory doc so re-render reflects the change
+                const inMemDoc = state.docs.find(d => d.id === docId);
+                if (inMemDoc) {
+                    if (!inMemDoc.folderIds) inMemDoc.folderIds = [];
+                    if (!inMemDoc.folderIds.includes(node.id)) inMemDoc.folderIds.push(node.id);
+                }
                 showToast(t('sidebar.movedToFolder', { folder: node.name }));
                 // Success flash
                 btn.classList.add('bg-emerald-100', 'dark:bg-emerald-900/40');
@@ -464,6 +470,12 @@ export function createSidebar(container, options) {
                 const personalFolder = cachedFolders.find(f => isPersonalFolder(f));
                 if (docId && personalFolder) {
                     await addDocToFolder(docId, personalFolder.id);
+                    // Update in-memory doc so re-render reflects the change
+                    const inMemDoc = state.docs.find(d => d.id === docId);
+                    if (inMemDoc) {
+                        if (!inMemDoc.folderIds) inMemDoc.folderIds = [];
+                        if (!inMemDoc.folderIds.includes(personalFolder.id)) inMemDoc.folderIds.push(personalFolder.id);
+                    }
                     showToast(t('sidebar.movedToFolder', { folder: t('sidebar.personalFolder') }));
                     // Success flash
                     btn.classList.add('bg-violet-100', 'dark:bg-violet-900/40');
