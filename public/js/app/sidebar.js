@@ -250,7 +250,7 @@ export function createSidebar(container, options) {
         let autoExpandTimer = null;
         btn.addEventListener('dragover', (e) => {
             e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
+            e.dataTransfer.dropEffect = 'move';
             btn.classList.remove('ring-1', 'ring-emerald-200', 'dark:ring-emerald-800');
             btn.classList.add('ring-2', 'ring-emerald-400', 'bg-emerald-50', 'dark:bg-emerald-900/20', 'scale-[1.02]', 'shadow-sm');
             if (!btn.querySelector('.skriv-drag-plus')) {
@@ -453,7 +453,7 @@ export function createSidebar(container, options) {
             btn.classList.add('skriv-drop-target');
             btn.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                e.dataTransfer.dropEffect = 'copy';
+                e.dataTransfer.dropEffect = 'move';
                 btn.classList.remove('ring-1', 'ring-emerald-200', 'dark:ring-emerald-800');
                 btn.classList.add('ring-2', 'ring-violet-400', 'scale-[1.02]', 'shadow-sm');
             });
