@@ -248,6 +248,16 @@ export function initReferences(editor, { onSave } = {}) {
         // Clean up any existing dialog
         document.querySelectorAll('[data-ref-dialog]').forEach(el => el.remove());
 
+        // Save cursor position before dialog steals focus
+        const savedRange = (() => {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const r = sel.getRangeAt(0);
+                if (editor.contains(r.commonAncestorContainer)) return r.cloneRange();
+            }
+            return null;
+        })();
+
         const isEdit = !!existingRef;
         const ref = existingRef || { id: '', author: '', year: '', title: '', url: '', publisher: '', type: 'web' };
 
@@ -382,6 +392,13 @@ export function initReferences(editor, { onSave } = {}) {
                 };
                 references.push(newRef);
                 overlay.remove();
+                // Restore cursor position before inserting marker
+                if (savedRange) {
+                    editor.focus();
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(savedRange);
+                }
                 insertMarker(newRef.id);
                 return;
             }

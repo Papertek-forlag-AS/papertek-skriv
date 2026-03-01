@@ -90,6 +90,7 @@ export function initWritingSpinner(editor, container, options = {}) {
     let synonymPopup = null;
     let spinnerPanel = null;
     let currentCategory = null;
+    let savedRange = null;          // cursor position saved before panel opens
     const recentPicks = new Map();  // category → index[] of recently shown
 
     // --- Load word bank ---
@@ -186,11 +187,17 @@ export function initWritingSpinner(editor, container, options = {}) {
         spinnerPanel.classList.add('hidden');
     });
 
-    // Click on result → insert into editor
+    // Click on result → insert into editor at saved cursor position
     resultEl.addEventListener('click', () => {
         const text = resultEl.textContent;
         if (!text || resultEl.classList.contains('spinning')) return;
         editor.focus();
+        if (savedRange) {
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+            savedRange = null;
+        }
         document.execCommand('insertText', false, text);
         spinnerPanel.classList.add('hidden');
     });
@@ -199,6 +206,14 @@ export function initWritingSpinner(editor, container, options = {}) {
      * Show the spinner panel.
      */
     function show() {
+        // Save cursor position before panel steals focus
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            const r = sel.getRangeAt(0);
+            if (editor.contains(r.commonAncestorContainer)) {
+                savedRange = r.cloneRange();
+            }
+        }
         bankPromise.then(() => {
             if (!currentCategory && wordBank?.starters) {
                 currentCategory = Object.keys(wordBank.starters)[0] || null;

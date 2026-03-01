@@ -116,6 +116,8 @@ export default {
         movedToFolder: 'Lagt til i {{folder}}',
         orphanSection: 'Utan mappe',
         orphanCleanupHint: 'Dra til ei mappe eller klikk for å velje',
+        cleanupDesk: 'Rydd opp!',
+        allOrganized: 'Alt organisert!',
     },
 
     sw: {

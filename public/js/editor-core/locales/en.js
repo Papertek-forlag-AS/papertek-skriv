@@ -125,6 +125,8 @@ export default {
         movedToFolder: 'Added to {{folder}}',
         orphanSection: 'No folder',
         orphanCleanupHint: 'Drag to a folder or click to choose',
+        cleanupDesk: 'Clean up!',
+        allOrganized: 'All organized!',
     },
 
     sw: {
