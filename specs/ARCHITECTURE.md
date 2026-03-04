@@ -27,14 +27,14 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v24)
+├── sw.js                   ← Service Worker (cache v25)
 ├── icons/                  ← PWA icons (192, 512)
 ├── frames/                 ← Writing frame templates (Markdown)
-│   ├── analyse.md
-│   ├── droefting.md
-│   ├── kronikk.md
-│   ├── nb/                 ← Bokmål copies
-│   └── nn/                 ← Nynorsk copies
+│   ├── analyse.md          (legacy)
+│   ├── droefting.md        (legacy)
+│   ├── kronikk.md          (legacy)
+│   ├── nb/                 ← Bokmål (7 frames)
+│   └── nn/                 ← Nynorsk (7 frames)
 └── js/
     ├── app/                ← App-level orchestration
     │   ├── main.js         ← Router, init

@@ -99,13 +99,15 @@ export function initWritingSpinner(editor, container, options = {}) {
     // --- Spinner panel (sentence starters) ---
     spinnerPanel = document.createElement('div');
     spinnerPanel.className = 'skriv-spinner-panel hidden';
+    spinnerPanel.setAttribute('role', 'region');
+    spinnerPanel.setAttribute('aria-label', t('spinner.title'));
     spinnerPanel.innerHTML = `
         <div class="spinner-header">
             <span class="spinner-title">${t('spinner.title')}</span>
-            <button class="spinner-close" title="${t('common.cancel')}">&times;</button>
+            <button class="spinner-close" title="${t('common.cancel')}" aria-label="${t('common.cancel')}">&times;</button>
         </div>
-        <div class="spinner-categories"></div>
-        <div class="spinner-result"></div>
+        <div class="spinner-categories" role="group" aria-label="${t('spinner.title')}"></div>
+        <div class="spinner-result" aria-live="polite"></div>
         <button class="spinner-spin">${t('spinner.spin')}</button>
     `;
 
@@ -185,7 +187,17 @@ export function initWritingSpinner(editor, container, options = {}) {
     spinBtn.addEventListener('click', doSpin);
     closeBtn.addEventListener('click', () => {
         spinnerPanel.classList.add('hidden');
+        editor.focus();
     });
+
+    // Escape key closes the spinner panel
+    function handleSpinnerKeydown(e) {
+        if (e.key === 'Escape' && !spinnerPanel.classList.contains('hidden')) {
+            spinnerPanel.classList.add('hidden');
+            editor.focus();
+        }
+    }
+    spinnerPanel.addEventListener('keydown', handleSpinnerKeydown);
 
     // Click on result → insert into editor at saved cursor position
     resultEl.addEventListener('click', () => {
@@ -308,7 +320,10 @@ export function initWritingSpinner(editor, container, options = {}) {
     function destroy() {
         editor.removeEventListener('dblclick', handleDblClick);
         removeSynonymPopup();
-        if (spinnerPanel?.parentNode) spinnerPanel.remove();
+        if (spinnerPanel) {
+            spinnerPanel.removeEventListener('keydown', handleSpinnerKeydown);
+            if (spinnerPanel.parentNode) spinnerPanel.remove();
+        }
     }
 
     return { destroy, show };

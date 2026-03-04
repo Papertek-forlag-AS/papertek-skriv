@@ -41,6 +41,8 @@ export function initTOC(editor) {
         const tocEl = document.createElement('div');
         tocEl.className = 'skriv-toc';
         tocEl.contentEditable = 'false';
+        tocEl.setAttribute('role', 'navigation');
+        tocEl.setAttribute('aria-label', t('skriv.tocTitle'));
 
         // Insert at the very top of the editor
         if (editor.firstChild) {
@@ -127,13 +129,19 @@ export function initTOC(editor) {
             }
 
             entry.dataset.target = h.id;
+            entry.setAttribute('role', 'link');
+            entry.setAttribute('tabindex', '0');
 
-            // Click to scroll to heading
-            entry.addEventListener('click', () => {
+            // Click/Enter to scroll to heading
+            function scrollToHeading() {
                 const target = document.getElementById(h.id);
                 if (target) {
                     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
+            }
+            entry.addEventListener('click', scrollToHeading);
+            entry.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') scrollToHeading();
             });
 
             tocEl.appendChild(entry);

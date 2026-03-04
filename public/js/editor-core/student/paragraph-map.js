@@ -76,6 +76,7 @@ export function initParagraphMap(editor, scrollContainer) {
     // --- Create minimap DOM ---
     mapEl = document.createElement('div');
     mapEl.className = 'skriv-paragraph-map hidden';
+    mapEl.setAttribute('role', 'list');
     mapEl.setAttribute('aria-label', t('paragraphMap.ariaLabel'));
 
     // The map container sits inside the scroll container
@@ -146,14 +147,21 @@ export function initParagraphMap(editor, scrollContainer) {
             bar.className = `pmap-bar pmap-${b.type}`;
             bar.style.top = `${barTop}px`;
             bar.style.height = `${barHeight}px`;
+            bar.setAttribute('role', 'listitem');
+            bar.setAttribute('tabindex', '0');
 
-            // Tooltip showing word count
+            // Tooltip / aria-label
+            let barLabel;
             if (b.type === 'heading') {
                 const text = b.el.textContent.trim();
-                bar.title = text.length > 40 ? text.slice(0, 40) + '…' : text;
+                barLabel = text.length > 40 ? text.slice(0, 40) + '…' : text;
             } else if (b.type !== 'frame') {
-                bar.title = `${b.words} ${t('paragraphMap.words')}`;
+                barLabel = `${b.words} ${t('paragraphMap.words')}`;
+            } else {
+                barLabel = b.type;
             }
+            bar.title = barLabel;
+            bar.setAttribute('aria-label', barLabel);
 
             // Check if this block is currently in view
             const blockVisibleTop = b.top;
@@ -163,9 +171,14 @@ export function initParagraphMap(editor, scrollContainer) {
                 bar.classList.add('pmap-active');
             }
 
-            // Click to scroll to this paragraph
+            // Click/Enter to scroll to this paragraph
             bar.addEventListener('click', () => {
                 b.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+            bar.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    b.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             });
 
             mapEl.appendChild(bar);

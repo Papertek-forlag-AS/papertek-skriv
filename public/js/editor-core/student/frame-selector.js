@@ -23,6 +23,10 @@ const DEFAULT_FRAME_REGISTRY = [
     { id: 'droefting', file: '/frames/{{lang}}/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc' },
     { id: 'analyse', file: '/frames/{{lang}}/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc' },
     { id: 'kronikk', file: '/frames/{{lang}}/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc' },
+    { id: 'kaaseri', file: '/frames/{{lang}}/kaaseri.md', labelKey: 'skriv.frameKaaseri', descKey: 'skriv.frameKaaseriDesc' },
+    { id: 'fagartikkel', file: '/frames/{{lang}}/fagartikkel.md', labelKey: 'skriv.frameFagartikkel', descKey: 'skriv.frameFagartikkelDesc' },
+    { id: 'leserinnlegg', file: '/frames/{{lang}}/leserinnlegg.md', labelKey: 'skriv.frameLeserinnlegg', descKey: 'skriv.frameLeserinnleggDesc' },
+    { id: 'novelle', file: '/frames/{{lang}}/novelle.md', labelKey: 'skriv.frameNovelle', descKey: 'skriv.frameNovelleDesc' },
 ];
 
 /**

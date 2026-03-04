@@ -1,0 +1,33 @@
+# Novelle
+
+## Metadata
+genre: novelle
+level: vgs
+description: Kort forteljing med handling, karakterar og eit vendepunkt
+
+## Opning
+> Kast lesaren rett inn i handlinga. Presenter hovudpersonen, staden og stemninga. Ei god opning vekkjer nyfikne.
+- Det heile byrja den dagen...
+- Ho stod ved vindauget og såg ut på...
+
+## Hovuddel
+
+### Komplikasjon
+> Noko skjer som forstyrrar kvardagen til hovudpersonen. Introduser eit problem, ein konflikt eller ei utfordring.
+- Men så skjedde det noko uventa...
+- Alt forandra seg då...
+
+### Stigande spenning
+> Bygg opp spenninga. Lat lesaren kjenne på uvissa — kva kjem til å skje? Bruk sanseinntrykk og indre tankar.
+- Hjartet hamra i brystet...
+- Tankane rasa gjennom hovudet...
+
+### Klimaks
+> Her skjer det avgjerande augeblikket — vendepunktet i forteljinga. Noko endrar seg for alltid.
+- I det augeblikket innsåg ho at...
+- Det var då det gjekk opp for han...
+
+## Avslutning
+> Avslutt forteljinga. Vis kva som har endra seg for hovudpersonen. Slutten kan vere open, overraskande eller ettertenksam.
+- Etterpå var ingenting som før...
+- For fyrste gong kjende ho at...

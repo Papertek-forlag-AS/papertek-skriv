@@ -1,0 +1,33 @@
+# Novelle
+
+## Metadata
+genre: novelle
+level: vgs
+description: Kort fortelling med handling, karakterer og et vendepunkt
+
+## Åpning
+> Kast leseren rett inn i handlingen. Presenter hovedpersonen, stedet og stemningen. En god åpning vekker nysgjerrighet.
+- Det hele begynte den dagen...
+- Hun sto ved vinduet og så ut på...
+
+## Hoveddel
+
+### Komplikasjon
+> Noe skjer som forstyrrer hverdagen til hovedpersonen. Introduser et problem, en konflikt eller en utfordring.
+- Men så skjedde det noe uventet...
+- Alt forandret seg da...
+
+### Stigende spenning
+> Bygg opp spenningen. La leseren kjenne på usikkerheten — hva kommer til å skje? Bruk sanseinntrykk og indre tanker.
+- Hjertet hamret i brystet...
+- Tankene raste gjennom hodet...
+
+### Klimaks
+> Her skjer det avgjørende øyeblikket — vendepunktet i fortellingen. Noe endres for alltid.
+- I det øyeblikket innså hun at...
+- Det var da det gikk opp for ham...
+
+## Avslutning
+> Avslutt fortellingen. Vis hva som har endret seg for hovedpersonen. Slutten kan være åpen, overraskende eller ettertenksom.
+- Etterpå var ingenting som før...
+- For første gang kjente hun at...

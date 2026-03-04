@@ -342,9 +342,10 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, fo
     mainDocs.forEach(doc => {
         const card = document.createElement('div');
         card.setAttribute('role', 'listitem');
+        card.setAttribute('tabindex', '0');
         card.setAttribute('draggable', 'true');
         card.setAttribute('data-doc-id', doc.id);
-        card.className = 'group bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl p-4 mb-3 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-sm transition-all cursor-pointer';
+        card.className = 'group bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl p-4 mb-3 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1';
 
         const title = doc.title || t('skriv.untitled');
         const wordCount = doc.wordCount || 0;
@@ -384,6 +385,11 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, fo
         card.addEventListener('click', (e) => {
             if (e.target.closest('[data-delete-id]') || e.target.closest('.folder-assign-btn')) return;
             onOpenDocument(doc.id);
+        });
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.target.closest('[data-delete-id]') && !e.target.closest('.folder-assign-btn')) {
+                onOpenDocument(doc.id);
+            }
         });
 
         // Delete handler

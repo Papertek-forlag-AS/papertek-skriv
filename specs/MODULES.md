@@ -72,14 +72,22 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 
 ## frames/ — Writing templates (Markdown)
 
-| File              | Genre       | Language |
-|------------------ |------------ |--------- |
-| `analyse.md`      | Analyse     | nb (legacy path) |
-| `droefting.md`    | Drøfting    | nb (legacy path) |
-| `kronikk.md`      | Kronikk     | nb (legacy path) |
-| `nb/analyse.md`   | Analyse     | Bokmål   |
-| `nb/droefting.md` | Drøfting    | Bokmål   |
-| `nb/kronikk.md`   | Kronikk     | Bokmål   |
-| `nn/analyse.md`   | Analyse     | Nynorsk  |
-| `nn/droefting.md` | Drøfting    | Nynorsk  |
-| `nn/kronikk.md`   | Kronikk     | Nynorsk  |
+| File              | Genre         | Language |
+|------------------ |-------------- |--------- |
+| `analyse.md`      | Analyse       | nb (legacy path) |
+| `droefting.md`    | Drøfting      | nb (legacy path) |
+| `kronikk.md`      | Kronikk       | nb (legacy path) |
+| `nb/analyse.md`   | Analyse       | Bokmål   |
+| `nb/droefting.md` | Drøfting      | Bokmål   |
+| `nb/kronikk.md`   | Kronikk       | Bokmål   |
+| `nb/kaaseri.md`   | Kåseri        | Bokmål   |
+| `nb/fagartikkel.md` | Fagartikkel | Bokmål   |
+| `nb/leserinnlegg.md` | Leserinnlegg | Bokmål |
+| `nb/novelle.md`   | Novelle       | Bokmål   |
+| `nn/analyse.md`   | Analyse       | Nynorsk  |
+| `nn/droefting.md` | Drøfting      | Nynorsk  |
+| `nn/kronikk.md`   | Kronikk       | Nynorsk  |
+| `nn/kaaseri.md`   | Kåseri        | Nynorsk  |
+| `nn/fagartikkel.md` | Fagartikkel | Nynorsk  |
+| `nn/leserinnlegg.md` | Lesarinnlegg | Nynorsk |
+| `nn/novelle.md`   | Novelle       | Nynorsk  |

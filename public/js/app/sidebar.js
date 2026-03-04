@@ -97,6 +97,69 @@ export function createSidebar(container, options) {
         return { ...counts, treeCounts };
     }
 
+    // --- Tree keyboard navigation ---
+
+    function handleTreeKeydown(e) {
+        const items = [...nav.querySelectorAll('[data-folder-id]')];
+        const focused = document.activeElement;
+        const idx = items.indexOf(focused);
+        if (idx === -1) return;
+
+        const folderId = focused.getAttribute('data-folder-id');
+        const hasChildren = focused.getAttribute('data-has-children') === 'true';
+        const isExp = focused.getAttribute('data-is-expanded') === 'true';
+
+        switch (e.key) {
+            case 'ArrowDown': {
+                e.preventDefault();
+                const next = items[idx + 1];
+                if (next) next.focus();
+                break;
+            }
+            case 'ArrowUp': {
+                e.preventDefault();
+                const prev = items[idx - 1];
+                if (prev) prev.focus();
+                break;
+            }
+            case 'ArrowRight': {
+                e.preventDefault();
+                if (hasChildren && !isExp) {
+                    expandedSet.add(folderId);
+                    render().then(() => {
+                        const updated = nav.querySelector(`[data-folder-id="${folderId}"]`);
+                        if (updated) updated.focus();
+                    });
+                } else if (hasChildren && isExp) {
+                    const next = items[idx + 1];
+                    if (next) next.focus();
+                }
+                break;
+            }
+            case 'ArrowLeft': {
+                e.preventDefault();
+                if (hasChildren && isExp) {
+                    expandedSet.delete(folderId);
+                    render().then(() => {
+                        const updated = nav.querySelector(`[data-folder-id="${folderId}"]`);
+                        if (updated) updated.focus();
+                    });
+                }
+                break;
+            }
+            case 'Home': {
+                e.preventDefault();
+                if (items[0]) items[0].focus();
+                break;
+            }
+            case 'End': {
+                e.preventDefault();
+                if (items.length > 0) items[items.length - 1].focus();
+                break;
+            }
+        }
+    }
+
     // --- Render ---
 
     async function render() {
@@ -157,10 +220,19 @@ export function createSidebar(container, options) {
         // Divider + section label
         list.appendChild(createDivider(t('sidebar.folders')));
 
+        // Folder tree container with ARIA tree role
+        const treeContainer = document.createElement('div');
+        treeContainer.setAttribute('role', 'tree');
+        treeContainer.setAttribute('aria-label', t('sidebar.folders'));
+        list.appendChild(treeContainer);
+
         // Folder tree
         for (const node of visibleTree) {
-            renderFolderNode(list, node, 0, counts);
+            renderFolderNode(treeContainer, node, 0, counts);
         }
+
+        // Keyboard navigation for tree items
+        treeContainer.addEventListener('keydown', handleTreeKeydown);
 
         // Add folder button (root level)
         list.appendChild(createAddButton(null, 0));
@@ -205,6 +277,10 @@ export function createSidebar(container, options) {
 
         const row = document.createElement('div');
         row.className = 'flex items-center group';
+        row.setAttribute('role', 'treeitem');
+        row.setAttribute('aria-level', String(depth + 1));
+        row.setAttribute('aria-label', node.name);
+        if (hasChildren) row.setAttribute('aria-expanded', String(isExpanded));
 
         // Expand/collapse toggle
         const toggleBtn = document.createElement('button');
@@ -212,8 +288,10 @@ export function createSidebar(container, options) {
             hasChildren ? 'text-stone-400 hover:text-stone-600 dark:hover:text-stone-300' : 'invisible'
         }`;
         toggleBtn.style.marginLeft = `${paddingLeft - 12}px`;
+        toggleBtn.setAttribute('tabindex', '-1'); // navigated via tree keyboard handler
         if (hasChildren) {
             toggleBtn.innerHTML = CHEVRON_SVG;
+            toggleBtn.setAttribute('aria-label', isExpanded ? 'Collapse' : 'Expand');
             if (isExpanded) toggleBtn.querySelector('svg').style.transform = 'rotate(90deg)';
             toggleBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -232,6 +310,9 @@ export function createSidebar(container, options) {
         }`;
         btn.setAttribute('data-filter', node.id);
         btn.setAttribute('data-folder-id', node.id);
+        btn.setAttribute('data-node-depth', String(depth));
+        btn.setAttribute('data-has-children', String(hasChildren));
+        btn.setAttribute('data-is-expanded', String(isExpanded));
         if (isActive) btn.setAttribute('aria-current', 'page');
 
         btn.innerHTML = `

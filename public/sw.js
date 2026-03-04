@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v24';
+const CACHE_NAME = 'skriv-v25';
 const ASSETS = [
     '/',
     '/index.html',
@@ -57,10 +57,18 @@ const ASSETS = [
     '/frames/nb/droefting.md',
     '/frames/nb/analyse.md',
     '/frames/nb/kronikk.md',
+    '/frames/nb/kaaseri.md',
+    '/frames/nb/fagartikkel.md',
+    '/frames/nb/leserinnlegg.md',
+    '/frames/nb/novelle.md',
     // Nynorsk frames
     '/frames/nn/droefting.md',
     '/frames/nn/analyse.md',
     '/frames/nn/kronikk.md',
+    '/frames/nn/kaaseri.md',
+    '/frames/nn/fagartikkel.md',
+    '/frames/nn/leserinnlegg.md',
+    '/frames/nn/novelle.md',
     // Legacy paths (backward compatibility)
     '/frames/droefting.md',
     '/frames/analyse.md',

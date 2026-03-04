@@ -243,12 +243,26 @@ export function initSpecialCharsPanel(editor, container, charGroups) {
         hidePanelChars();
     }
 
+    // Escape key closes the panel or picker
+    function onKeydown(e) {
+        if (e.key === 'Escape') {
+            if (activeGroupId) {
+                deactivatePanel();
+            } else if (!picker.classList.contains('hidden')) {
+                picker.classList.add('hidden');
+                showPrompt();
+            }
+        }
+    }
+    document.addEventListener('keydown', onKeydown);
+
     document.addEventListener('selectionchange', onSelectionChangeChars);
     scrollParent.addEventListener('scroll', onScroll);
     editor.addEventListener('focus', onFocus);
     editor.addEventListener('blur', onBlur);
 
     return function cleanup() {
+        document.removeEventListener('keydown', onKeydown);
         document.removeEventListener('selectionchange', onSelectionChangeChars);
         document.removeEventListener('mousedown', onDocMousedown);
         scrollParent.removeEventListener('scroll', onScroll);

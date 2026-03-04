@@ -1,0 +1,33 @@
+# Kåseri
+
+## Metadata
+genre: kåseri
+level: vgs
+description: Personleg og underhaldande tekst med humor og refleksjon
+
+## Innleiing
+> Start med noko som fangar merksemda til lesaren — ei personleg oppleving, ein morosam observasjon eller eit retorisk spørsmål. Presenter temaet på ein uformell måte.
+- Det var ein heilt vanleg tysdag då det slo meg at...
+- Har du nokon gong lagt merke til at...
+
+## Hovuddel
+
+### Anekdote eller observasjon
+> Fortel ei historie eller skildra ein situasjon frå ditt eige liv eller frå kvardagen. Bruk humor, overdriving eller ironi for å engasjere lesaren.
+- Eg hugsar spesielt godt den gongen...
+- Det morosame er at dette skjer kvar einaste gong...
+
+### Refleksjon
+> Trekk deg litt tilbake frå historia og reflekter over kva ho eigentleg handlar om. Her kan du vise at kåseriet har djupne under den humoristiske overflata.
+- Men eigentleg handlar dette om noko mykje større...
+- Når ein tenkjer etter, er det kanskje ikkje så rart at...
+
+### Vending eller overrasking
+> Overrask lesaren med ein uventa vinkling, ein kontrast eller ein ny innsikt. Dette er kåseriet sitt "aha-augeblikk".
+- Men så skjedde det noko eg ikkje hadde forventa...
+- Det ironiske er sjølvsagt at...
+
+## Avslutning
+> Avslutt med ein punchline, eit poeng eller ein tankevekkjande sluttkommentar. Kåseriet skal etterlate lesaren med eit smil eller ein ny tanke.
+- Og moralen? Kanskje er det rett og slett at...
+- Neste gong skal eg i alle fall...

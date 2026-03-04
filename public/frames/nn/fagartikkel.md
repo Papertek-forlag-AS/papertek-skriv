@@ -1,0 +1,33 @@
+# Fagartikkel
+
+## Metadata
+genre: fagartikkel
+level: vgs
+description: Informativ og sakleg tekst basert på forsking og kunnskap
+
+## Innleiing
+> Presenter emnet og forklar kvifor det er relevant. Gje ein kort oversikt over kva artikkelen handlar om, og formuler eventuelt ei problemstilling eller hypotese.
+- I denne artikkelen skal eg sjå nærare på...
+- Temaet er aktuelt fordi...
+
+## Hovuddel
+
+### Bakgrunn og teori
+> Gje lesaren nødvendig bakgrunnsinformasjon. Forklar sentrale omgrep og teoriar som er relevante for emnet. Vis til kjelder.
+- For å forstå dette må vi fyrst sjå på...
+- Ifølgje forsking viser det seg at...
+
+### Funn og analyse
+> Presenter hovudfunna eller dei viktigaste poenga. Bruk døme, statistikk eller kjeldetilvisingar for å underbyggje påstandane dine.
+- Eit sentralt funn er at...
+- Tal frå undersøkinga viser at...
+
+### Drøfting av funn
+> Diskuter kva funna betyr i ein større samanheng. Er det ulike tolkingar? Kva er styrkar og svakheiter ved kjeldene du har brukt?
+- Dette kan tolkast på fleire måtar...
+- Ei mogleg forklaring er at...
+
+## Avslutning
+> Oppsummer dei viktigaste poenga og presenter ein konklusjon. Peik gjerne på kva som står att å undersøkje, eller kva vi kan lære av dette.
+- Oppsummert viser denne gjennomgangen at...
+- For framtidig forsking kan det vere interessant å...

@@ -1,0 +1,33 @@
+# Lesarinnlegg
+
+## Metadata
+genre: leserinnlegg
+level: vgs
+description: Kort og slagkraftig meiningstekst som reagerer på ei aktuell sak
+
+## Innleiing
+> Sei tydeleg kva du reagerer på og kva du meiner. Eit lesarinnlegg er kort og direkte — gå rett på sak.
+- Eg reagerer sterkt på at...
+- Det er på tide at nokon seier ifrå om...
+
+## Hovuddel
+
+### Hovudargument
+> Presenter ditt viktigaste argument. Ver tydeleg og konkret — kvifor meiner du det du meiner?
+- Det viktigaste poenget er at...
+- Grunnen til at dette er så alvorleg, er at...
+
+### Støtteargument
+> Bygg vidare med eit ekstra argument eller døme som forsterkar saka di.
+- I tillegg ser vi at...
+- Eit godt døme på dette er...
+
+### Motargument og tilsvar
+> Vis at du forstår den andre sida, men forklar kvifor du likevel står fast på di meining.
+- Nokon vil kanskje meina at...
+- Men dette held ikkje, fordi...
+
+## Avslutning
+> Avslutt med ei tydeleg oppmoding eller eit krav. Kva vil du at lesarane eller avgjerdslestakarane skal gjere?
+- Difor krev eg at...
+- Det er på høg tid at vi...
