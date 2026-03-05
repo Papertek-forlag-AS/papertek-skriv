@@ -1,6 +1,6 @@
 # Module Registry
 
-> Last updated: 2026-02-26
+> Last updated: 2026-03-04
 
 Every module in the codebase. When you add, remove, or rename a module — update this file.
 
@@ -29,11 +29,11 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 |-------------------------- |---------------------------------------------- |----------------- |---------------------------------- |
 | `i18n.js`                 | `initI18n`, `t`, `setLanguage`, `getLanguage`, `getDateLocale` | locales/*  | i18n with pluralization (nb, nn, en) |
 | `html-escape.js`          | `escapeHtml`, `escapeAttr`                    | (none)           | XSS prevention                    |
-| `dom-helpers.js`          | `qs`, `qsa`, `on`, `off`                     | (none)           | DOM query/event shortcuts         |
-| `frame-elements.js`       | `EDITOR_SEL`, `FRAME_SECTION_SEL`, `getEditorEl`, `isFrameSection` | (none) | Editor element selectors & utils |
+| `dom-helpers.js`          | `getModalParent`                              | (none)           | DOM utility helpers               |
+| `frame-elements.js`       | `FRAME_SELECTORS`, `ALL_FRAME_SCAFFOLD`, `isFrameElement`, `isInsideNonEditableBlock`, `getCleanEditorText`, `removeFrameScaffold`, `isImageBlock` | (none) | Editor element selectors & utils |
 | `auto-save.js`            | `createAutoSave`                              | (none)           | Debounced save with status display |
 | `word-counter.js`         | `attachWordCounter`, `countWords`             | frame-elements   | Real-time word/char counting      |
-| `in-page-modal.js`        | `showModal`, `closeModal`                     | html-escape, dom-helpers | Dialog system               |
+| `in-page-modal.js`        | `showInPageConfirm`, `showInPagePrompt`, `showInPageContent`, `showInPageAlert` | html-escape, dom-helpers | Dialog system               |
 | `toast-notification.js`   | `showToast`                                   | html-escape, dom-helpers | Toast alerts                |
 | `theme.js`                | `initTheme`, `setTheme`, `getTheme`, `cycleTheme`, `isDark`, `getThemeIcon` | (none) | Dark/light/system theme toggle |
 | `aria-live.js`            | `announce`                                        | (none)           | Screen reader announcements via aria-live region |

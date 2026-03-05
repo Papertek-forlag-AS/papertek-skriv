@@ -127,6 +127,8 @@ export default {
         orphanCleanupHint: 'Drag to a folder or click to choose',
         cleanupDesk: 'Clean up!',
         allOrganized: 'All organized!',
+        expandFolder: 'Expand',
+        collapseFolder: 'Collapse',
     },
 
     sw: {

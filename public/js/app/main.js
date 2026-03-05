@@ -24,9 +24,7 @@ async function init() {
     }
 
     // Purge expired trash documents on startup (silent, non-blocking)
-    purgeExpired().then(count => {
-        if (count > 0) console.log(`Purged ${count} expired document(s) from trash`);
-    }).catch(err => console.warn('Trash purge failed:', err));
+    purgeExpired().catch(() => {});
 
     const app = document.getElementById('app');
     if (!app) {

@@ -291,7 +291,7 @@ export function createSidebar(container, options) {
         toggleBtn.setAttribute('tabindex', '-1'); // navigated via tree keyboard handler
         if (hasChildren) {
             toggleBtn.innerHTML = CHEVRON_SVG;
-            toggleBtn.setAttribute('aria-label', isExpanded ? 'Collapse' : 'Expand');
+            toggleBtn.setAttribute('aria-label', isExpanded ? t('sidebar.collapseFolder') : t('sidebar.expandFolder'));
             if (isExpanded) toggleBtn.querySelector('svg').style.transform = 'rotate(90deg)';
             toggleBtn.addEventListener('click', (e) => {
                 e.stopPropagation();

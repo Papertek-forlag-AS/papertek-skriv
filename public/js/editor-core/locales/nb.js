@@ -118,6 +118,8 @@ export default {
         orphanCleanupHint: 'Dra til en mappe eller klikk for å velge',
         cleanupDesk: 'Rydd opp!',
         allOrganized: 'Alt organisert!',
+        expandFolder: 'Utvid',
+        collapseFolder: 'Skjul',
     },
 
     sw: {
