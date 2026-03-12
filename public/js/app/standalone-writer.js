@@ -33,7 +33,6 @@ import { createAutoSave } from '../editor-core/shared/auto-save.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
 import { t } from '../editor-core/shared/i18n.js';
 import { getDocument, saveDocument } from './document-store.js';
-import { createTagEditor } from './document-tags.js';
 import { createFolderPicker, createFolderBadges } from './folder-picker.js';
 import { getAllFolders } from './folder-store.js';
 
@@ -133,14 +132,7 @@ export async function launchEditor(container, docId, onBack) {
             class="w-full text-2xl font-bold text-stone-900 dark:text-stone-100 placeholder-stone-300 dark:placeholder-stone-600 border-none outline-none bg-transparent" />
     `;
 
-    // Tag editor (below title)
-    const tagRow = document.createElement('div');
-    tagRow.className = 'px-4 pb-1 max-w-3xl mx-auto w-full';
-    const tagEditorApi = createTagEditor(tagRow, doc.tags || [], (updatedTags) => {
-        autoSave.schedule();
-    });
-
-    // Folder picker (below tags)
+    // Folder picker (below title)
     const folders = await getAllFolders();
     const folderRow = document.createElement('div');
     folderRow.className = 'px-4 pb-2 pt-1 max-w-3xl mx-auto w-full flex items-center gap-2 border-t border-stone-100 dark:border-stone-800';
@@ -200,7 +192,6 @@ export async function launchEditor(container, docId, onBack) {
     // Assemble
     writingEnv.appendChild(topBar);
     writingEnv.appendChild(titleRow);
-    writingEnv.appendChild(tagRow);
     writingEnv.appendChild(folderRow);
     writingEnv.appendChild(editorWrap);
     writingEnv.appendChild(wordCountBar);
@@ -225,7 +216,6 @@ export async function launchEditor(container, docId, onBack) {
                 wordCount: countWords(plainText),
                 references: refsApi.getReferences(),
                 frameType: frameApi.getActiveFrame(),
-                tags: tagEditorApi.getTags(),
                 subject: null,
                 folderIds: currentFolderIds,
             };
@@ -413,7 +403,6 @@ export async function launchEditor(container, docId, onBack) {
         sentenceApi.destroy();
         paragraphMapApi.destroy();
         // imageApi.destroy(); // Deactivated
-        tagEditorApi.destroy();
         counterCleanup();
         onBack();
     });

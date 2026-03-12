@@ -2,7 +2,7 @@
  * Document storage using IndexedDB.
  * Stores documents locally in the browser — no server, no login.
  *
- * Each document: { id, title, html, plainText, wordCount, createdAt, updatedAt, tags, subject, schoolYear }
+ * Each document: { id, title, html, plainText, wordCount, createdAt, updatedAt, subject, schoolYear }
  */
 
 import { getSchoolYear, getCurrentSchoolYear } from './folder-store.js';
@@ -211,7 +211,6 @@ export async function createDocument(title = '') {
         html: '',
         plainText: '',
         wordCount: 0,
-        tags: [],
         subject: null,
         folderIds: [],
         schoolYear: getCurrentSchoolYear(),
