@@ -78,13 +78,6 @@ export default {
         resultsCount: '{{count}} av {{total}} dokumenter',
     },
 
-    tags: {
-        all: 'Alle',
-        addTag: 'Ny merkelapp',
-        removeTag: 'Fjern merkelapp',
-        filter: 'Filtrer etter merkelapp',
-    },
-
     sidebar: {
         title: 'Mapper',
         recentDocs: 'Siste dokumenter',

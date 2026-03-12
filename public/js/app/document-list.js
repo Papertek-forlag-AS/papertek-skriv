@@ -1,7 +1,7 @@
 /**
  * Document list UI — the "home screen" of Skriv.
  * Two-column layout: sidebar (folder tree) + main content (document cards).
- * Includes search, tag filtering, folder filtering, and trash view.
+ * Includes search, folder filtering, and trash view.
  */
 
 import { listDocuments, createDocument, getDocument, saveDocument } from './document-store.js';
@@ -16,7 +16,6 @@ import { showToast } from '../editor-core/shared/toast-notification.js';
 import { t, getDateLocale } from '../editor-core/shared/i18n.js';
 import { showWordCountStats } from './word-count-stats.js';
 import { createSearchBar, filterDocuments } from './document-search.js';
-import { createTagFilter, collectTags, filterByTag } from './document-tags.js';
 import { cycleTheme, getTheme } from '../editor-core/shared/theme.js';
 import { createSidebar } from './sidebar.js';
 import { createFolderPicker, createFolderBadges } from './folder-picker.js';
@@ -38,7 +37,6 @@ export async function renderDocumentList(container, onOpenDocument) {
 
     // Filter state
     let currentQuery = '';
-    let currentTag = null;
     let currentFolderFilter = 'all';
     let currentSchoolYear = getCurrentSchoolYear();
     let allFolders = await getAllFolders();
@@ -216,11 +214,10 @@ export async function renderDocumentList(container, onOpenDocument) {
             );
         }
 
-        // Tag + search filters
-        filtered = filterByTag(filtered, currentTag);
+        // Search filter
         filtered = filterDocuments(filtered, currentQuery);
 
-        renderDocumentCards(cardsContainer, docs, filtered, currentQuery, currentTag, currentFolderFilter, currentSchoolYear, onOpenDocument, container, allFolders, cleanupDeskEl);
+        renderDocumentCards(cardsContainer, docs, filtered, currentQuery, currentFolderFilter, currentSchoolYear, onOpenDocument, container, allFolders, cleanupDeskEl);
 
         // Update sidebar counts
         desktopSidebar.update({ docs, activeFilter: currentFolderFilter, schoolYear: currentSchoolYear });
@@ -233,20 +230,7 @@ export async function renderDocumentList(container, onOpenDocument) {
         applyFilters();
     });
 
-    // Tag filter
-    const allTags = collectTags(docs);
-    let tagFilter = null;
-    if (allTags.length > 0) {
-        const tagContainer = document.createElement('div');
-        tagContainer.className = 'max-w-2xl mx-auto';
-        listEl.appendChild(tagContainer);
-        tagFilter = createTagFilter(tagContainer, allTags, (tag) => {
-            currentTag = tag;
-            applyFilters();
-        });
-    }
-
-    // Cards container — separate div so re-renders only clear cards, not search/tags
+    // Cards container — separate div so re-renders only clear cards, not search
     const cardsContainer = document.createElement('div');
     cardsContainer.setAttribute('data-cards-container', '');
     listEl.appendChild(cardsContainer);
@@ -278,7 +262,7 @@ export async function renderDocumentList(container, onOpenDocument) {
 /**
  * Render document cards into the list element.
  */
-function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, folderFilter, schoolYear, onOpenDocument, container, folders, cleanupDeskEl) {
+function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter, schoolYear, onOpenDocument, container, folders, cleanupDeskEl) {
     // Clear all cards — search bar and tag filter live outside this container
     listEl.innerHTML = '';
 
@@ -290,7 +274,7 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, fo
         orphanDocs = filteredDocs.filter(d => !d.folderIds || d.folderIds.length === 0);
     }
 
-    const isFiltering = query || activeTag || folderFilter !== 'all';
+    const isFiltering = query || folderFilter !== 'all';
 
     // Filter allDocs by school year for stats
     const yearDocs = allDocs.filter(d => d.schoolYear === schoolYear);
@@ -351,9 +335,6 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, fo
         const wordCount = doc.wordCount || 0;
         const updatedAt = doc.updatedAt ? formatRelativeTime(doc.updatedAt) : '';
         const preview = doc.plainText ? doc.plainText.substring(0, 120).trim() : '';
-        const tags = doc.tags && doc.tags.length > 0
-            ? doc.tags.map(tag => `<span class="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-300">${escapeHtml(tag)}</span>`).join(' ')
-            : '';
 
         const cardLabel = `${title}, ${t('wordCounter.count', { count: wordCount })}, ${updatedAt}`;
         card.setAttribute('aria-label', cardLabel);
@@ -367,7 +348,6 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, activeTag, fo
                         <span>${wordCount} ${t('wordCounter.count', { count: wordCount }).split(' ').pop()}</span>
                         <span>${updatedAt}</span>
                         <span class="folder-badges-container"></span>
-                        ${tags ? `<span class="flex gap-1">${tags}</span>` : ''}
                     </div>
                 </div>
                 <button data-delete-id="${doc.id}" class="p-1.5 rounded-lg text-stone-300 dark:text-stone-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-all focus:opacity-100" title="${t('skriv.trashMoveToTrash')}" aria-label="${t('skriv.trashMoveToTrash')}: ${escapeHtml(title)}">

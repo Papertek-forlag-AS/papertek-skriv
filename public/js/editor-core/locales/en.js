@@ -87,13 +87,6 @@ export default {
         },
     },
 
-    tags: {
-        all: 'All',
-        addTag: 'Add tag',
-        removeTag: 'Remove tag',
-        filter: 'Filter by tag',
-    },
-
     sidebar: {
         title: 'Folders',
         recentDocs: 'Recent documents',

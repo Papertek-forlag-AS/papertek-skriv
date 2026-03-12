@@ -1,6 +1,6 @@
 # Dependencies
 
-> Last updated: 2026-03-04
+> Last updated: 2026-03-12
 
 ## External (CDN)
 
@@ -35,9 +35,6 @@ app/main.js
   │     ├── app/trash-store.js
   │     ├── app/document-search.js
   │     │     └── shared/i18n.js
-  │     ├── app/document-tags.js
-  │     │     ├── shared/i18n.js
-  │     │     └── shared/html-escape.js
   │     ├── app/word-count-stats.js
   │     │     ├── app/folder-store.js
   │     │     ├── shared/html-escape.js
@@ -64,7 +61,6 @@ app/main.js
   │     └── shared/theme.js
   ├── app/standalone-writer.js
   │     ├── app/document-store.js
-  │     ├── app/document-tags.js
   │     ├── app/folder-picker.js
   │     ├── app/folder-store.js
   │     ├── shared/i18n.js

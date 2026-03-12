@@ -1,6 +1,6 @@
 # Module Registry
 
-> Last updated: 2026-03-04
+> Last updated: 2026-03-12
 
 Every module in the codebase. When you add, remove, or rename a module — update this file.
 
@@ -11,10 +11,9 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 | `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store, sw-manager, school-level, onboarding-modal | Hash router, app init, onboarding gate |
 | `document-store.js`    | `createDocument`, `getDocument`, `saveDocument`, `listDocuments`, `deleteDocument` | folder-store | IndexedDB CRUD for documents           |
 | `trash-store.js`       | `trashDocument`, `restoreDocument`, `listTrashedDocuments`, `permanentlyDelete`, `emptyTrash`, `getTrashCount`, `purgeExpired`, `getRetentionDays` | (none) | Soft-delete with 30-day retention |
-| `document-list.js`     | `renderDocumentList`                             | document-store, trash-store, word-count-stats, document-search, document-tags, sidebar, folder-picker, folder-store, i18n, html-escape, in-page-modal, toast-notification, theme | Dashboard/home screen UI with sidebar   |
+| `document-list.js`     | `renderDocumentList`                             | document-store, trash-store, word-count-stats, document-search, sidebar, folder-picker, folder-store, i18n, html-escape, in-page-modal, toast-notification, theme | Dashboard/home screen UI with sidebar   |
 | `document-search.js`  | `createSearchBar`, `filterDocuments`              | i18n                                | Search bar with debounced filtering and Ctrl/Cmd+K shortcut |
-| `document-tags.js`    | `createTagFilter`, `collectTags`, `filterByTag`, `createTagEditor` | i18n, html-escape | Tag chips for filtering + inline tag editor |
-| `standalone-writer.js` | `launchEditor`                                   | 13 student modules, 5 shared modules, document-store, document-tags, folder-picker, folder-store | Editor orchestrator |
+| `standalone-writer.js` | `launchEditor`                                   | 13 student modules, 5 shared modules, document-store, folder-picker, folder-store | Editor orchestrator |
 | `word-count-stats.js`  | `showWordCountStats`                             | folder-store, html-escape, i18n     | Statistics overlay with monthly chart  |
 | `folder-store.js`      | `PERSONAL_FOLDER_NAME`, `MAX_FOLDER_DEPTH`, `PERSONAL_SUBJECT`, `getSchoolYear`, `getCurrentSchoolYear`, `setCurrentSchoolYear`, `getAvailableSchoolYears`, `createFolder`, `renameFolder`, `deleteFolder`, `moveFolder`, `getAllFolders`, `getRootFolders`, `getChildren`, `getFolderById`, `getFolderPath`, `getFolderDepth`, `buildFolderTree`, `flattenTree`, `addDocToFolder`, `removeDocFromFolder`, `setDocFolders`, `isPersonalFolder`, `isSystemFolder` | school-level | Folder CRUD, tree helpers, doc-folder assignment, school year logic |
 | `sidebar.js`           | `createSidebar` (returns `{ destroy, update, setDragActive }`) | folder-store, school-level, onboarding-modal, i18n, html-escape, toast-notification, in-page-modal | Collapsible folder tree navigation + change level button + drag-drop cues |

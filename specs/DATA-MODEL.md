@@ -1,6 +1,6 @@
 # Data Model
 
-> Last updated: 2026-03-04
+> Last updated: 2026-03-12
 
 ## IndexedDB
 
@@ -21,7 +21,7 @@ Key path: `id`
 | `createdAt`  | string   | yes      |          | ISO 8601 timestamp                |
 | `updatedAt`  | string   | yes      | yes      | ISO 8601, sorted descending       |
 | `references` | array    | no       |          | Array of citation objects          |
-| `tags`       | array    | no       |          | Array of user-defined tag strings (default `[]`) |
+| `tags`       | array    | no       |          | **Legacy.** No longer written by UI. May exist on older documents. |
 | `frameType`  | string   | no       |          | Active writing frame (`analyse`, `droefting`, `kronikk`, or `null`) |
 | `subject`    | string   | no       | yes      | **Legacy.** Subject name or `null`. Kept for backward compat; no longer written by UI. Use `folderIds` instead. Added in v3. |
 | `schoolYear` | string   | no       | yes      | School year label e.g. `'2025/2026'`. Aug 1 – Jul 31. Added in v3. |
