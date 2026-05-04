@@ -1108,7 +1108,7 @@ export function initFrameGuide(editor, container, options = {}) {
     }
     editor.addEventListener('click', handleEditorClick);
 
-    // --- Auto-detection: heading matches a section title ---
+    // --- Auto-detection: heading matches a section title + sidebar sync ---
     function handleInput() {
         if (!frameData) return;
         const headings = editor.querySelectorAll('h1, h2, h3');
@@ -1120,21 +1120,40 @@ export function initFrameGuide(editor, container, options = {}) {
                 }
             });
         });
-        // Typing inside a completed section reverts it to "in progress" so
-        // the "Mark as done" affordance returns. The student is clearly
-        // working on it again.
+
         const sIdx = getSectionIndexFromRange(lastRange);
-        if (sIdx >= 0 && sectionStates[sIdx]?.completed) {
-            sectionStates[sIdx].completed = false;
-            sectionStates[sIdx].expanded = true;
+        if (sIdx < 0 || !sectionStates[sIdx]) return;
+        const state = sectionStates[sIdx];
+
+        let needsRender = false;
+        let needsSave = false;
+
+        // Typing inside a completed section reverts it to "in progress" so
+        // the "Mark as done" affordance returns.
+        if (state.completed) {
+            state.completed = false;
             const primary = editor.querySelector(
                 `.${SECTION_MARKER_CLASS}[data-section-index="${sIdx}"][data-paragraph-index="0"]`
             );
             if (primary) primary.dataset.completed = 'false';
             updateSectionMarkerVisuals(sIdx);
+            needsRender = true;
+            needsSave = true;
+        }
+
+        // Accordion sidebar sync: typing in a section opens it in the
+        // sidebar and closes whatever was previously open. Skip when this
+        // section is already the sole-expanded one.
+        const someoneElseOpen = sectionStates.some((s, i) => i !== sIdx && s.expanded);
+        if (!state.expanded || someoneElseOpen) {
+            sectionStates.forEach((s, i) => { s.expanded = (i === sIdx); });
+            needsRender = true;
+        }
+
+        if (needsRender) {
             renderSections();
             updateProgress();
-            if (options.onSave) options.onSave();
+            if (needsSave && options.onSave) options.onSave();
         }
     }
     editor.addEventListener('input', handleInput);
