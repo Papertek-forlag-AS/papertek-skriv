@@ -16,6 +16,8 @@ import { showToast } from '../shared/toast-notification.js';
 const DIVIDER_CLASS = 'skriv-frame-divider';
 const SECTION_MARKER_CLASS = 'section-marker';
 const PARAGRAPH_MARKER_CLASS = 'paragraph-marker';
+const SECTION_END_CLASS = 'section-end-marker';
+const MAX_VISIBLE_STARTERS = 2;
 
 const SCRAMBLE_CHARS = 'abcdefghijklmnoprstuvwxyzæøå';
 const SCRAMBLE_DURATION = 500;
@@ -185,10 +187,6 @@ const CSS = `
     background: #d1fae5;
     transform: translateX(2px);
 }
-.frame-guide-starter.spinner-generated {
-    /* Visually identical to authored starters; class kept for testing/styling hooks */
-}
-
 /* "🎲 Flere forslag" button */
 .frame-guide-spinner-btn {
     display: block;
@@ -274,6 +272,25 @@ const CSS = `
     font-size: 0.6rem;
     color: #b7b3ad;
     font-style: italic;
+}
+/* Section-end marker: subtle closing line, no label, just a tiny indicator */
+.skriv-frame-divider.section-end-marker {
+    margin: 0.25em 0 1.5em;
+    cursor: default;
+}
+.skriv-frame-divider.section-end-marker::before,
+.skriv-frame-divider.section-end-marker::after {
+    background: transparent;
+    border-bottom: 1px dashed #d6d3d1;
+    height: 0;
+}
+.skriv-frame-divider.section-end-marker .frame-divider-label {
+    font-size: 0.55rem;
+    color: #d6d3d1;
+    padding: 0 0.5rem;
+}
+.skriv-frame-divider.section-end-marker:hover .frame-divider-label {
+    color: #d6d3d1;  /* don't highlight on hover - it's not interactive */
 }
 /* Completed section marker */
 .skriv-frame-divider.section-marker.is-completed .frame-divider-label {
@@ -402,7 +419,7 @@ export function initFrameGuide(editor, container, options = {}) {
     let styleEl = null;
     let frameData = null;
     let frameType = null;
-    let sectionStates = []; // { completed, expanded, spinnerStarters }
+    let sectionStates = []; // { completed, expanded, onHold, starters }
     let panelVisible = false;
     let lastRange = null;
     let starterDataPromise = null;
@@ -542,6 +559,9 @@ export function initFrameGuide(editor, container, options = {}) {
                 }));
                 fragment.appendChild(makeParagraphSlot());
             }
+            // Section-end marker: subtle line that closes off the section
+            // so the boundary between sections is unambiguous.
+            fragment.appendChild(makeSectionEndMarker(sectionIndex));
         });
 
         if (isEditorEffectivelyEmpty()) {
@@ -552,6 +572,16 @@ export function initFrameGuide(editor, container, options = {}) {
         }
     }
 
+    function makeSectionEndMarker(sectionIndex) {
+        const div = document.createElement('div');
+        div.className = `${DIVIDER_CLASS} ${SECTION_END_CLASS}`;
+        div.contentEditable = 'false';
+        div.dataset.sectionIndex = String(sectionIndex);
+        div.dataset.sectionEnd = 'true';
+        div.innerHTML = '<span class="frame-divider-label">↑</span>';
+        return div;
+    }
+
     // --- Build sections in sidebar ---
     function applyFrame(data, type) {
         frameData = data;
@@ -560,9 +590,16 @@ export function initFrameGuide(editor, container, options = {}) {
             completed: false,
             expanded: false,
             onHold: false,
-            spinnerStarters: {
-                section: [],
-                subsections: (s.subsections || []).map(() => []),
+            // Sliding window of currently-displayed starters per scope (max 2).
+            // Initial fill comes from markdown-authored prompts; each spinner
+            // roll appends a new pick and trims the oldest, so the user
+            // always sees at most 2 alternatives — top one slides out as new
+            // ones come in.
+            starters: {
+                section: (s.prompts || []).slice(0, MAX_VISIBLE_STARTERS),
+                subsections: (s.subsections || []).map(sub =>
+                    (sub.prompts || []).slice(0, MAX_VISIBLE_STARTERS)
+                ),
             },
         }));
         activeSectionIndex = -1;
@@ -634,14 +671,11 @@ export function initFrameGuide(editor, container, options = {}) {
                         subInstr.textContent = sub.instruction;
                         subEl.appendChild(subInstr);
                     }
-                    if (sub.prompts && sub.prompts.length > 0) {
-                        sub.prompts.forEach(prompt => {
-                            subEl.appendChild(makeStarterButton(prompt, i, subIdx));
-                        });
-                    }
-                    // Already-generated spinner starters for this subsection
-                    state.spinnerStarters.subsections[subIdx]?.forEach(text => {
-                        subEl.appendChild(makeStarterButton(text, i, subIdx, { generated: true }));
+                    // Currently-visible starters (sliding window) — initial
+                    // fill from authored prompts, replaced over time as
+                    // student rolls "More suggestions".
+                    (state.starters.subsections[subIdx] || []).forEach(text => {
+                        subEl.appendChild(makeStarterButton(text, i, subIdx));
                     });
                     // 🎲 Flere forslag (subsection-level)
                     if (sub.spinnerBucket) {
@@ -655,15 +689,9 @@ export function initFrameGuide(editor, container, options = {}) {
                 });
             }
 
-            // Section-level prompts
-            if (section.prompts && section.prompts.length > 0) {
-                section.prompts.forEach(prompt => {
-                    content.appendChild(makeStarterButton(prompt, i, -1));
-                });
-            }
-            // Already-generated section-level spinner starters
-            state.spinnerStarters.section.forEach(text => {
-                content.appendChild(makeStarterButton(text, i, -1, { generated: true }));
+            // Currently-visible section-level starters (sliding window)
+            (state.starters.section || []).forEach(text => {
+                content.appendChild(makeStarterButton(text, i, -1));
             });
             // 🎲 Flere forslag (section-level) — only when section has no subsections,
             // since subsection-level buttons cover the multi-bucket case.
@@ -722,9 +750,9 @@ export function initFrameGuide(editor, container, options = {}) {
         });
     }
 
-    function makeStarterButton(text, sourceSectionIndex, sourceSubsectionIndex, opts = {}) {
+    function makeStarterButton(text, sourceSectionIndex, sourceSubsectionIndex) {
         const btn = document.createElement('button');
-        btn.className = 'frame-guide-starter' + (opts.generated ? ' spinner-generated' : '');
+        btn.className = 'frame-guide-starter';
         btn.textContent = text;
         btn.title = 'Klikk for å sette inn';
         btn.addEventListener('click', () => insertStarter(text, sourceSectionIndex, sourceSubsectionIndex));
@@ -744,24 +772,29 @@ export function initFrameGuide(editor, container, options = {}) {
                 return;
             }
 
-            // Replace, don't append: keep only the latest spinner-generated
-            // starter at this scope so the student can keep spinning until
-            // one fits without piling up rejected suggestions.
+            // Sliding window: append new pick, trim oldest so we never show
+            // more than MAX_VISIBLE_STARTERS at this scope. Top alternative
+            // is "thrown out", second moves up, new one fills the bottom.
             const state = sectionStates[sectionIndex];
-            if (subsectionIndex >= 0) {
-                state.spinnerStarters.subsections[subsectionIndex] = [text];
-            } else {
-                state.spinnerStarters.section = [text];
-            }
-            // Remove any existing spinner-generated buttons at this scope
-            btn.parentNode.querySelectorAll('.frame-guide-starter.spinner-generated')
-                .forEach(el => el.remove());
+            const list = subsectionIndex >= 0
+                ? state.starters.subsections[subsectionIndex]
+                : state.starters.section;
+            list.push(text);
+            while (list.length > MAX_VISIBLE_STARTERS) list.shift();
 
-            // Insert the new one just before this spinner button, with scramble
-            const newBtn = makeStarterButton(text, sectionIndex, subsectionIndex, { generated: true });
-            btn.parentNode.insertBefore(newBtn, btn);
-            newBtn.textContent = '';
-            scrambleReveal(newBtn, text);
+            // Re-render the starter buttons in this scope: clear all
+            // existing starter buttons, re-insert from state.
+            const parent = btn.parentNode;
+            parent.querySelectorAll('.frame-guide-starter').forEach(el => el.remove());
+            list.forEach((s, idx) => {
+                const newBtn = makeStarterButton(s, sectionIndex, subsectionIndex);
+                parent.insertBefore(newBtn, btn);
+                if (idx === list.length - 1) {
+                    // Animate only the newly-added one
+                    newBtn.textContent = '';
+                    scrambleReveal(newBtn, s);
+                }
+            });
         });
         return btn;
     }
@@ -928,7 +961,7 @@ export function initFrameGuide(editor, container, options = {}) {
     // --- + Nytt avsnitt: add a paragraph slot inside a section ---
     function addParagraphToSection(sectionIndex) {
         const existingMarkers = editor.querySelectorAll(
-            `.${DIVIDER_CLASS}[data-section-index="${sectionIndex}"]`
+            `.${DIVIDER_CLASS}[data-section-index="${sectionIndex}"]:not(.${SECTION_END_CLASS})`
         );
         const newParagraphIndex = existingMarkers.length;
         const newLabel = `${frameData.sections[sectionIndex].title} — ${t('skriv.frameGuideParagraphSuffix')} ${newParagraphIndex + 1}`;
@@ -940,13 +973,18 @@ export function initFrameGuide(editor, container, options = {}) {
         });
         const newSlot = makeParagraphSlot();
 
-        // Insert before the next section's primary marker (or at end)
+        // Insert before this section's end marker (preferred), else before
+        // the next section's start marker, else at end of editor.
+        const sectionEnd = editor.querySelector(
+            `.${SECTION_END_CLASS}[data-section-index="${sectionIndex}"]`
+        );
         const nextSection = editor.querySelector(
             `.${SECTION_MARKER_CLASS}[data-section-index="${sectionIndex + 1}"]`
         );
-        if (nextSection) {
-            editor.insertBefore(newMarker, nextSection);
-            editor.insertBefore(newSlot, nextSection);
+        const insertBefore = sectionEnd || nextSection;
+        if (insertBefore) {
+            editor.insertBefore(newMarker, insertBefore);
+            editor.insertBefore(newSlot, insertBefore);
         } else {
             editor.appendChild(newMarker);
             editor.appendChild(newSlot);
@@ -1064,6 +1102,8 @@ export function initFrameGuide(editor, container, options = {}) {
                         sectionStates[sIdx].completed = completed;
                         if (completed) sectionStates[sIdx].expanded = false;
                     }
+                    // Skip label re-derive for end markers
+                    if (d.classList.contains(SECTION_END_CLASS)) return;
                     // Re-derive label using the current rule. Migrates older
                     // saved docs (subsection-derived labels) to generic
                     // numbering on load. Cheap & idempotent.
@@ -1077,6 +1117,20 @@ export function initFrameGuide(editor, container, options = {}) {
                     }
                 } else {
                     d.remove();
+                }
+            });
+            // Migrate: insert any missing section-end markers (for docs saved
+            // before section-end markers existed).
+            frameData.sections.forEach((_, sIdx) => {
+                if (editor.querySelector(`.${SECTION_END_CLASS}[data-section-index="${sIdx}"]`)) return;
+                const nextSectionStart = editor.querySelector(
+                    `.${SECTION_MARKER_CLASS}[data-section-index="${sIdx + 1}"]`
+                );
+                const endMarker = makeSectionEndMarker(sIdx);
+                if (nextSectionStart) {
+                    editor.insertBefore(endMarker, nextSectionStart);
+                } else {
+                    editor.appendChild(endMarker);
                 }
             });
         } else {

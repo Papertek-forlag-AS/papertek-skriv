@@ -51,7 +51,7 @@ export async function renderDocumentList(container, onOpenDocument) {
 
     // Cleanup desk — orphan documents panel (desktop only, between sidebar and docs)
     const cleanupDeskEl = document.createElement('div');
-    cleanupDeskEl.className = 'skriv-cleanup-desk hidden md:flex md:flex-col w-44 flex-shrink-0 border-r border-stone-100 dark:border-stone-700/50 overflow-y-auto';
+    cleanupDeskEl.className = 'skriv-cleanup-desk hidden md:flex md:flex-col w-56 flex-shrink-0 border-r border-stone-100 dark:border-stone-700/50 overflow-y-auto';
 
     // Main content area
     const mainContent = document.createElement('div');
@@ -563,24 +563,12 @@ function updateCleanupDesk(deskEl, orphanDocs, onOpenDocument, container, folder
         'rotate-[2.5deg]', 'rotate-[-0.5deg]', 'rotate-[1deg]',
     ];
 
-    orphanDocs.forEach((doc, i) => {
-        const card = document.createElement('div');
-        card.setAttribute('draggable', 'true');
-        card.setAttribute('data-doc-id', doc.id);
-        const rotation = rotations[i % rotations.length];
-        card.className = `mb-2 p-2 bg-white dark:bg-stone-800 border border-amber-200 dark:border-amber-700/60 border-l-[3px] border-l-amber-400 rounded-lg cursor-pointer hover:shadow-md hover:rotate-0 transition-all ${rotation}`;
+    const FULL_CARD_LIMIT = 3;
+    const fullDocs = orphanDocs.slice(0, FULL_CARD_LIMIT);
+    const deckDocs = orphanDocs.slice(FULL_CARD_LIMIT);
 
-        const title = doc.title || t('skriv.untitled');
-        const wordCount = doc.wordCount || 0;
-        card.innerHTML = `
-            <p class="text-[11px] font-medium text-stone-700 dark:text-stone-200 truncate leading-tight">${escapeHtml(title)}</p>
-            <span class="text-[10px] text-stone-400">${wordCount} ${t('wordCounter.count', { count: wordCount }).split(' ').pop()}</span>
-        `;
-
-        // Click to open
+    function bindDocInteractions(card, doc, title) {
         card.addEventListener('click', () => onOpenDocument(doc.id));
-
-        // Drag to folder
         card.addEventListener('dragstart', (e) => {
             e.dataTransfer.setData('text/plain', doc.id);
             e.dataTransfer.effectAllowed = 'move';
@@ -595,12 +583,54 @@ function updateCleanupDesk(deskEl, orphanDocs, onOpenDocument, container, folder
             e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
             requestAnimationFrame(() => ghost.remove());
         });
-        card.addEventListener('dragend', () => {
-            card.classList.remove('opacity-50');
-        });
+        card.addEventListener('dragend', () => card.classList.remove('opacity-50'));
+    }
 
+    // Full cards: first FULL_CARD_LIMIT orphans
+    fullDocs.forEach((doc, i) => {
+        const card = document.createElement('div');
+        card.setAttribute('draggable', 'true');
+        card.setAttribute('data-doc-id', doc.id);
+        const rotation = rotations[i % rotations.length];
+        card.className = `mb-2 p-2 bg-white dark:bg-stone-800 border border-amber-200 dark:border-amber-700/60 border-l-[3px] border-l-amber-400 rounded-lg cursor-pointer hover:shadow-md hover:rotate-0 transition-all ${rotation}`;
+
+        const title = doc.title || t('skriv.untitled');
+        const wordCount = doc.wordCount || 0;
+        card.innerHTML = `
+            <p class="text-[11px] font-medium text-stone-700 dark:text-stone-200 truncate leading-tight">${escapeHtml(title)}</p>
+            <span class="text-[10px] text-stone-400">${wordCount} ${t('wordCounter.count', { count: wordCount }).split(' ').pop()}</span>
+        `;
+
+        bindDocInteractions(card, doc, title);
         cardArea.appendChild(card);
     });
+
+    // Deck cards: 4th onward, rendered as thin peek strips overlapping each
+    // other so the user sees just a "flik" (edge) of each. Click to open.
+    if (deckDocs.length > 0) {
+        const deck = document.createElement('div');
+        deck.className = 'skriv-cleanup-deck mt-1 relative';
+        deckDocs.forEach((doc, i) => {
+            const card = document.createElement('div');
+            card.setAttribute('draggable', 'true');
+            card.setAttribute('data-doc-id', doc.id);
+            const rotation = rotations[(FULL_CARD_LIMIT + i) % rotations.length];
+            // Peek card: short height, overlapping previous via negative margin
+            card.className = `block px-2 py-1 bg-white dark:bg-stone-800 border border-amber-200 dark:border-amber-700/60 border-l-[3px] border-l-amber-400 rounded-md cursor-pointer hover:shadow-md hover:translate-x-0.5 hover:rotate-0 transition-all ${rotation}`;
+            card.style.marginTop = i === 0 ? '0' : '-14px';
+            card.style.zIndex = String(deckDocs.length - i);
+
+            const title = doc.title || t('skriv.untitled');
+            card.innerHTML = `
+                <p class="text-[10px] font-medium text-stone-600 dark:text-stone-300 truncate leading-tight">${escapeHtml(title)}</p>
+            `;
+            card.title = title;
+
+            bindDocInteractions(card, doc, title);
+            deck.appendChild(card);
+        });
+        cardArea.appendChild(deck);
+    }
 
     deskEl.appendChild(cardArea);
 }
