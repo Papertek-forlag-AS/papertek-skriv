@@ -1120,6 +1120,22 @@ export function initFrameGuide(editor, container, options = {}) {
                 }
             });
         });
+        // Typing inside a completed section reverts it to "in progress" so
+        // the "Mark as done" affordance returns. The student is clearly
+        // working on it again.
+        const sIdx = getSectionIndexFromRange(lastRange);
+        if (sIdx >= 0 && sectionStates[sIdx]?.completed) {
+            sectionStates[sIdx].completed = false;
+            sectionStates[sIdx].expanded = true;
+            const primary = editor.querySelector(
+                `.${SECTION_MARKER_CLASS}[data-section-index="${sIdx}"][data-paragraph-index="0"]`
+            );
+            if (primary) primary.dataset.completed = 'false';
+            updateSectionMarkerVisuals(sIdx);
+            renderSections();
+            updateProgress();
+            if (options.onSave) options.onSave();
+        }
     }
     editor.addEventListener('input', handleInput);
 
