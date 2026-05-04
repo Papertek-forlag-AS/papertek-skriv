@@ -27,7 +27,7 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v25)
+├── sw.js                   ← Service Worker (cache v40)
 ├── icons/                  ← PWA icons (192, 512)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md          (legacy)
@@ -49,11 +49,13 @@ public/
     │   ├── sidebar.js            ← Collapsible folder tree navigation
     │   ├── folder-picker.js      ← Multi-select folder assignment dropdown
     │   ├── school-level.js       ← School level data + persistence
-    │   └── onboarding-modal.js   ← First-time level selection modal
+    │   ├── onboarding-modal.js   ← First-time level selection modal
+    │   └── german-exam-route.js  ← Route + screen wiring for #/tysk
     └── editor-core/
         ├── config.js       ← Constants (special chars)
         ├── shared/         ← Cross-product utilities (8 modules)
-        ├── student/        ← Student editor features (16 modules)
+        ├── student/        ← Student editor features
+        │   └── german-exam-svg/  ← Hand-written SVG modules for image-based German tasks (one file per image)
         └── locales/        ← Translation files (nb, nn, en)
 ```
 
@@ -90,6 +92,7 @@ public/
 |---------------- |--------------- |------------------------ |
 | `#/`            | Document list  | `document-list.js`      |
 | `#/doc/{id}`    | Editor         | `standalone-writer.js`  |
+| `#/tysk`        | German exam spinner | `german-exam-route.js` |
 
 ## CDN dependencies
 

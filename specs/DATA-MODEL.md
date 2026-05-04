@@ -92,8 +92,11 @@ Key path: `id`
 | `skriv_custom_subjects`  | string | **Legacy.** JSON array of student-created subject names. Read during v4 migration to seed custom folders. No longer written. |
 | `skriv_school_year`      | string | Active school year label e.g. `'2025/2026'`  |
 | `skriv_school_level`     | string | Selected school level ID (`barneskole`, `ungdomsskole`, `vg1`, `vg2`, `vg3`) |
+| `papertek.skriv.germanExam.deck.tysk-1` | string | JSON array of remaining (unseen) Tysk 1 task ids; auto-shuffles on exhaustion |
+| `papertek.skriv.germanExam.deck.tysk-2` | string | JSON array of remaining (unseen) Tysk 2 task ids; auto-shuffles on exhaustion |
+| `papertek.skriv.germanExam.activeLevel` | string | `'tysk-1'` or `'tysk-2'`; persists last selected level on the spinner screen |
 
 ## Other storage
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]`.
+- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]`. Current version: `skriv-v40`.
 - **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.

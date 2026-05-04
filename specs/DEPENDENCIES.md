@@ -87,7 +87,17 @@ app/main.js
   │     ├── student/submission-checklist.js
   │     └── student/text-export.js
   │           └── [CDN] jsPDF
-  └── app/trash-store.js
+  ├── app/trash-store.js
+  └── app/german-exam-route.js
+        ├── student/german-exam-spinner.js
+        │     ├── shared/i18n.js
+        │     ├── shared/html-escape.js
+        │     └── student/german-exam-data.js
+        │           └── (lazy) student/german-exam-svg/*.js
+        ├── app/document-store.js
+        ├── app/folder-store.js
+        ├── shared/i18n.js
+        └── shared/html-escape.js
 ```
 
 **Invariant:** No circular dependencies. No upward imports (shared never imports from student or app).

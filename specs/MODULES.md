@@ -8,7 +8,8 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 
 | Module                 | Exports                                          | Depends on                          | Purpose                                |
 |----------------------- |------------------------------------------------- |------------------------------------ |--------------------------------------- |
-| `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store, sw-manager, school-level, onboarding-modal | Hash router, app init, onboarding gate |
+| `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store, sw-manager, school-level, onboarding-modal, german-exam-route | Hash router, app init, onboarding gate |
+| `german-exam-route.js` | `renderGermanExamScreen`                         | editor-core/student/german-exam-spinner, document-store, folder-store, i18n, html-escape | Route + screen wiring for `#/tysk`; ensures "Tysk" folder, creates document on pick |
 | `document-store.js`    | `createDocument`, `getDocument`, `saveDocument`, `listDocuments`, `deleteDocument` | folder-store | IndexedDB CRUD for documents           |
 | `trash-store.js`       | `trashDocument`, `restoreDocument`, `listTrashedDocuments`, `permanentlyDelete`, `emptyTrash`, `getTrashCount`, `purgeExpired`, `getRetentionDays` | (none) | Soft-delete with 30-day retention |
 | `document-list.js`     | `renderDocumentList`                             | document-store, trash-store, word-count-stats, document-search, sidebar, folder-picker, folder-store, i18n, html-escape, in-page-modal, toast-notification, theme | Dashboard/home screen UI with sidebar   |
@@ -61,6 +62,8 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `special-chars-panel.js`  | `initSpecialCharsPanel` | config, i18n                   | Language-specific character picker    |
 | `spinner-data-nb.js`      | `SPINNER_DATA_NB`       | (none)                         | Bokmål word suggestion data          |
 | `spinner-data-nn.js`      | `SPINNER_DATA_NN`       | (none)                         | Nynorsk word suggestion data         |
+| `german-exam-data.js`     | `tasks`, `LEVELS`       | (none)                         | Static task corpus for German exam spinner; one array per level |
+| `german-exam-spinner.js`  | `initGermanExamSpinner` | i18n, html-escape, ./german-exam-data | Portable spinner UI; deck logic in localStorage; emits onPickTask callback |
 
 ## editor-core/locales/ — Translation files
 
