@@ -17,21 +17,32 @@
 import { initEditorToolbar } from '../editor-core/student/editor-toolbar.js';
 import { initTOC } from '../editor-core/student/toc-manager.js';
 import { initReferences } from '../editor-core/student/reference-manager.js';
-import { initFrameManager } from '../editor-core/student/frame-manager.js';
+import { initFrameGuide } from '../editor-core/student/frame-guide.js';
+import { parseFrameMarkdown } from '../editor-core/student/frame-parser.js';
 import { initFrameSelector } from '../editor-core/student/frame-selector.js';
 import { initWritingSpinner } from '../editor-core/student/writing-spinner.js';
 import { initWordFrequency } from '../editor-core/student/word-frequency.js';
 import { initSentenceLength } from '../editor-core/student/sentence-length.js';
 import { initParagraphMap } from '../editor-core/student/paragraph-map.js';
-// import { initImageManager } from '../editor-core/student/image-manager.js'; // Deactivated
+import { initImageManager } from '../editor-core/student/image-manager.js';
+import { initFocusMode } from '../editor-core/student/focus-mode.js';
+import { initKeyboardShortcuts } from '../editor-core/student/keyboard-shortcuts.js';
+import { initWritingProgress } from '../editor-core/student/writing-progress.js';
+import { initTableManager } from '../editor-core/student/table-manager.js';
+import { initWritingFeedback } from '../editor-core/student/writing-feedback.js';
+import { initVersionHistory } from '../editor-core/student/version-history.js';
+import { initOnboardingTour } from '../editor-core/student/onboarding-tour.js';
+import { initLixScore } from '../editor-core/student/lix-score.js';
+import { initArgumentFlow } from '../editor-core/student/argument-flow.js';
 // import { initMatte } from '../editor-core/student/matte.js'; // Deactivated — re-enable when subject choice is added
 import { showSubmissionChecklist } from '../editor-core/student/submission-checklist.js';
-import { downloadText, downloadPDF } from '../editor-core/student/text-export.js';
+import { downloadText, downloadPDF, downloadDocx } from '../editor-core/student/text-export.js';
 import { escapeAttr } from '../editor-core/shared/html-escape.js';
+import { getSchoolLevel } from './school-level.js';
 import { attachWordCounter, countWords } from '../editor-core/shared/word-counter.js';
 import { createAutoSave } from '../editor-core/shared/auto-save.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
-import { t } from '../editor-core/shared/i18n.js';
+import { t, getCurrentLanguage } from '../editor-core/shared/i18n.js';
 import { getDocument, saveDocument } from './document-store.js';
 import { createFolderPicker, createFolderBadges } from './folder-picker.js';
 import { getAllFolders } from './folder-store.js';
@@ -83,13 +94,11 @@ export async function launchEditor(container, docId, onBack) {
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 ${t('skriv.refButton')}
             </button>
-            <!-- Bilde button deactivated
             <button id="btn-image" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('image.button')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                📷
                 ${t('image.button')}
             </button>
-            -->
             <button id="btn-spinner" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
                 title="${t('spinner.title')}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -110,6 +119,31 @@ export async function launchEditor(container, docId, onBack) {
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
                 ${t('paragraphMap.button')}
             </button>
+            <button id="btn-table" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
+                title="${t('table.button')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18M8 6v12M16 6v12"/></svg>
+                ${t('table.button')}
+            </button>
+            <button id="btn-feedback" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
+                title="${t('feedback.button')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                ${t('feedback.button')}
+            </button>
+            <button id="btn-versions" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
+                title="${t('versions.title')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                ${t('versions.title')}
+            </button>
+            <button id="btn-lix" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
+                title="${t('lix.title')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0h6m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4"/></svg>
+                LIX
+            </button>
+            <button id="btn-argument-flow" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
+                title="${t('argument.title')}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                ${t('argument.title')}
+            </button>
         </div>
         <div class="relative flex-shrink-0">
             <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors">
@@ -118,6 +152,7 @@ export async function launchEditor(container, docId, onBack) {
             <div id="export-menu" class="hidden absolute right-0 top-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
                 <button id="btn-download-txt" class="block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">${t('skriv.downloadTxt')}</button>
                 <button id="btn-download-pdf" class="block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">${t('skriv.downloadPdf')}</button>
+                <button id="btn-download-docx" class="block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">${t('skriv.downloadDocx')}</button>
             </div>
         </div>
     `;
@@ -234,7 +269,7 @@ export async function launchEditor(container, docId, onBack) {
     // const matteApi = initMatte(editor, toolbarApi.toolbarEl); // Deactivated
     const tocApi = initTOC(editor);
     const refsApi = initReferences(editor, { onSave: autoSave.schedule });
-    const frameApi = initFrameManager(editor, { onSave: autoSave.schedule });
+    const frameApi = initFrameGuide(editor, writingEnv, { onSave: () => autoSave.schedule() });
     const counterCleanup = attachWordCounter(editor, wordCountDisplay);
 
     // Load saved references
@@ -245,6 +280,18 @@ export async function launchEditor(container, docId, onBack) {
     // Rehydrate frame state from saved document
     if (doc.frameType) {
         frameApi.setActiveFrameType(doc.frameType);
+        // Re-load frame markdown for the guide panel
+        const lang = getCurrentLanguage() || 'nb';
+        fetch(`/frames/${lang === 'nn' ? 'nn' : 'nb'}/${doc.frameType}.md`)
+            .then(r => r.ok ? r.text() : null)
+            .then(md => {
+                if (md) {
+                    const parsed = parseFrameMarkdown(md);
+                    frameApi.applyFrame(parsed, doc.frameType);
+                    frameApi.rehydrate();
+                    frameSelectorApi.updateButtonState();
+                }
+            });
     }
 
     // --- Frame selector (Struktur button) ---
@@ -263,8 +310,18 @@ export async function launchEditor(container, docId, onBack) {
         frameSelectorApi.updateButtonState();
     }
 
+    // --- Image Manager ---
+    const imageApi = initImageManager(editor, writingEnv, { onInsert: () => scheduleAutoSave() });
+    const imageBtn = topBar.querySelector('#btn-image');
+    if (imageBtn) {
+        imageBtn.addEventListener('click', () => imageApi.openFilePicker());
+    }
+
     // --- Writing Spinner ---
-    const spinnerApi = initWritingSpinner(editor, writingEnv);
+    const spinnerApi = initWritingSpinner(editor, writingEnv, {
+        getLevel: () => getSchoolLevel(),
+        getActiveFrame: () => frameApi.getActiveFrame(),
+    });
     const spinnerBtn = topBar.querySelector('#btn-spinner');
     spinnerBtn.addEventListener('click', () => {
         spinnerApi.show();
@@ -328,12 +385,91 @@ export async function launchEditor(container, docId, onBack) {
         }
     });
 
-    // --- Image Manager (deactivated) ---
-    // const imageApi = initImageManager(editor, { onInsert: autoSave.schedule });
-    // const imageBtn = topBar.querySelector('#btn-image');
-    // imageBtn.addEventListener('click', () => {
-    //     imageApi.openFilePicker();
-    // });
+
+    // --- Focus Mode ---
+    const focusApi = initFocusMode(editor, writingEnv);
+
+    // --- Writing Progress ---
+    const progressApi = initWritingProgress(editor);
+
+    // --- Keyboard Shortcuts ---
+    const shortcutsApi = initKeyboardShortcuts(editor, {
+        onSave: () => autoSave.saveNow(),
+        onFocusMode: () => focusApi.toggle(),
+        isAdvancedMode: () => toolbarApi.isAdvancedMode(),
+    });
+
+    // --- Table Manager ---
+    const tableApi = initTableManager(editor, writingEnv, { onInsert: () => autoSave.schedule() });
+    const tableBtn = topBar.querySelector('#btn-table');
+    if (tableBtn) {
+        tableBtn.addEventListener('click', () => tableApi.showInsertDialog());
+    }
+
+    // --- Writing Feedback ---
+    const feedbackApi = initWritingFeedback(editor, writingEnv, {
+        getActiveFrame: () => frameApi.getActiveFrame(),
+    });
+    const feedbackBtn = topBar.querySelector('#btn-feedback');
+    if (feedbackBtn) {
+        feedbackBtn.addEventListener('click', () => {
+            const isNowActive = feedbackApi.toggle(feedbackBtn);
+            if (isNowActive) {
+                feedbackBtn.classList.remove('text-stone-500', 'border-stone-200');
+                feedbackBtn.classList.add('text-teal-700', 'border-teal-400', 'bg-teal-50');
+            } else {
+                feedbackBtn.classList.remove('text-teal-700', 'border-teal-400', 'bg-teal-50');
+                feedbackBtn.classList.add('text-stone-500', 'border-stone-200');
+            }
+        });
+    }
+
+    // --- Version History ---
+    const versionApi = initVersionHistory(editor, {
+        docId: docId,
+        onRestore: () => { autoSave.schedule(); },
+    });
+    const versionsBtn = topBar.querySelector('#btn-versions');
+    if (versionsBtn) {
+        versionsBtn.addEventListener('click', () => versionApi.toggle());
+    }
+
+    // --- LIX Readability Score ---
+    const lixApi = initLixScore(editor, writingEnv, { getLevel: () => getSchoolLevel() });
+    const lixBtn = topBar.querySelector('#btn-lix');
+    if (lixBtn) {
+        lixBtn.addEventListener('click', () => {
+            const isNowActive = lixApi.toggle();
+            if (isNowActive) {
+                lixBtn.classList.remove('text-stone-500', 'border-stone-200');
+                lixBtn.classList.add('text-indigo-700', 'border-indigo-400', 'bg-indigo-50');
+            } else {
+                lixBtn.classList.remove('text-indigo-700', 'border-indigo-400', 'bg-indigo-50');
+                lixBtn.classList.add('text-stone-500', 'border-stone-200');
+            }
+        });
+    }
+
+    // --- Argument Flow ---
+    const argumentApi = initArgumentFlow(editor, writingEnv, {
+        getActiveFrame: () => frameApi.getActiveFrame(),
+    });
+    const argumentBtn = topBar.querySelector('#btn-argument-flow');
+    if (argumentBtn) {
+        argumentBtn.addEventListener('click', () => {
+            const isNowActive = argumentApi.toggle();
+            if (isNowActive) {
+                argumentBtn.classList.remove('text-stone-500', 'border-stone-200');
+                argumentBtn.classList.add('text-blue-700', 'border-blue-400', 'bg-blue-50');
+            } else {
+                argumentBtn.classList.remove('text-blue-700', 'border-blue-400', 'bg-blue-50');
+                argumentBtn.classList.add('text-stone-500', 'border-stone-200');
+            }
+        });
+    }
+
+    // --- Onboarding Tour ---
+    const tourApi = initOnboardingTour();
 
     // --- Advanced toggle button ---
     const advancedBtn = topBar.querySelector('#btn-advanced');
@@ -398,11 +534,20 @@ export async function launchEditor(container, docId, onBack) {
         refsApi.destroy();
         frameApi.destroy();
         frameSelectorApi.destroy();
+        imageApi.destroy();
         spinnerApi.destroy();
         radarApi.destroy();
         sentenceApi.destroy();
         paragraphMapApi.destroy();
-        // imageApi.destroy(); // Deactivated
+        focusApi.destroy();
+        progressApi.destroy();
+        shortcutsApi.destroy();
+        tableApi.destroy();
+        feedbackApi.destroy();
+        versionApi.destroy();
+        tourApi.destroy();
+        lixApi.destroy();
+        argumentApi.destroy();
         counterCleanup();
         onBack();
     });
@@ -462,6 +607,22 @@ export async function launchEditor(container, docId, onBack) {
                 html: editor.innerHTML || '',
                 references: refsApi.getReferences(),
             });
+        }
+    });
+
+    topBar.querySelector('#btn-download-docx').addEventListener('click', async () => {
+        exportMenu.classList.add('hidden');
+        const cleanText = frameApi.hasFrame() ? frameApi.getCleanText() : (editor.innerText || '');
+        const proceed = await showSubmissionChecklist({
+            frameType: frameApi.getActiveFrame(),
+            title: titleInput.value,
+            wordCount: countWords(cleanText),
+            hasReferences: refsApi.getReferences().length > 0,
+            hasHeadings: editor.querySelectorAll('h1, h2').length > 0,
+            exportType: 'docx',
+        });
+        if (proceed) {
+            downloadDocx(editor, { title: getTitle() });
         }
     });
 

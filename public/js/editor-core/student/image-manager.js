@@ -12,17 +12,20 @@
  *   - Stored as base64 in the HTML (IndexedDB)
  *   - Resizable via corner drag handles
  *   - Exported to PDF with captions
+ *   - Reorderable via drag handle
+ *   - Alignable/sizable via floating toolbar
  *
  * This is a SEPARATE module so teachers can disable image editing
  * and it's easy to decide where in the frontend it should live.
  *
  * Usage:
  *   import { initImageManager } from './image-manager.js';
- *   const { destroy, openFilePicker } = initImageManager(editor, { onInsert });
+ *   const { destroy, openFilePicker } = initImageManager(editor, container, { onInsert });
  */
 
 import { t } from '../shared/i18n.js';
 import { showToast } from '../shared/toast-notification.js';
+import { isFrameElement } from '../shared/frame-elements.js';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB raw
 const MAX_WIDTH = 800;                  // px — compress to this
@@ -86,7 +89,7 @@ function validateFile(file) {
 }
 
 /**
- * Create a figure element with image, handles, and caption.
+ * Create a figure element with image, handles, drag handle, and caption.
  * @param {string} base64 - data URL
  * @returns {HTMLElement}
  */
@@ -100,6 +103,12 @@ function createImageBlock(base64) {
     img.alt = '';
     img.style.width = '100%';
     img.draggable = false;
+
+    // Drag handle for reordering
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'skriv-image-drag-handle';
+    dragHandle.innerHTML = '⋮⋮';
+    dragHandle.title = t('image.dragToMove');
 
     // Resize handles container
     const handles = document.createElement('div');
@@ -117,6 +126,7 @@ function createImageBlock(base64) {
     caption.contentEditable = 'true';
     caption.dataset.placeholder = t('image.captionPlaceholder');
 
+    figure.appendChild(dragHandle);
     figure.appendChild(img);
     figure.appendChild(handles);
     figure.appendChild(caption);
@@ -125,13 +135,88 @@ function createImageBlock(base64) {
 }
 
 /**
+ * Create the floating toolbar element.
+ * @returns {HTMLElement}
+ */
+function createToolbar() {
+    const toolbar = document.createElement('div');
+    toolbar.className = 'skriv-image-toolbar';
+    toolbar.style.cssText = `
+        position: absolute;
+        display: none;
+        z-index: 1000;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        padding: 4px 6px;
+        gap: 2px;
+        align-items: center;
+        white-space: nowrap;
+        font-size: 13px;
+    `;
+
+    const buttons = [
+        { key: 'alignLeft', label: '⬅', action: 'align-left', group: 'align' },
+        { key: 'alignCenter', label: '⬛', action: 'align-center', group: 'align' },
+        { key: 'alignRight', label: '➡', action: 'align-right', group: 'align' },
+        { key: 'separator1', separator: true },
+        { key: 'sizeSmall', label: 'S', action: 'size-small', group: 'size' },
+        { key: 'sizeMedium', label: 'M', action: 'size-medium', group: 'size' },
+        { key: 'sizeFull', label: 'F', action: 'size-full', group: 'size' },
+        { key: 'separator2', separator: true },
+        { key: 'shadow', label: '◐', action: 'shadow', group: 'shadow' },
+        { key: 'separator3', separator: true },
+        { key: 'delete', label: '✕', action: 'delete', group: 'delete' },
+    ];
+
+    for (const btn of buttons) {
+        if (btn.separator) {
+            const sep = document.createElement('span');
+            sep.style.cssText = 'width:1px;height:20px;background:#e5e7eb;margin:0 4px;';
+            toolbar.appendChild(sep);
+            continue;
+        }
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'skriv-image-toolbar-btn';
+        button.dataset.action = btn.action;
+        button.dataset.group = btn.group;
+        button.textContent = btn.label;
+        button.title = t(`image.${btn.key}`);
+        button.style.cssText = `
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1;
+            color: #374151;
+            transition: background 0.15s;
+        `;
+        toolbar.appendChild(button);
+    }
+
+    return toolbar;
+}
+
+/**
  * Initialize the Image Manager.
  * @param {HTMLElement} editor - contenteditable element
+ * @param {HTMLElement} container - parent container (non-contenteditable) for toolbar positioning
  * @param {object} options
  * @param {Function} [options.onInsert] - called after image insertion (e.g. schedule auto-save)
  * @returns {{ destroy, openFilePicker }}
  */
-export function initImageManager(editor, options = {}) {
+export function initImageManager(editor, container, options = {}) {
+    // Backwards compat: if container is a plain object, treat it as options
+    if (container && typeof container === 'object' && !(container instanceof HTMLElement)) {
+        options = container;
+        container = editor.parentElement;
+    }
+    if (!container) container = editor.parentElement;
+
     const { onInsert } = options;
     let selectedBlock = null; // currently selected image block
     let resizing = false;
@@ -149,6 +234,270 @@ export function initImageManager(editor, options = {}) {
     fileInput.accept = 'image/*';
     fileInput.style.display = 'none';
     document.body.appendChild(fileInput);
+
+    // --- Floating Toolbar ---
+    const toolbar = createToolbar();
+    container.style.position = container.style.position || 'relative';
+    container.appendChild(toolbar);
+
+    function positionToolbar() {
+        if (!selectedBlock || toolbar.style.display === 'none') return;
+
+        const figRect = selectedBlock.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        const top = figRect.top - containerRect.top - toolbar.offsetHeight - 8;
+        const left = figRect.left - containerRect.left + (figRect.width / 2) - (toolbar.offsetWidth / 2);
+
+        toolbar.style.top = `${Math.max(0, top)}px`;
+        toolbar.style.left = `${Math.max(0, Math.min(left, containerRect.width - toolbar.offsetWidth))}px`;
+    }
+
+    function showToolbar(figure) {
+        toolbar.style.display = 'flex';
+        updateToolbarState(figure);
+        // Position after display so offsetWidth/Height are available
+        requestAnimationFrame(() => positionToolbar());
+    }
+
+    function hideToolbar() {
+        toolbar.style.display = 'none';
+    }
+
+    function updateToolbarState(figure) {
+        if (!figure) return;
+        const img = figure.querySelector('img');
+        if (!img) return;
+
+        // Determine current alignment
+        const ml = figure.style.marginLeft;
+        const mr = figure.style.marginRight;
+        let currentAlign = 'center'; // default
+        if (ml === '0px' || ml === '0') currentAlign = 'left';
+        else if (mr === '0px' || mr === '0') currentAlign = 'right';
+
+        // Determine current size
+        const w = img.style.width;
+        let currentSize = 'full';
+        if (w === '40%') currentSize = 'small';
+        else if (w === '65%') currentSize = 'medium';
+
+        // Determine shadow state
+        const hasShadow = figure.classList.contains('skriv-image-shadow');
+
+        // Update button states
+        toolbar.querySelectorAll('.skriv-image-toolbar-btn').forEach(btn => {
+            const action = btn.dataset.action;
+            let active = false;
+
+            if (action === 'align-left' && currentAlign === 'left') active = true;
+            if (action === 'align-center' && currentAlign === 'center') active = true;
+            if (action === 'align-right' && currentAlign === 'right') active = true;
+            if (action === 'size-small' && currentSize === 'small') active = true;
+            if (action === 'size-medium' && currentSize === 'medium') active = true;
+            if (action === 'size-full' && currentSize === 'full') active = true;
+            if (action === 'shadow' && hasShadow) active = true;
+
+            btn.style.background = active ? '#059669' : 'transparent';
+            btn.style.color = active ? '#fff' : '#374151';
+        });
+    }
+
+    function handleToolbarClick(e) {
+        const btn = e.target.closest('.skriv-image-toolbar-btn');
+        if (!btn || !selectedBlock) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const action = btn.dataset.action;
+        const img = selectedBlock.querySelector('img');
+
+        switch (action) {
+            case 'align-left':
+                selectedBlock.style.marginLeft = '0';
+                selectedBlock.style.marginRight = 'auto';
+                break;
+            case 'align-center':
+                selectedBlock.style.marginLeft = 'auto';
+                selectedBlock.style.marginRight = 'auto';
+                break;
+            case 'align-right':
+                selectedBlock.style.marginLeft = 'auto';
+                selectedBlock.style.marginRight = '0';
+                break;
+            case 'size-small':
+                if (img) img.style.width = '40%';
+                break;
+            case 'size-medium':
+                if (img) img.style.width = '65%';
+                break;
+            case 'size-full':
+                if (img) img.style.width = '100%';
+                break;
+            case 'shadow':
+                selectedBlock.classList.toggle('skriv-image-shadow');
+                break;
+            case 'delete':
+                deleteSelectedBlock();
+                return; // Don't update toolbar after delete
+        }
+
+        updateToolbarState(selectedBlock);
+        positionToolbar();
+        if (onInsert) onInsert(); // trigger save
+    }
+
+    toolbar.addEventListener('click', handleToolbarClick);
+
+    // Reposition on scroll/resize
+    function handleScrollResize() {
+        if (selectedBlock) positionToolbar();
+    }
+    window.addEventListener('scroll', handleScrollResize, true);
+    window.addEventListener('resize', handleScrollResize);
+
+    // --- Drag-to-Reorder ---
+    let dragState = null;
+    let dragGhost = null;
+    let dropIndicator = null;
+
+    function createDropIndicator() {
+        const indicator = document.createElement('div');
+        indicator.className = 'skriv-image-drop-indicator';
+        indicator.style.cssText = `
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #2563eb;
+            border-radius: 2px;
+            pointer-events: none;
+            display: none;
+            z-index: 999;
+        `;
+        container.appendChild(indicator);
+        return indicator;
+    }
+
+    dropIndicator = createDropIndicator();
+
+    function handleDragHandleDown(e) {
+        const handle = e.target.closest('.skriv-image-drag-handle');
+        if (!handle) return;
+
+        const figure = handle.closest('.skriv-image-block');
+        if (!figure || !editor.contains(figure)) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Create ghost
+        dragGhost = figure.cloneNode(true);
+        dragGhost.style.cssText = `
+            position: fixed;
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: 10000;
+            width: ${figure.offsetWidth}px;
+            transform: rotate(1deg);
+        `;
+        document.body.appendChild(dragGhost);
+
+        dragState = {
+            figure,
+            startY: e.clientY,
+            offsetX: e.clientX - figure.getBoundingClientRect().left,
+            offsetY: e.clientY - figure.getBoundingClientRect().top,
+        };
+
+        // Position ghost initially
+        dragGhost.style.left = `${e.clientX - dragState.offsetX}px`;
+        dragGhost.style.top = `${e.clientY - dragState.offsetY}px`;
+
+        figure.style.opacity = '0.3';
+
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('mouseup', handleDragEnd);
+    }
+
+    function handleDragMove(e) {
+        if (!dragState) return;
+
+        // Move ghost
+        dragGhost.style.left = `${e.clientX - dragState.offsetX}px`;
+        dragGhost.style.top = `${e.clientY - dragState.offsetY}px`;
+
+        // Find drop position
+        const children = Array.from(editor.children);
+        let closestEl = null;
+        let closestDist = Infinity;
+        let insertBefore = true;
+
+        for (const child of children) {
+            if (child === dragState.figure) continue;
+            if (isFrameElement(child)) continue;
+
+            const rect = child.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            const dist = Math.abs(e.clientY - midY);
+
+            if (dist < closestDist) {
+                closestDist = dist;
+                closestEl = child;
+                insertBefore = e.clientY < midY;
+            }
+        }
+
+        // Show drop indicator
+        if (closestEl) {
+            const containerRect = container.getBoundingClientRect();
+            const elRect = closestEl.getBoundingClientRect();
+            const indicatorY = insertBefore
+                ? elRect.top - containerRect.top - 2
+                : elRect.bottom - containerRect.top + 2;
+
+            dropIndicator.style.display = 'block';
+            dropIndicator.style.top = `${indicatorY}px`;
+            dragState.dropTarget = closestEl;
+            dragState.insertBefore = insertBefore;
+        } else {
+            dropIndicator.style.display = 'none';
+            dragState.dropTarget = null;
+        }
+    }
+
+    function handleDragEnd(e) {
+        if (!dragState) return;
+
+        const { figure, dropTarget, insertBefore } = dragState;
+
+        // Move the figure to new position
+        if (dropTarget && dropTarget !== figure) {
+            if (insertBefore) {
+                editor.insertBefore(figure, dropTarget);
+            } else {
+                editor.insertBefore(figure, dropTarget.nextSibling);
+            }
+            if (onInsert) onInsert(); // trigger save
+        }
+
+        // Cleanup
+        figure.style.opacity = '';
+        if (dragGhost?.parentNode) dragGhost.remove();
+        dragGhost = null;
+        dropIndicator.style.display = 'none';
+        dragState = null;
+
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+    }
+
+    editor.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.skriv-image-drag-handle')) {
+            handleDragHandleDown(e);
+        }
+    });
 
     /**
      * Insert image at the current cursor position (or end of editor).
@@ -233,7 +582,7 @@ export function initImageManager(editor, options = {}) {
     }
     editor.addEventListener('paste', handlePaste);
 
-    // --- Drag and drop ---
+    // --- Drag and drop (file insertion) ---
     function handleDragOver(e) {
         if (e.dataTransfer?.types?.includes('Files')) {
             e.preventDefault();
@@ -283,6 +632,7 @@ export function initImageManager(editor, options = {}) {
         selectedBlock = figure;
         figure.classList.add('selected');
         figure.querySelector('.skriv-image-handles')?.classList.remove('hidden');
+        showToolbar(figure);
     }
 
     function deselectAll() {
@@ -297,6 +647,7 @@ export function initImageManager(editor, options = {}) {
             fig.classList.remove('selected');
             fig.querySelector('.skriv-image-handles')?.classList.add('hidden');
         });
+        hideToolbar();
     }
 
     function handleEditorClick(e) {
@@ -307,6 +658,8 @@ export function initImageManager(editor, options = {}) {
                 deselectAll();
                 return;
             }
+            // Don't select if clicking drag handle (handled separately)
+            if (e.target.closest('.skriv-image-drag-handle')) return;
             e.preventDefault();
             selectBlock(figure);
         } else {
@@ -315,39 +668,45 @@ export function initImageManager(editor, options = {}) {
     }
     editor.addEventListener('click', handleEditorClick);
 
-    // Also deselect on mousedown outside editor (toolbar clicks, etc.)
+    // Also deselect on mousedown outside editor (but NOT on toolbar)
     function handleDocumentClick(e) {
-        if (!editor.contains(e.target) && selectedBlock) {
+        if (!editor.contains(e.target) && !toolbar.contains(e.target) && selectedBlock) {
             deselectAll();
         }
     }
     document.addEventListener('mousedown', handleDocumentClick);
 
     // --- Delete selected image ---
+    function deleteSelectedBlock() {
+        if (!selectedBlock) return;
+        const next = selectedBlock.nextElementSibling || selectedBlock.previousElementSibling;
+        selectedBlock.remove();
+        selectedBlock = null;
+        hideToolbar();
+        showToast(t('image.deleted'), { duration: 1500 });
+
+        // Focus next element or ensure editor isn't empty
+        if (next) {
+            const range = document.createRange();
+            range.selectNodeContents(next);
+            range.collapse(true);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        } else if (!editor.firstChild) {
+            editor.innerHTML = '<p><br></p>';
+            editor.firstChild.focus();
+        }
+
+        if (onInsert) onInsert(); // trigger save
+    }
+
     function handleKeyDown(e) {
         if (!selectedBlock) return;
 
         if (e.key === 'Delete' || e.key === 'Backspace') {
             e.preventDefault();
-            const next = selectedBlock.nextElementSibling || selectedBlock.previousElementSibling;
-            selectedBlock.remove();
-            selectedBlock = null;
-            showToast(t('image.deleted'), { duration: 1500 });
-
-            // Focus next element or ensure editor isn't empty
-            if (next) {
-                const range = document.createRange();
-                range.selectNodeContents(next);
-                range.collapse(true);
-                const sel = window.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(range);
-            } else if (!editor.firstChild) {
-                editor.innerHTML = '<p><br></p>';
-                editor.firstChild.focus();
-            }
-
-            if (onInsert) onInsert(); // trigger save
+            deleteSelectedBlock();
         }
     }
     document.addEventListener('keydown', handleKeyDown);
@@ -423,6 +782,14 @@ export function initImageManager(editor, options = {}) {
         document.removeEventListener('keydown', handleKeyDown);
         document.removeEventListener('mousemove', handleResizeMove);
         document.removeEventListener('mouseup', handleResizeEnd);
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('scroll', handleScrollResize, true);
+        window.removeEventListener('resize', handleScrollResize);
+        toolbar.removeEventListener('click', handleToolbarClick);
+        if (toolbar.parentNode) toolbar.remove();
+        if (dropIndicator?.parentNode) dropIndicator.remove();
+        if (dragGhost?.parentNode) dragGhost.remove();
         if (fileInput?.parentNode) fileInput.remove();
         deselectAll();
     }

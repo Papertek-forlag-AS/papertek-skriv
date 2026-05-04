@@ -1,5 +1,5 @@
 /**
- * Export written text as a downloadable .txt or .pdf file.
+ * Export written text as a downloadable .txt, .pdf, or .docx file.
  * Supports TOC and reference rendering in PDF.
  */
 
@@ -23,17 +23,17 @@ export function downloadText({ title, studentName, text }) {
         t('export.author', { name: studentName || t('export.authorFallback') }),
         t('export.date', { date: dateStr }),
         t('export.wordCount', { count: wordCount }),
-        '\u2500'.repeat(40),
+        '─'.repeat(40),
         ''
     ].join('\n');
 
-    const content = '\uFEFF' + header + text;
+    const content = '﻿' + header + text;
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
 
-    const safeName = (studentName || 'dokument').replace(/[^a-zA-Z\u00e6\u00f8\u00e5\u00c6\u00d8\u00c5\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df0-9]/g, '-');
-    const safeTitle = (title || 'skriv').replace(/[^a-zA-Z\u00e6\u00f8\u00e5\u00c6\u00d8\u00c5\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df0-9]/g, '-');
+    const safeName = (studentName || 'dokument').replace(/[^a-zA-ZæøåÆØÅäöüÄÖÜß0-9]/g, '-');
+    const safeTitle = (title || 'skriv').replace(/[^a-zA-ZæøåÆØÅäöüÄÖÜß0-9]/g, '-');
     const filename = `skriv-${safeTitle}-${safeName}.txt`;
 
     const a = document.createElement('a');
@@ -72,7 +72,7 @@ export function downloadPDF({ title, studentName, text, html, references }) {
     const pageHeight = doc.internal.pageSize.getHeight();
     const marginLeft = 25;
     const marginRight = 25;
-    const marginTop = 30;
+    const marginTop = 25;
     const marginBottom = 25;
     const contentWidth = pageWidth - marginLeft - marginRight;
 
@@ -86,9 +86,15 @@ export function downloadPDF({ title, studentName, text, html, references }) {
 
     // --- Header ---
     doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text(title || t('export.defaultTitle'), marginLeft, y);
-    y += 10;
+    doc.setFontSize(20);
+    doc.setTextColor(30, 30, 30);
+    const titleText = title || t('export.defaultTitle');
+    const titleLines = doc.splitTextToSize(titleText, contentWidth);
+    for (const line of titleLines) {
+        doc.text(line, marginLeft, y);
+        y += 20 * 0.352 * 1.6;
+    }
+    y += 4;
 
     doc.setFont('Helvetica', 'normal');
     doc.setFontSize(10);
@@ -98,40 +104,193 @@ export function downloadPDF({ title, studentName, text, html, references }) {
     doc.text(t('export.date', { date: dateStr }), marginLeft, y);
     y += 5;
     doc.text(t('export.wordCount', { count: wordCount }), marginLeft, y);
-    y += 5;
+    y += 7;
 
     doc.setDrawColor(180, 180, 180);
     doc.setLineWidth(0.3);
     doc.line(marginLeft, y, pageWidth - marginRight, y);
-    y += 10;
+    y += 12;
 
     // --- Body ---
     if (html) {
         const parser = new DOMParser();
         const dom = parser.parseFromString(html, 'text/html');
-        const state = { x: marginLeft, baseX: marginLeft, y, contentWidth, pageHeight, marginTop, marginBottom, pageWidth, marginRight, listStack: [] };
+        const state = {
+            x: marginLeft, baseX: marginLeft, y, contentWidth,
+            pageHeight, marginTop, marginBottom, pageWidth, marginRight, marginLeft,
+            listStack: [], afterHeading: false, isFirstLineOfParagraph: false
+        };
         renderHtmlNodeToPDF(doc, dom.body, { bold: false, italic: false, underline: false, heading: null }, state);
     } else {
         doc.setTextColor(30, 30, 30);
         doc.setFontSize(12);
         doc.setFont('times', 'normal');
 
+        const lineHeight = 12 * 0.352 * 1.5;
         const lines = doc.splitTextToSize(text || '', contentWidth);
 
         for (const line of lines) {
-            if (y + 7 > pageHeight - marginBottom) {
+            if (y + lineHeight > pageHeight - marginBottom) {
                 doc.addPage();
+                addPageNumber(doc, pageWidth, pageHeight, marginBottom);
                 y = marginTop;
             }
             doc.text(line, marginLeft, y);
-            y += 7;
+            y += lineHeight;
         }
     }
 
+    // --- Add page numbers to all pages ---
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150);
+        const pageNumText = `Side ${i}`;
+        const textWidth = doc.getTextWidth(pageNumText);
+        doc.text(pageNumText, (pageWidth - textWidth) / 2, pageHeight - 12);
+    }
+
     // --- Download ---
-    const safeName = (studentName || 'dokument').replace(/[^a-zA-Z\u00e6\u00f8\u00e5\u00c6\u00d8\u00c5\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df0-9]/g, '-');
-    const safeTitle = (title || 'skriv').replace(/[^a-zA-Z\u00e6\u00f8\u00e5\u00c6\u00d8\u00c5\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df0-9]/g, '-');
+    const safeName = (studentName || 'dokument').replace(/[^a-zA-ZæøåÆØÅäöüÄÖÜß0-9]/g, '-');
+    const safeTitle = (title || 'skriv').replace(/[^a-zA-ZæøåÆØÅäöüÄÖÜß0-9]/g, '-');
     doc.save(`skriv-${safeTitle}-${safeName}.pdf`);
+}
+
+/**
+ * Download content as a .doc file (Word-compatible HTML).
+ * @param {HTMLElement} editor - The editor element containing the content
+ * @param {Object} options
+ * @param {string} [options.title] - Document title
+ * @param {string} [options.author] - Author name
+ */
+export function downloadDocx(editor, options = {}) {
+    const { title = 'Dokument', author = '' } = options;
+
+    const content = getCleanHTML(editor);
+
+    const docHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="utf-8">
+    <title>${escapeHtml(title)}</title>
+    <!--[if gte mso 9]>
+    <xml>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style>
+        @page { margin: 2.5cm; }
+        body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; }
+        h1 { font-size: 16pt; font-weight: bold; margin-top: 24pt; margin-bottom: 12pt; }
+        h2 { font-size: 14pt; font-weight: bold; margin-top: 18pt; margin-bottom: 8pt; }
+        h3 { font-size: 12pt; font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; }
+        p { margin-top: 0; margin-bottom: 6pt; text-indent: 0.5cm; }
+        h1 + p, h2 + p, h3 + p { text-indent: 0; }
+        ul, ol { margin-left: 1cm; margin-bottom: 6pt; }
+        li { margin-bottom: 3pt; }
+        blockquote { margin-left: 2cm; margin-right: 1cm; font-style: italic; border-left: 2pt solid #ccc; padding-left: 0.5cm; }
+        figure { text-align: center; margin: 12pt 0; }
+        figure img { max-width: 70%; height: auto; }
+        figcaption { font-style: italic; font-size: 10pt; text-align: center; margin-top: 4pt; color: #555; }
+        table { border-collapse: collapse; width: 100%; margin: 6pt 0; }
+        td, th { border: 1px solid #999; padding: 4pt 6pt; }
+        th { background-color: #f0f0f0; font-weight: bold; }
+    </style>
+</head>
+<body>
+${content}
+</body>
+</html>`;
+
+    const blob = new Blob(['﻿' + docHtml], { type: 'application/vnd.ms-word;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const safeTitle = (title || 'dokument').replace(/[^a-zA-ZæøåÆØÅäöüÄÖÜß0-9]/g, '-');
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeTitle}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * Extract clean HTML from the editor, stripping frame scaffolding and editor artifacts.
+ * @param {HTMLElement} editor - The editor element
+ * @returns {string} Clean HTML string
+ */
+function getCleanHTML(editor) {
+    const clone = editor.cloneNode(true);
+
+    // Remove frame scaffolding elements
+    clone.querySelectorAll('[data-frame-section], [data-frame-header], [data-frame-prompt]').forEach(el => el.remove());
+    clone.querySelectorAll('[contenteditable="false"]').forEach(el => {
+        // Keep images and figures, remove other non-editable elements (toolbars, controls)
+        if (!el.closest('figure') && el.tagName !== 'FIGURE' && el.tagName !== 'IMG') {
+            el.remove();
+        }
+    });
+
+    // Remove image resize handles and toolbar artifacts
+    clone.querySelectorAll('.skriv-resize-handle, .skriv-image-toolbar, .skriv-toolbar, .ProseMirror-gapcursor').forEach(el => el.remove());
+
+    // Remove skriv-specific classes but keep the elements
+    clone.querySelectorAll('[class*="skriv-"]').forEach(el => {
+        const classes = [...el.classList];
+        classes.forEach(cls => {
+            if (cls.startsWith('skriv-')) {
+                el.classList.remove(cls);
+            }
+        });
+        if (el.classList.length === 0) {
+            el.removeAttribute('class');
+        }
+    });
+
+    // Remove data-* attributes
+    clone.querySelectorAll('*').forEach(el => {
+        [...el.attributes].forEach(attr => {
+            if (attr.name.startsWith('data-')) {
+                el.removeAttribute(attr.name);
+            }
+        });
+    });
+
+    // Convert image blocks to proper figure elements for Word
+    clone.querySelectorAll('figure').forEach(fig => {
+        const img = fig.querySelector('img');
+        const caption = fig.querySelector('figcaption');
+        if (img) {
+            // Keep figure structure clean
+            fig.innerHTML = '';
+            fig.appendChild(img);
+            if (caption) fig.appendChild(caption);
+        }
+    });
+
+    return clone.innerHTML;
+}
+
+/**
+ * Escape HTML special characters.
+ */
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * Helper: add page number placeholder (used during page breaks in plain text mode).
+ */
+function addPageNumber(doc, pageWidth, pageHeight, marginBottom) {
+    // Page numbers are added in bulk after rendering; this is a no-op placeholder
 }
 
 /**
@@ -149,30 +308,40 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
             : 'normal';
 
         const fontFamily = fmt.heading ? 'helvetica' : 'times';
-        const fontSize = fmt.heading === 'H1' ? 16 : fmt.heading === 'H2' ? 14 : 12;
+        const fontSize = fmt.heading === 'H1' ? 18 : fmt.heading === 'H2' ? 15 : 12;
         const lineHeight = fontSize * 0.352 * 1.5;
 
         doc.setFont(fontFamily, fontStyle);
         doc.setFontSize(fontSize);
         doc.setTextColor(30, 30, 30);
 
-        const lines = doc.splitTextToSize(content, state.contentWidth);
-        for (const line of lines) {
+        // Calculate indent for first line of paragraph (not after headings)
+        const indent = state.isFirstLineOfParagraph && !state.afterHeading ? 5 : 0;
+        const effectiveWidth = state.contentWidth - indent;
+
+        const lines = doc.splitTextToSize(content, effectiveWidth);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             if (state.y + lineHeight > state.pageHeight - state.marginBottom) {
                 doc.addPage();
                 state.y = state.marginTop;
             }
-            doc.text(line, state.x, state.y);
+            // Only indent the very first line
+            const lineIndent = (i === 0 && indent > 0) ? indent : 0;
+            doc.text(line, state.x + lineIndent, state.y);
 
             if (fmt.underline) {
                 const textWidth = doc.getTextWidth(line);
                 doc.setDrawColor(30, 30, 30);
                 doc.setLineWidth(0.2);
-                doc.line(state.x, state.y + 0.7, state.x + textWidth, state.y + 0.7);
+                doc.line(state.x + lineIndent, state.y + 0.7, state.x + lineIndent + textWidth, state.y + 0.7);
             }
 
             state.y += lineHeight;
         }
+
+        // After rendering text, no longer first line
+        state.isFirstLineOfParagraph = false;
         return;
     }
 
@@ -200,46 +369,58 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
     if (isImageBlock(el)) {
         const img = el.querySelector('img');
         if (img?.src) {
-            const imgWidth = state.contentWidth;
+            // Max 70% of content width, centered
+            const maxImgWidth = state.contentWidth * 0.7;
             const naturalW = img.naturalWidth || 400;
             const naturalH = img.naturalHeight || 300;
-            // Respect resized width if set via style
-            const displayW = img.offsetWidth || naturalW;
-            const displayH = img.offsetHeight || naturalH;
             const aspectRatio = naturalH / naturalW;
-            // Use display proportions if available, otherwise natural
-            const pdfWidth = Math.min(imgWidth, (displayW / naturalW) * imgWidth);
+
+            const pdfWidth = Math.min(maxImgWidth, state.contentWidth);
             const pdfHeight = pdfWidth * aspectRatio;
 
+            // Estimate total height needed: image + caption space
+            const estimatedTotal = pdfHeight + 15;
+
             // Page break if image won't fit
-            if (state.y + pdfHeight > state.pageHeight - state.marginBottom) {
+            if (state.y + estimatedTotal > state.pageHeight - state.marginBottom) {
                 doc.addPage();
                 state.y = state.marginTop;
             }
+
+            // Center the image
+            const imgX = state.x + (state.contentWidth - pdfWidth) / 2;
+
             try {
-                doc.addImage(img.src, state.x, state.y, pdfWidth, pdfHeight);
-                state.y += pdfHeight + 2;
+                doc.addImage(img.src, imgX, state.y, pdfWidth, pdfHeight);
+                state.y += pdfHeight + 3;
             } catch (e) {
                 console.warn('Image PDF export failed:', e);
             }
+
             // Caption
-            const caption = el.querySelector('.skriv-image-caption');
+            const caption = el.querySelector('.skriv-image-caption') || el.querySelector('figcaption');
             if (caption?.textContent?.trim()) {
                 doc.setFont('times', 'italic');
                 doc.setFontSize(10);
-                doc.setTextColor(120, 113, 108);
+                doc.setTextColor(100, 100, 100);
                 const captionLines = doc.splitTextToSize(caption.textContent.trim(), state.contentWidth);
                 for (const line of captionLines) {
                     if (state.y + 5 > state.pageHeight - state.marginBottom) {
                         doc.addPage();
                         state.y = state.marginTop;
                     }
-                    doc.text(line, state.x, state.y);
+                    // Center caption text
+                    const captionWidth = doc.getTextWidth(line);
+                    const captionX = state.x + (state.contentWidth - captionWidth) / 2;
+                    doc.text(line, captionX, state.y);
                     state.y += 10 * 0.352 * 1.5;
                 }
-                state.y += 2;
+                state.y += 4;
+            } else {
+                state.y += 4;
             }
         }
+        state.afterHeading = false;
         return;
     }
 
@@ -257,18 +438,31 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
             doc.addPage();
             state.y = state.marginTop;
         }
-        doc.text(markerText, state.x + doc.getTextWidth(' ') * 0, state.y);
-        // The marker is inline, so we add its width to the next text
-        // For simplicity, just render it inline
-        const w = doc.getTextWidth(markerText);
-        // We won't advance y, the next text will flow after. But since jsPDF is line-based,
-        // just render it as part of the text flow.
+        doc.text(markerText, state.x, state.y);
         return;
     }
 
     if (tag === 'BR') {
         state.y += 12 * 0.352 * 1.5;
         return;
+    }
+
+    // --- Heading spacing ---
+    if (tag === 'H1' || tag === 'H2') {
+        // Add space before headings
+        const spaceBefore = tag === 'H1' ? 10 : 7;
+        state.y += spaceBefore;
+
+        // Page break if heading would be near bottom
+        if (state.y + 15 > state.pageHeight - state.marginBottom) {
+            doc.addPage();
+            state.y = state.marginTop;
+        }
+    }
+
+    // --- Paragraph handling ---
+    if (tag === 'P') {
+        state.isFirstLineOfParagraph = true;
     }
 
     // --- List handling ---
@@ -280,7 +474,7 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
         state.listStack.pop();
         // Add spacing after list (only for top-level lists)
         if (state.listStack.length === 0) {
-            state.y += 2;
+            state.y += 3;
         }
         return;
     }
@@ -309,7 +503,7 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
 
             const prefixX = state.baseX + indent - 5;
             if (currentList.type === 'UL') {
-                const bulletChar = depth <= 1 ? '\u2022' : depth === 2 ? '\u25E6' : '\u25AA';
+                const bulletChar = depth <= 1 ? '•' : depth === 2 ? '◦' : '▪';
                 doc.text(bulletChar, prefixX, state.y);
             } else {
                 doc.text(`${currentList.counter}.`, prefixX, state.y);
@@ -334,6 +528,24 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
         return;
     }
 
+    // --- Blockquote handling ---
+    if (tag === 'BLOCKQUOTE') {
+        const savedX = state.x;
+        const savedContentWidth = state.contentWidth;
+        state.x = state.baseX + 10;
+        state.contentWidth = savedContentWidth - 15;
+
+        const newFmt = { ...fmt, italic: true };
+        for (const child of node.childNodes) {
+            renderHtmlNodeToPDF(doc, child, newFmt, state);
+        }
+
+        state.x = savedX;
+        state.contentWidth = savedContentWidth;
+        state.y += 3;
+        return;
+    }
+
     const newFmt = {
         bold: fmt.bold || tag === 'B' || tag === 'STRONG' || tag === 'H1' || tag === 'H2',
         italic: fmt.italic || tag === 'I' || tag === 'EM',
@@ -345,17 +557,26 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
         renderHtmlNodeToPDF(doc, child, newFmt, state);
     }
 
-    if (['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(tag)) {
+    if (tag === 'H1' || tag === 'H2') {
+        state.y += 4;
+        state.afterHeading = true;
+    } else if (tag === 'P' || tag === 'DIV') {
         state.y += 3;
+        state.afterHeading = false;
+    } else if (['H3', 'H4', 'H5', 'H6'].includes(tag)) {
+        state.y += 3;
+        state.afterHeading = true;
     }
 }
 
 /**
- * Render the TOC block into the PDF.
+ * Render the TOC block into the PDF with dot leaders.
  */
 function renderTocToPDF(doc, tocEl, state) {
-    // TOC title
     const lineHeight = 14 * 0.352 * 1.5;
+
+    // Space before TOC
+    state.y += 4;
 
     if (state.y + lineHeight > state.pageHeight - state.marginBottom) {
         doc.addPage();
@@ -369,16 +590,16 @@ function renderTocToPDF(doc, tocEl, state) {
     const titleEl = tocEl.querySelector('.toc-title');
     if (titleEl) {
         doc.text(titleEl.textContent, state.x, state.y);
-        state.y += lineHeight + 2;
+        state.y += lineHeight + 4;
     }
 
-    // TOC entries
+    // TOC entries with dot leaders
     const entries = tocEl.querySelectorAll('.toc-entry');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    const entryLineHeight = 11 * 0.352 * 1.5;
+    const entryLineHeight = 11 * 0.352 * 1.8;
 
-    entries.forEach(entry => {
+    entries.forEach((entry, idx) => {
         if (state.y + entryLineHeight > state.pageHeight - state.marginBottom) {
             doc.addPage();
             state.y = state.marginTop;
@@ -386,18 +607,41 @@ function renderTocToPDF(doc, tocEl, state) {
 
         const isH2 = entry.classList.contains('toc-h2');
         const indent = isH2 ? 8 : 0;
+        const entryText = entry.textContent.trim();
 
         doc.setTextColor(30, 30, 30);
-        doc.text(entry.textContent, state.x + indent, state.y);
+        if (!isH2) {
+            doc.setFont('helvetica', 'bold');
+        } else {
+            doc.setFont('helvetica', 'normal');
+        }
+        doc.text(entryText, state.x + indent, state.y);
+
+        // Dot leaders
+        const textWidth = doc.getTextWidth(entryText);
+        const dotStart = state.x + indent + textWidth + 2;
+        const dotEnd = state.x + state.contentWidth;
+        if (dotEnd - dotStart > 5) {
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(150, 150, 150);
+            const dotChar = ' .';
+            const dotWidth = doc.getTextWidth(dotChar);
+            let dx = dotStart;
+            while (dx + dotWidth < dotEnd) {
+                doc.text('.', dx, state.y);
+                dx += dotWidth;
+            }
+        }
+
         state.y += entryLineHeight;
     });
 
     // Divider line after TOC
-    state.y += 3;
+    state.y += 4;
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.2);
     doc.line(state.x, state.y, state.x + state.contentWidth, state.y);
-    state.y += 8;
+    state.y += 10;
 }
 
 /**

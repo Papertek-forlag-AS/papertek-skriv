@@ -3,9 +3,10 @@
  *
  * Dropdown UI for selecting a writing frame (genre).
  * Attached to the Struktur button. Lists available frames,
- * fetches/parses the chosen .md file, and calls frameApi.applyFrame().
- * Shows "Remove frame" when a frame is active.
+ * fetches/parses the chosen .md file, and calls frameGuide.applyFrame()
+ * to open the sidebar guide panel. The editor content is not modified.
  *
+ * When a frame is active, the dropdown shows toggle/switch/remove options.
  * The frame registry is passed in via options so this module
  * is not hard-coded to specific genres.
  */
@@ -27,6 +28,11 @@ const DEFAULT_FRAME_REGISTRY = [
     { id: 'fagartikkel', file: '/frames/{{lang}}/fagartikkel.md', labelKey: 'skriv.frameFagartikkel', descKey: 'skriv.frameFagartikkelDesc' },
     { id: 'leserinnlegg', file: '/frames/{{lang}}/leserinnlegg.md', labelKey: 'skriv.frameLeserinnlegg', descKey: 'skriv.frameLeserinnleggDesc' },
     { id: 'novelle', file: '/frames/{{lang}}/novelle.md', labelKey: 'skriv.frameNovelle', descKey: 'skriv.frameNovelleDesc' },
+    { id: 'retorisk-analyse', file: '/frames/{{lang}}/retorisk-analyse.md', labelKey: 'skriv.frameRetoriskAnalyse', descKey: 'skriv.frameRetoriskAnalyseDesc' },
+    { id: 'kortsvar', file: '/frames/{{lang}}/kortsvar.md', labelKey: 'skriv.frameKortsvar', descKey: 'skriv.frameKortsvarDesc' },
+    { id: 'kreativ-tekst', file: '/frames/{{lang}}/kreativ-tekst.md', labelKey: 'skriv.frameKreativTekst', descKey: 'skriv.frameKreativTekstDesc' },
+    { id: 'reflekterende-tekst', file: '/frames/{{lang}}/reflekterende-tekst.md', labelKey: 'skriv.frameReflekterendeTekst', descKey: 'skriv.frameReflekterendeTekstDesc' },
+    { id: 'sammenligning', file: '/frames/{{lang}}/sammenligning.md', labelKey: 'skriv.frameSammenligning', descKey: 'skriv.frameSammenligningDesc' },
 ];
 
 /**
@@ -47,11 +53,11 @@ function getFramePath(pathTemplate) {
  * Initialize the frame selector dropdown.
  * @param {HTMLElement} button - The Struktur button
  * @param {HTMLElement} editor - The contenteditable element
- * @param {object} frameApi - The frame manager API
+ * @param {object} frameGuide - The frame guide panel API (applyFrame, removeFrame, getActiveFrame, hasFrame, toggle, hide)
  * @param {{ onFrameApplied?: () => void, frames?: Array }} options
  * @returns {{ destroy: () => void, updateButtonState: () => void }}
  */
-export function initFrameSelector(button, editor, frameApi, options = {}) {
+export function initFrameSelector(button, editor, frameGuide, options = {}) {
     const { onFrameApplied } = options;
     const frameRegistry = options.frames || DEFAULT_FRAME_REGISTRY;
 
@@ -73,37 +79,29 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
     function buildPanel() {
         panel.innerHTML = '';
 
-        // Title
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'px-4 py-1 text-xs font-semibold text-stone-400 uppercase tracking-wide';
-        titleDiv.textContent = t('skriv.frameSelectorTitle');
-        panel.appendChild(titleDiv);
+        if (frameGuide.hasFrame()) {
+            // --- Active frame menu: toggle guide, switch, remove ---
 
-        // Frame options
-        for (const frame of frameRegistry) {
-            const btn = document.createElement('button');
-            btn.className = 'block w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors';
-
-            const isActive = frameApi.getActiveFrame() === frame.id;
-
-            btn.innerHTML = `
-                <div class="text-sm font-medium ${isActive ? 'text-emerald-700' : 'text-stone-700'}">
-                    ${isActive ? '✓ ' : ''}${t(frame.labelKey)}
-                </div>
-                <div class="text-xs text-stone-400 mt-0.5">${t(frame.descKey)}</div>
-            `;
-
-            btn.addEventListener('click', () => {
+            // Toggle guide visibility
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors';
+            toggleBtn.textContent = frameGuide.isVisible?.() ? t('skriv.frameHideGuide') : t('skriv.frameShowGuide');
+            toggleBtn.addEventListener('click', () => {
                 panel.classList.add('hidden');
-                if (isActive) return; // Already active, do nothing
-                handleSelectFrame(frame);
+                frameGuide.toggle();
             });
+            panel.appendChild(toggleBtn);
 
-            panel.appendChild(btn);
-        }
+            // Switch frame
+            const switchBtn = document.createElement('button');
+            switchBtn.className = 'block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors';
+            switchBtn.textContent = t('skriv.frameSwitchFrame');
+            switchBtn.addEventListener('click', () => {
+                buildFramePickerList();
+            });
+            panel.appendChild(switchBtn);
 
-        // Divider + Remove option (only when frame is active)
-        if (frameApi.hasFrame()) {
+            // Divider + Remove
             const divider = document.createElement('div');
             divider.className = 'border-t border-stone-200 my-1';
             panel.appendChild(divider);
@@ -116,46 +114,66 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
                 handleRemoveFrame();
             });
             panel.appendChild(removeBtn);
+        } else {
+            // --- No active frame: show frame picker list ---
+            buildFramePickerList();
+        }
+    }
+
+    function buildFramePickerList() {
+        panel.innerHTML = '';
+
+        // Title
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'px-4 py-1 text-xs font-semibold text-stone-400 uppercase tracking-wide';
+        titleDiv.textContent = t('skriv.frameSelectorTitle');
+        panel.appendChild(titleDiv);
+
+        // Frame options
+        for (const frame of frameRegistry) {
+            const btn = document.createElement('button');
+            btn.className = 'block w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors';
+
+            const isActive = frameGuide.getActiveFrame() === frame.id;
+
+            btn.innerHTML = `
+                <div class="text-sm font-medium ${isActive ? 'text-emerald-700' : 'text-stone-700'}">
+                    ${isActive ? '&#10003; ' : ''}${t(frame.labelKey)}
+                </div>
+                <div class="text-xs text-stone-400 mt-0.5">${t(frame.descKey)}</div>
+            `;
+
+            btn.addEventListener('click', () => {
+                panel.classList.add('hidden');
+                if (isActive) return;
+                handleSelectFrame(frame);
+            });
+
+            panel.appendChild(btn);
         }
     }
 
     // --- Frame selection logic ---
 
     async function handleSelectFrame(frame) {
-        const editorText = editor.innerText?.trim();
-        const hasContent = editorText && editorText.length > 0;
-        const hasExistingFrame = frameApi.hasFrame();
+        const hasExistingFrame = frameGuide.hasFrame();
 
-        // If there's an existing frame, remove it first (with confirm)
+        // If there's an existing frame, confirm switch
         if (hasExistingFrame) {
             const confirmed = await showInPageConfirm(
-                t('skriv.frameRemoveConfirmTitle'),
-                t('skriv.frameRemoveConfirmMessage'),
-                t('skriv.frameRemoveConfirmYes'),
+                t('skriv.frameSwitchConfirmTitle'),
+                t('skriv.frameSwitchConfirmMessage'),
+                t('skriv.frameSwitchConfirmYes'),
                 t('common.cancel')
             );
             if (confirmed) {
-                frameApi.removeFrame();
+                frameGuide.removeFrame();
                 await applyFrameFromRegistry(frame);
             }
             return;
         }
 
-        // If editor has content (not just whitespace), confirm
-        if (hasContent) {
-            const confirmed = await showInPageConfirm(
-                t('skriv.frameApplyConfirmTitle'),
-                t('skriv.frameApplyConfirmMessage'),
-                t('skriv.frameApplyConfirmYes'),
-                t('common.cancel')
-            );
-            if (confirmed) {
-                await applyFrameFromRegistry(frame);
-            }
-            return;
-        }
-
-        // Empty editor — apply directly
+        // No active frame — apply directly (guide panel doesn't modify editor)
         await applyFrameFromRegistry(frame);
     }
 
@@ -170,14 +188,14 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
                 if (!fallbackRes.ok) throw new Error(`Failed to load frame: ${res.status}`);
                 const md = await fallbackRes.text();
                 const frameData = parseFrameMarkdown(md);
-                frameApi.applyFrame(frameData, frame.id);
+                frameGuide.applyFrame(frameData, frame.id);
                 updateButtonState();
                 if (onFrameApplied) onFrameApplied();
                 return;
             }
             const md = await res.text();
             const frameData = parseFrameMarkdown(md);
-            frameApi.applyFrame(frameData, frame.id);
+            frameGuide.applyFrame(frameData, frame.id);
             updateButtonState();
             if (onFrameApplied) onFrameApplied();
         } catch (err) {
@@ -186,22 +204,15 @@ export function initFrameSelector(button, editor, frameApi, options = {}) {
     }
 
     async function handleRemoveFrame() {
-        const confirmed = await showInPageConfirm(
-            t('skriv.frameRemoveConfirmTitle'),
-            t('skriv.frameRemoveConfirmMessage'),
-            t('skriv.frameRemoveConfirmYes'),
-            t('common.cancel')
-        );
-        if (confirmed) {
-            frameApi.removeFrame();
-            updateButtonState();
-        }
+        frameGuide.removeFrame();
+        frameGuide.hide();
+        updateButtonState();
     }
 
     // --- Button state: green when frame is active ---
 
     function updateButtonState() {
-        if (frameApi.hasFrame()) {
+        if (frameGuide.hasFrame()) {
             button.classList.remove('text-stone-500', 'border-stone-200');
             button.classList.add('text-emerald-700', 'border-emerald-400', 'bg-emerald-50');
             button.title = t('skriv.frameActive');

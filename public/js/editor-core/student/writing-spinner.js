@@ -9,9 +9,20 @@
  * All data is static — no API calls, works offline.
  * The spinner does NOT track which suggestions the student uses.
  *
+ * Supports:
+ *   - Stem-aware synonym lookup (inflected forms find base synonyms)
+ *   - Level-aware data (US vs VGS content based on school level)
+ *   - Genre-aware starters (based on active writing frame)
+ *
  * Usage:
  *   import { initWritingSpinner } from './writing-spinner.js';
- *   const { destroy } = initWritingSpinner(editor, container);
+ *   const { destroy, show } = initWritingSpinner(editor, container, {
+ *       getLevel: () => 'ungdomsskole',      // returns school level string
+ *       getActiveFrame: () => 'droefting',    // returns current genre or null
+ *   });
+ *
+ * NEW i18n keys needed:
+ *   spinner.academic — "akademisk" (nb), "akademisk" (nn), "academic" (en)
  */
 
 import { t, getCurrentLanguage } from '../shared/i18n.js';
@@ -49,7 +60,6 @@ function scrambleReveal(el, finalText, onDone) {
     const len = finalText.length;
     let resolvedCount = 0;
     const startTime = Date.now();
-    const resolvePerTick = Math.max(1, len / (SCRAMBLE_DURATION / SCRAMBLE_INTERVAL));
 
     function tick() {
         const elapsed = Date.now() - startTime;
@@ -83,7 +93,9 @@ function scrambleReveal(el, finalText, onDone) {
  * @param {HTMLElement} editor - The contenteditable editor element
  * @param {HTMLElement} container - Parent wrapping the editor (for positioning)
  * @param {object} [options]
- * @returns {{ destroy: () => void }}
+ * @param {() => string|null} [options.getLevel] - Returns school level ('ungdomsskole'|'barneskole'|'vg1'|'vg2'|'vg3')
+ * @param {() => string|null} [options.getActiveFrame] - Returns current writing frame genre string (e.g. 'droefting')
+ * @returns {{ destroy: () => void, show: () => void }}
  */
 export function initWritingSpinner(editor, container, options = {}) {
     let wordBank = null;
@@ -92,6 +104,67 @@ export function initWritingSpinner(editor, container, options = {}) {
     let currentCategory = null;
     let savedRange = null;          // cursor position saved before panel opens
     const recentPicks = new Map();  // category → index[] of recently shown
+
+    // --- Level/genre helpers ---
+
+    /**
+     * Resolve school level to data tier ('us' or 'vgs').
+     */
+    function getLevelTier() {
+        const level = options.getLevel?.() || 'ungdomsskole';
+        return (level === 'ungdomsskole' || level === 'barneskole') ? 'us' : 'vgs';
+    }
+
+    /**
+     * Get merged synonyms for current level tier.
+     * Merges common + tier-specific (tier wins on conflict).
+     */
+    function getSynonymsForLevel() {
+        if (!wordBank?.synonyms) return {};
+        const tier = getLevelTier();
+        // Support both old flat format and new tiered format
+        if (!wordBank.synonyms.common && !wordBank.synonyms.us && !wordBank.synonyms.vgs) {
+            // Legacy flat format: { word: [alts] }
+            return wordBank.synonyms;
+        }
+        return { ...(wordBank.synonyms.common || {}), ...(wordBank.synonyms[tier] || {}) };
+    }
+
+    /**
+     * Get starters for the current genre and level context.
+     * Falls back: genre+tier → genre+us → generell+tier → generell+us → flat starters
+     */
+    function getStartersForContext() {
+        if (!wordBank?.starters) return {};
+        const tier = getLevelTier();
+        const frame = options.getActiveFrame?.() || null;
+
+        // Support old flat format: { category: [strings] }
+        const firstValue = Object.values(wordBank.starters)[0];
+        if (Array.isArray(firstValue)) {
+            // Legacy flat format
+            return wordBank.starters;
+        }
+
+        // New tiered format: { genre: { level: { category: [strings] } } }
+        // Try genre-specific first, fall back to generell
+        const genreData = (frame && wordBank.starters[frame]) || wordBank.starters.generell;
+        if (!genreData) return {};
+        return genreData[tier] || genreData.us || {};
+    }
+
+    /**
+     * Check if a synonym word comes from the VGS tier specifically
+     * (not from common). Used for formality badge.
+     */
+    function isVgsTierWord(word) {
+        if (!wordBank?.synonyms?.vgs) return false;
+        // Check if the word appears as a value in VGS synonyms
+        for (const alts of Object.values(wordBank.synonyms.vgs)) {
+            if (alts.includes(word)) return true;
+        }
+        return false;
+    }
 
     // --- Load word bank ---
     const bankPromise = loadWordBank().then(bank => { wordBank = bank; });
@@ -124,9 +197,16 @@ export function initWritingSpinner(editor, container, options = {}) {
     const closeBtn = spinnerPanel.querySelector('.spinner-close');
 
     function buildCategories() {
-        if (!wordBank?.starters) return;
+        const starters = getStartersForContext();
+        if (!starters || Object.keys(starters).length === 0) return;
         categoriesEl.innerHTML = '';
-        const categories = Object.keys(wordBank.starters);
+        const categories = Object.keys(starters);
+
+        // If current category is not in available categories, reset
+        if (!categories.includes(currentCategory)) {
+            currentCategory = categories[0] || null;
+        }
+
         categories.forEach(cat => {
             const btn = document.createElement('button');
             btn.className = 'spinner-cat-btn' + (cat === currentCategory ? ' active' : '');
@@ -174,8 +254,9 @@ export function initWritingSpinner(editor, container, options = {}) {
     }
 
     function doSpin() {
-        if (!wordBank?.starters || !currentCategory) return;
-        const pool = wordBank.starters[currentCategory];
+        const starters = getStartersForContext();
+        if (!starters || !currentCategory) return;
+        const pool = starters[currentCategory];
         if (!pool || pool.length === 0) return;
         const text = pickFromPool(pool, currentCategory);
         resultEl.classList.add('spinning');
@@ -227,8 +308,9 @@ export function initWritingSpinner(editor, container, options = {}) {
             }
         }
         bankPromise.then(() => {
-            if (!currentCategory && wordBank?.starters) {
-                currentCategory = Object.keys(wordBank.starters)[0] || null;
+            const starters = getStartersForContext();
+            if (!currentCategory && starters) {
+                currentCategory = Object.keys(starters)[0] || null;
             }
             buildCategories();
             resultEl.textContent = t('spinner.clickToSpin');
@@ -249,7 +331,29 @@ export function initWritingSpinner(editor, container, options = {}) {
         const word = sel.toString().trim().toLowerCase();
         if (!word || word.includes(' ')) return;
 
-        const alts = wordBank.synonyms[word];
+        // Level-aware synonym lookup
+        const allSynonyms = getSynonymsForLevel();
+        let alts = allSynonyms[word];
+
+        // Stem-aware fallback: try to find synonyms via stemmed form
+        if (!alts && wordBank.stem) {
+            const stemmed = wordBank.stem(word);
+            if (stemmed && stemmed !== word) {
+                // Direct stem lookup
+                if (allSynonyms[stemmed]) {
+                    alts = allSynonyms[stemmed];
+                } else {
+                    // Find any key whose stem matches
+                    for (const [key, val] of Object.entries(allSynonyms)) {
+                        if (wordBank.stem(key) === stemmed) {
+                            alts = val;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
         if (!alts || alts.length === 0) return;
 
         // Show synonym popup
@@ -260,7 +364,6 @@ export function initWritingSpinner(editor, container, options = {}) {
         removeSynonymPopup();
 
         const rect = range.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
 
         synonymPopup = document.createElement('div');
         synonymPopup.className = 'skriv-synonym-popup';
@@ -273,7 +376,14 @@ export function initWritingSpinner(editor, container, options = {}) {
         alternatives.forEach(alt => {
             const btn = document.createElement('button');
             btn.className = 'synonym-option';
-            btn.textContent = alt;
+
+            // Add formality badge for VGS-tier words
+            if (isVgsTierWord(alt)) {
+                btn.innerHTML = `<span class="synonym-word">${alt}</span><span class="synonym-badge academic">${t('spinner.academic')}</span>`;
+            } else {
+                btn.textContent = alt;
+            }
+
             btn.addEventListener('mousedown', (e) => e.preventDefault());
             btn.addEventListener('click', () => {
                 editor.focus();
