@@ -483,11 +483,7 @@ export function initFrameGuide(editor, container, options = {}) {
     // --- Slot/label helpers ---
     function getDefaultSlotCount(sectionIndex) {
         const total = frameData.sections.length;
-        const section = frameData.sections[sectionIndex];
         if (sectionIndex === 0 || sectionIndex === total - 1) return 1;
-        if (section.subsections && section.subsections.length > 0) {
-            return section.subsections.length;
-        }
         return 3;
     }
 
@@ -495,9 +491,6 @@ export function initFrameGuide(editor, container, options = {}) {
         const section = frameData.sections[sectionIndex];
         const slotCount = getDefaultSlotCount(sectionIndex);
         if (slotCount === 1) return section.title;
-        if (section.subsections && paragraphIndex < section.subsections.length) {
-            return `${section.title} — ${section.subsections[paragraphIndex].title}`;
-        }
         return `${section.title} — ${t('skriv.frameGuideParagraphSuffix')} ${paragraphIndex + 1}`;
     }
 
@@ -904,32 +897,19 @@ export function initFrameGuide(editor, container, options = {}) {
     }
 
     // --- Insert sentence starter ---
-    // sourceSubsectionIndex: -1 if section-level prompt, otherwise the
-    // subsection index. For sections with subsections (like Analyse), each
-    // subsection maps 1:1 to its own paragraph slot in the editor.
-    function insertStarter(text, sourceSectionIndex, sourceSubsectionIndex) {
+    // sourceSubsectionIndex is accepted for signature stability but no longer
+    // affects caret targeting: subsections are sidebar guidance now, not
+    // editor slots, so all prompts (subsection-derived or section-level)
+    // target the source section. If the cursor is already in that section
+    // we use it; otherwise we jump to the section's first slot.
+    function insertStarter(text, sourceSectionIndex /*, sourceSubsectionIndex */) {
         const currentSection = lastRange ? getSectionIndexFromRange(lastRange) : -1;
-        const currentParagraph = lastRange ? getParagraphIndexFromRange(lastRange) : -1;
-
-        let needsJump = false;
-        let targetParagraphIndex = 0;
-
-        if (sourceSectionIndex !== undefined && sourceSectionIndex !== -1) {
-            if (sourceSubsectionIndex !== undefined && sourceSubsectionIndex >= 0) {
-                // Subsection-bound: the prompt belongs to a specific slot.
-                // Jump unless caret is already in exactly that slot.
-                targetParagraphIndex = sourceSubsectionIndex;
-                needsJump = currentSection !== sourceSectionIndex ||
-                            currentParagraph !== sourceSubsectionIndex;
-            } else {
-                // Section-level prompt: jump only if caret isn't in this section
-                targetParagraphIndex = 0;
-                needsJump = currentSection !== sourceSectionIndex;
-            }
-        }
+        const needsJump = sourceSectionIndex !== undefined &&
+                          sourceSectionIndex !== -1 &&
+                          currentSection !== sourceSectionIndex;
 
         if (needsJump) {
-            if (!placeCaretAtSlot(sourceSectionIndex, targetParagraphIndex)) {
+            if (!placeCaretAtSlot(sourceSectionIndex, 0)) {
                 editor.focus();
             }
         } else {
@@ -947,19 +927,11 @@ export function initFrameGuide(editor, container, options = {}) {
 
     // --- + Nytt avsnitt: add a paragraph slot inside a section ---
     function addParagraphToSection(sectionIndex) {
-        // Counter: existing avsnitt-N labels in this section
-        const existingAddedLabelPrefix = `${frameData.sections[sectionIndex].title} — ${t('skriv.frameGuideParagraphSuffix')} `;
         const existingMarkers = editor.querySelectorAll(
             `.${DIVIDER_CLASS}[data-section-index="${sectionIndex}"]`
         );
-        let addedCount = 0;
-        existingMarkers.forEach(m => {
-            const lbl = m.querySelector('.frame-divider-label')?.textContent || '';
-            if (lbl.startsWith(existingAddedLabelPrefix)) addedCount++;
-        });
-
-        const newParagraphIndex = existingMarkers.length; // monotonic across the section
-        const newLabel = `${frameData.sections[sectionIndex].title} — ${t('skriv.frameGuideParagraphSuffix')} ${addedCount + 1}`;
+        const newParagraphIndex = existingMarkers.length;
+        const newLabel = `${frameData.sections[sectionIndex].title} — ${t('skriv.frameGuideParagraphSuffix')} ${newParagraphIndex + 1}`;
         const newMarker = makeMarker({
             sectionIndex,
             paragraphIndex: newParagraphIndex,
@@ -1085,11 +1057,23 @@ export function initFrameGuide(editor, container, options = {}) {
         if (newModel) {
             dividers.forEach(d => {
                 const sIdx = parseInt(d.dataset.sectionIndex);
+                const pIdx = parseInt(d.dataset.paragraphIndex);
                 if (!isNaN(sIdx) && sectionStates[sIdx]) {
                     if (d.classList.contains(SECTION_MARKER_CLASS)) {
                         const completed = d.dataset.completed === 'true';
                         sectionStates[sIdx].completed = completed;
                         if (completed) sectionStates[sIdx].expanded = false;
+                    }
+                    // Re-derive label using the current rule. Migrates older
+                    // saved docs (subsection-derived labels) to generic
+                    // numbering on load. Cheap & idempotent.
+                    if (!isNaN(pIdx)) {
+                        const slotCount = getDefaultSlotCount(sIdx);
+                        const newLabel = pIdx < slotCount
+                            ? getDefaultSlotLabel(sIdx, pIdx)
+                            : `${frameData.sections[sIdx].title} — ${t('skriv.frameGuideParagraphSuffix')} ${pIdx + 1}`;
+                        const labelEl = d.querySelector('.frame-divider-label');
+                        if (labelEl) labelEl.textContent = newLabel;
                     }
                 } else {
                     d.remove();
