@@ -13,7 +13,7 @@
  * Usage:
  *   import { initGermanExamSpinner } from './german-exam-spinner.js';
  *   const spinner = initGermanExamSpinner(container, {
- *       onPickTask: (task) => { ... open editor with task ... },
+ *       onPickTask: (task, level) => { ... open editor with task ... },
  *   });
  *   spinner.destroy();
  */
@@ -163,7 +163,7 @@ function promptToHtml(prompt) {
  * Initialise the spinner UI inside the given container.
  * @param {HTMLElement} container
  * @param {Object} options
- * @param {(task: Object) => void} options.onPickTask - called when student clicks "Skriv svar"
+ * @param {(task: Object, level: string) => void} options.onPickTask - called when student clicks "Skriv svar"
  * @returns {{ destroy: () => void }}
  */
 export function initGermanExamSpinner(container, options = {}) {
@@ -336,7 +336,7 @@ export function initGermanExamSpinner(container, options = {}) {
             return;
         }
         if (e.target.closest('[data-write]') && currentTask) {
-            onPickTask(currentTask);
+            onPickTask(currentTask, activeLevel);
             return;
         }
     }

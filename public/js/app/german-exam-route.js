@@ -26,20 +26,30 @@ function levelLabel(levelKey) {
     return levelKey === 'tysk-2' ? t('germanExam.levelTysk2') : t('germanExam.levelTysk1');
 }
 
-function renderInitialDocHtml(task, levelKey) {
-    const promptParas = task.prompt.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
-    const promptHtml = promptParas.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+// Render a task prompt as semantic HTML — paragraphs separated by blank
+// lines, lines starting with "- " or "* " grouped into a single <ul>.
+// Mirrors the spinner's card rendering so future Udir prompts with bullets
+// don't silently flatten in the seeded document.
+function promptToDocHtml(prompt) {
+    const blocks = prompt.split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
+    return blocks.map(block => {
+        if (/^[-*]\s/m.test(block)) {
+            const items = block.split(/\n/).map(l => l.replace(/^[-*]\s+/, '').trim()).filter(Boolean);
+            return '<ul>' + items.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ul>';
+        }
+        return `<p>${escapeHtml(block)}</p>`;
+    }).join('');
+}
+
+function renderInitialDocHtml(task) {
     const heading = `<h1>${escapeHtml(task.title)}</h1>`;
     const attribution = `<p><em>${escapeHtml(task.attribution)}</em></p>`;
+    const promptHtml = promptToDocHtml(task.prompt);
     const modelHeading = escapeHtml(t('germanExam.modelAnswerHeading'));
     const modelBody = `<p>${escapeHtml(task.modelAnswer)}</p>`;
     const collapsible = `<details><summary>${modelHeading}</summary>${modelBody}</details>`;
     const writingSpace = '<p><br></p><p><br></p>';
     return [heading, attribution, promptHtml, collapsible, writingSpace].join('');
-}
-
-function levelKeyFromTaskId(taskId) {
-    return taskId.startsWith('tysk2') ? 'tysk-2' : 'tysk-1';
 }
 
 function stripHtml(html) {
@@ -48,8 +58,7 @@ function stripHtml(html) {
     return tmp.textContent || '';
 }
 
-async function handlePickTask(task) {
-    const levelKey = levelKeyFromTaskId(task.id);
+async function handlePickTask(task, levelKey) {
     const folder = await ensureTyskFolder();
 
     const title = t('germanExam.docTitlePattern', {
@@ -59,7 +68,7 @@ async function handlePickTask(task) {
         title: task.title,
     });
     const doc = await createDocument(title);
-    const html = renderInitialDocHtml(task, levelKey);
+    const html = renderInitialDocHtml(task);
     await saveDocument(doc.id, { html, plainText: stripHtml(html) });
     await addDocToFolder(doc.id, folder.id);
 
@@ -96,8 +105,8 @@ export function renderGermanExamScreen(appContainer) {
 
     const host = wrapper.querySelector('[data-spinner-host]');
     _currentSpinner = initGermanExamSpinner(host, {
-        onPickTask: (task) => {
-            handlePickTask(task).catch(err => {
+        onPickTask: (task, level) => {
+            handlePickTask(task, level).catch(err => {
                 console.error('Failed to create German exam document:', err);
             });
         },
