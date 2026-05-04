@@ -257,6 +257,13 @@ export function createSidebar(container, options) {
             `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`
         ));
 
+        // German exam practice — navigates to dedicated #/tysk route
+        list.appendChild(createNavItem(
+            '#/tysk',
+            t('germanExam.sidebar'),
+            `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>`
+        ));
+
         nav.appendChild(list);
 
         // "Change level" button
@@ -572,6 +579,27 @@ export function createSidebar(container, options) {
             render();
         });
 
+        return btn;
+    }
+
+    // --- Nav items (route-based, not filter-based) ---
+
+    function createNavItem(hash, label, iconSvg) {
+        const isActive = (window.location.hash || '#/') === hash;
+        const btn = document.createElement('button');
+        btn.className = `skriv-sidebar-item flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg transition-colors ${
+            isActive
+                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium'
+                : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700/50'
+        }`;
+        if (isActive) btn.setAttribute('aria-current', 'page');
+        btn.innerHTML = `
+            <span class="flex-shrink-0 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-400 dark:text-stone-500'}">${iconSvg}</span>
+            <span class="flex-1 text-left truncate">${escapeHtml(label)}</span>
+        `;
+        btn.addEventListener('click', () => {
+            window.location.hash = hash;
+        });
         return btn;
     }
 
