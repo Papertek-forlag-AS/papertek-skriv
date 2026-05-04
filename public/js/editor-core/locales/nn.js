@@ -111,6 +111,7 @@ export default {
         orphanCleanupHint: 'Dra til ei mappe eller klikk for å velje',
         cleanupDesk: 'Rydd opp!',
         allOrganized: 'Alt organisert!',
+        cleanupTrashHint: 'Slepp her for å slette',
         expandFolder: 'Utvid',
         collapseFolder: 'Skjul',
     },

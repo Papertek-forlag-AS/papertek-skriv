@@ -292,6 +292,21 @@ const CSS = `
 .skriv-frame-divider.section-end-marker:hover .frame-divider-label {
     color: #d6d3d1;  /* don't highlight on hover - it's not interactive */
 }
+/* End marker reflects parent section's state */
+.skriv-frame-divider.section-end-marker.is-completed::before,
+.skriv-frame-divider.section-end-marker.is-completed::after {
+    border-bottom-color: #a7f3d0;
+}
+.skriv-frame-divider.section-end-marker.is-completed .frame-divider-label {
+    color: #059669;
+}
+.skriv-frame-divider.section-end-marker.is-on-hold::before,
+.skriv-frame-divider.section-end-marker.is-on-hold::after {
+    border-bottom-color: #fcd34d;
+}
+.skriv-frame-divider.section-end-marker.is-on-hold .frame-divider-label {
+    color: #d97706;
+}
 /* Completed section marker */
 .skriv-frame-divider.section-marker.is-completed .frame-divider-label {
     color: #059669;
@@ -473,12 +488,21 @@ export function initFrameGuide(editor, container, options = {}) {
     }
 
     function updateSectionMarkerVisuals(sectionIndex) {
+        const state = sectionStates[sectionIndex];
+        if (!state) return;
         const primary = editor.querySelector(
             `.${SECTION_MARKER_CLASS}[data-section-index="${sectionIndex}"][data-paragraph-index="0"]`
         );
-        if (!primary) return;
-        const state = sectionStates[sectionIndex];
-        primary.classList.toggle('is-on-hold', !!state.onHold && !state.completed);
+        const end = editor.querySelector(
+            `.${SECTION_END_CLASS}[data-section-index="${sectionIndex}"]`
+        );
+        const onHold = !!state.onHold && !state.completed;
+        const completed = !!state.completed;
+        [primary, end].forEach(el => {
+            if (!el) return;
+            el.classList.toggle('is-on-hold', onHold);
+            el.classList.toggle('is-completed', completed);
+        });
     }
 
     // --- Panel structure ---
@@ -498,10 +522,10 @@ export function initFrameGuide(editor, container, options = {}) {
     container.appendChild(panel);
 
     // --- Slot/label helpers ---
-    function getDefaultSlotCount(sectionIndex) {
-        const total = frameData.sections.length;
-        if (sectionIndex === 0 || sectionIndex === total - 1) return 1;
-        return 3;
+    function getDefaultSlotCount(/* sectionIndex */) {
+        // One paragraph per section by default. Students extend with
+        // "+ Nytt avsnitt" as needed.
+        return 1;
     }
 
     function getDefaultSlotLabel(sectionIndex, paragraphIndex) {
@@ -718,9 +742,8 @@ export function initFrameGuide(editor, container, options = {}) {
                 );
                 if (primary) {
                     primary.dataset.completed = state.completed ? 'true' : 'false';
-                    primary.classList.toggle('is-completed', state.completed);
-                    primary.classList.toggle('is-on-hold', !!state.onHold && !state.completed);
                 }
+                updateSectionMarkerVisuals(i);
                 if (state.completed) {
                     state.expanded = false;
                     const nextIdx = sectionStates.findIndex((s, idx) => idx > i && !s.completed);
@@ -1133,6 +1156,9 @@ export function initFrameGuide(editor, container, options = {}) {
                     editor.appendChild(endMarker);
                 }
             });
+            // Sync visuals (completed state) onto every section's end marker
+            // so they match the start marker's color.
+            frameData.sections.forEach((_, sIdx) => updateSectionMarkerVisuals(sIdx));
         } else {
             // Legacy model: each divider == a completed section marker
             dividers.forEach(d => {

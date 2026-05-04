@@ -521,24 +521,13 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
 function updateCleanupDesk(deskEl, orphanDocs, onOpenDocument, container, folders) {
     deskEl.innerHTML = '';
 
-    // When NOT viewing "all" (i.e. filtered to a folder), check if there are any year-filtered orphans
-    // The orphanDocs array already has the right data from renderDocumentCards
-
     if (orphanDocs.length === 0) {
-        // "All clear" state — rewarding visual
-        const clearPanel = document.createElement('div');
-        clearPanel.className = 'flex flex-col items-center justify-center h-full p-4 text-center';
-        clearPanel.innerHTML = `
-            <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mb-2">
-                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                </svg>
-            </div>
-            <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400">${escapeHtml(t('sidebar.allOrganized'))}</p>
-        `;
-        deskEl.appendChild(clearPanel);
+        // No orphans — hide the desk entirely (everything is either in a
+        // folder or in the trash). Re-rendering will make it visible again.
+        deskEl.style.display = 'none';
         return;
     }
+    deskEl.style.display = '';
 
     // "Messy desk" state — orphans need cleanup
     const header = document.createElement('div');
@@ -553,6 +542,37 @@ function updateCleanupDesk(deskEl, orphanDocs, onOpenDocument, container, folder
         <p class="text-[10px] text-amber-500/70 dark:text-amber-400/50 mt-0.5">${orphanDocs.length} dok.</p>
     `;
     deskEl.appendChild(header);
+
+    // Trash drop-zone: large visual target above the cards. Drop a card here
+    // to soft-delete (30-day retention via trashDocument).
+    const trashZone = document.createElement('div');
+    trashZone.className = 'mx-2 mt-2 mb-3 p-3 flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-stone-300 dark:border-stone-600 text-stone-400 dark:text-stone-500 hover:border-red-400 hover:text-red-500 hover:bg-red-50/40 dark:hover:bg-red-950/20 transition-colors';
+    trashZone.innerHTML = `
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
+        </svg>
+        <span class="text-[10px] text-center leading-tight">${escapeHtml(t('sidebar.cleanupTrashHint'))}</span>
+    `;
+    trashZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        trashZone.classList.add('border-red-500', 'text-red-600', 'bg-red-50/60', 'dark:bg-red-950/30');
+    });
+    trashZone.addEventListener('dragleave', () => {
+        trashZone.classList.remove('border-red-500', 'text-red-600', 'bg-red-50/60', 'dark:bg-red-950/30');
+    });
+    trashZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        trashZone.classList.remove('border-red-500', 'text-red-600', 'bg-red-50/60', 'dark:bg-red-950/30');
+        const docId = e.dataTransfer.getData('text/plain');
+        if (!docId) return;
+        const fullDoc = await getDocument(docId);
+        if (fullDoc) {
+            await trashDocument(fullDoc);
+            renderDocumentList(container, onOpenDocument);
+        }
+    });
+    deskEl.appendChild(trashZone);
 
     // Scrollable card area
     const cardArea = document.createElement('div');
