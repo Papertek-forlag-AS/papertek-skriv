@@ -11,6 +11,7 @@ import { purgeExpired } from './trash-store.js';
 import { initServiceWorker } from './sw-manager.js';
 import { hasSchoolLevel, setSchoolLevel } from './school-level.js';
 import { showOnboardingModal } from './onboarding-modal.js';
+import { renderGermanExamScreen } from './german-exam-route.js';
 
 async function init() {
     initTheme();
@@ -40,6 +41,8 @@ async function init() {
             launchEditor(app, docId, () => {
                 window.location.hash = '#/';
             });
+        } else if (hash === '#/tysk') {
+            renderGermanExamScreen(app);
         } else {
             renderDocumentList(app, (docId) => {
                 window.location.hash = `#/doc/${docId}`;
