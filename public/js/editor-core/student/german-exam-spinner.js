@@ -98,3 +98,246 @@ function loadActiveLevel() {
 function saveActiveLevel(level) {
     try { localStorage.setItem(LEVEL_KEY, level); } catch {}
 }
+
+// ─── Scramble animation (matches writing-spinner) ────────────────────────
+
+function scrambleReveal(el, finalText, onDone) {
+    const len = finalText.length;
+    const start = Date.now();
+
+    function tick() {
+        const elapsed = Date.now() - start;
+        const progress = Math.min(1, elapsed / SCRAMBLE_DURATION);
+        const settled = Math.floor(progress * len);
+
+        let out = finalText.slice(0, settled);
+        for (let i = settled; i < len; i++) {
+            const ch = finalText[i];
+            if (/\s/.test(ch)) {
+                out += ch;
+            } else {
+                out += SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+            }
+        }
+        el.textContent = out;
+
+        if (progress < 1) {
+            setTimeout(tick, SCRAMBLE_INTERVAL);
+        } else {
+            el.textContent = finalText;
+            if (onDone) onDone();
+        }
+    }
+    tick();
+}
+
+// ─── Markdown-light → HTML (paragraphs + lists) ──────────────────────────
+
+function promptToHtml(prompt) {
+    const blocks = prompt.split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
+    return blocks.map(block => {
+        if (/^[-*]\s/m.test(block)) {
+            const items = block.split(/\n/).map(l => l.replace(/^[-*]\s+/, '').trim()).filter(Boolean);
+            return '<ul class="list-disc pl-5 my-2">' + items.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ul>';
+        }
+        return `<p class="my-2">${escapeHtml(block)}</p>`;
+    }).join('');
+}
+
+// ─── Main entry point ────────────────────────────────────────────────────
+
+/**
+ * Initialise the spinner UI inside the given container.
+ * @param {HTMLElement} container
+ * @param {Object} options
+ * @param {(task: Object) => void} options.onPickTask - called when student clicks "Skriv svar"
+ * @returns {{ destroy: () => void }}
+ */
+export function initGermanExamSpinner(container, options = {}) {
+    const onPickTask = options.onPickTask || (() => {});
+
+    let activeLevel = loadActiveLevel();
+    let currentTask = null;
+    let modelAnswerOpen = false;
+
+    container.innerHTML = '';
+    const root = document.createElement('div');
+    root.className = 'german-exam-spinner max-w-2xl mx-auto p-4';
+    container.appendChild(root);
+
+    function render() {
+        const total = totalTasks(activeLevel);
+        const deck = ensureDeck(activeLevel);
+        const remaining = deck.length;
+        const deckExhausted = remaining === 0;
+
+        root.innerHTML = `
+            <h1 class="text-2xl font-bold mb-4">${escapeHtml(t('germanExam.screenTitle'))}</h1>
+
+            <div class="flex gap-2 mb-4" role="tablist" aria-label="${escapeHtml(t('germanExam.screenTitle'))}">
+                <button type="button" data-level="tysk-1"
+                    class="px-4 py-2 rounded-lg border transition-colors ${activeLevel === 'tysk-1' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-stone-700 border-stone-300 dark:border-stone-600'}"
+                    role="tab" aria-selected="${activeLevel === 'tysk-1'}">
+                    ${escapeHtml(t('germanExam.levelTysk1'))}
+                </button>
+                <button type="button" data-level="tysk-2"
+                    class="px-4 py-2 rounded-lg border transition-colors ${activeLevel === 'tysk-2' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-stone-700 border-stone-300 dark:border-stone-600'}"
+                    role="tab" aria-selected="${activeLevel === 'tysk-2'}">
+                    ${escapeHtml(t('germanExam.levelTysk2'))}
+                </button>
+            </div>
+
+            <div class="flex items-center justify-between mb-4 text-sm text-stone-600 dark:text-stone-300">
+                <span data-deck-status>${
+                    deckExhausted
+                        ? escapeHtml(t('germanExam.deckEmpty'))
+                        : escapeHtml(t('germanExam.deckRemaining', { n: remaining, total }))
+                }</span>
+                <button type="button" data-reshuffle class="text-xs underline">
+                    ${escapeHtml(t('germanExam.reshuffle'))}
+                </button>
+            </div>
+
+            <div class="text-center mb-6">
+                <button type="button" data-spin
+                    class="px-8 py-4 text-lg font-semibold rounded-xl bg-emerald-600 text-white shadow hover:bg-emerald-700 transition-colors">
+                    ${escapeHtml(deckExhausted ? t('germanExam.reshuffleAndRestart') : t('germanExam.spin'))}
+                </button>
+                <p class="mt-2 text-xs text-stone-500" data-spin-hint>${escapeHtml(t('germanExam.clickToSpin'))}</p>
+            </div>
+
+            <div data-card></div>
+        `;
+
+        // Re-render the existing card if any (e.g. after level switch we clear it)
+        if (currentTask) {
+            renderCard(currentTask);
+        }
+    }
+
+    function renderCard(task) {
+        const cardHost = root.querySelector('[data-card]');
+        if (!cardHost) return;
+
+        cardHost.innerHTML = `
+            <article class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-5 shadow-sm">
+                <p class="text-xs uppercase tracking-wider text-stone-500 mb-1">${escapeHtml(task.attribution)}</p>
+                <h2 class="text-xl font-semibold mb-3" data-task-title>${escapeHtml(task.title)}</h2>
+                <div class="prose prose-sm dark:prose-invert max-w-none" data-prompt>${promptToHtml(task.prompt)}</div>
+                <div data-image class="my-3"></div>
+                <div class="mt-4">
+                    <button type="button" data-toggle-model class="text-sm underline text-emerald-700 dark:text-emerald-400">
+                        ${escapeHtml(modelAnswerOpen ? t('germanExam.hideModelAnswer') : t('germanExam.showModelAnswer'))}
+                    </button>
+                    <div data-model class="${modelAnswerOpen ? 'mt-3' : 'hidden mt-3'} border-l-4 border-emerald-300 pl-3 text-stone-700 dark:text-stone-200">
+                        <h3 class="text-sm font-semibold mb-1">${escapeHtml(t('germanExam.modelAnswerHeading'))}</h3>
+                        <p>${escapeHtml(task.modelAnswer)}</p>
+                    </div>
+                </div>
+                <div class="mt-5 text-right">
+                    <button type="button" data-write
+                        class="px-5 py-2 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors">
+                        ${escapeHtml(t('germanExam.writeAnswer'))}
+                    </button>
+                </div>
+            </article>
+        `;
+
+        // Lazy-load SVG if present
+        if (task.image) {
+            const slot = cardHost.querySelector('[data-image]');
+            task.image().then(mod => {
+                slot.innerHTML = mod.default || '';
+            }).catch(err => {
+                console.warn('Failed to load task image:', err);
+            });
+        }
+    }
+
+    function updateDeckStatus() {
+        const status = root.querySelector('[data-deck-status]');
+        const spinBtn = root.querySelector('[data-spin]');
+        if (!status || !spinBtn) return;
+        const total = totalTasks(activeLevel);
+        const remaining = (loadDeck(activeLevel) || []).length;
+        const deckExhausted = remaining === 0;
+        status.textContent = deckExhausted
+            ? t('germanExam.deckEmpty')
+            : t('germanExam.deckRemaining', { n: remaining, total });
+        spinBtn.textContent = deckExhausted
+            ? t('germanExam.reshuffleAndRestart')
+            : t('germanExam.spin');
+    }
+
+    function handleSpin() {
+        const deck = loadDeck(activeLevel) || [];
+        if (deck.length === 0) {
+            // Reshuffle path
+            reshuffleDeck(activeLevel);
+            updateDeckStatus();
+            return;
+        }
+        const { task } = pickTaskFromDeck(activeLevel);
+        if (!task) {
+            // Stale id in deck — reshuffle and try again
+            reshuffleDeck(activeLevel);
+            updateDeckStatus();
+            return;
+        }
+        currentTask = task;
+        modelAnswerOpen = false;
+
+        // Render card with scrambled title first, then settle
+        renderCard(task);
+        const titleEl = root.querySelector('[data-task-title]');
+        if (titleEl) {
+            scrambleReveal(titleEl, task.title);
+        }
+        updateDeckStatus();
+    }
+
+    function handleClick(e) {
+        const levelBtn = e.target.closest('[data-level]');
+        if (levelBtn) {
+            const newLevel = levelBtn.dataset.level;
+            if (newLevel !== activeLevel) {
+                activeLevel = newLevel;
+                saveActiveLevel(activeLevel);
+                currentTask = null;
+                modelAnswerOpen = false;
+                render();
+            }
+            return;
+        }
+        if (e.target.closest('[data-spin]')) { handleSpin(); return; }
+        if (e.target.closest('[data-reshuffle]')) {
+            reshuffleDeck(activeLevel);
+            updateDeckStatus();
+            return;
+        }
+        if (e.target.closest('[data-toggle-model]')) {
+            modelAnswerOpen = !modelAnswerOpen;
+            const modelEl = root.querySelector('[data-model]');
+            const toggleEl = root.querySelector('[data-toggle-model]');
+            if (modelEl) modelEl.classList.toggle('hidden', !modelAnswerOpen);
+            if (toggleEl) toggleEl.textContent = modelAnswerOpen
+                ? t('germanExam.hideModelAnswer')
+                : t('germanExam.showModelAnswer');
+            return;
+        }
+        if (e.target.closest('[data-write]') && currentTask) {
+            onPickTask(currentTask);
+            return;
+        }
+    }
+
+    root.addEventListener('click', handleClick);
+    render();
+
+    return {
+        destroy() {
+            root.removeEventListener('click', handleClick);
+            container.innerHTML = '';
+        },
+    };
+}
