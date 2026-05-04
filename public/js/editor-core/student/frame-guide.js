@@ -267,6 +267,22 @@ const CSS = `
 .skriv-frame-divider:hover .frame-divider-label {
     color: #059669;
 }
+/* Section-start markers: prominent — these are the main wayfinding labels */
+.skriv-frame-divider.section-marker {
+    margin: 1.5em 0 0.75em;
+}
+.skriv-frame-divider.section-marker::before,
+.skriv-frame-divider.section-marker::after {
+    height: 2px;
+    background: #a8a29e;
+}
+.skriv-frame-divider.section-marker .frame-divider-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #44403c;
+    padding: 0.25rem 1rem;
+    letter-spacing: 0.01em;
+}
 /* Paragraph-level markers are slightly subtler than section markers */
 .skriv-frame-divider.paragraph-marker .frame-divider-label {
     font-size: 0.6rem;
