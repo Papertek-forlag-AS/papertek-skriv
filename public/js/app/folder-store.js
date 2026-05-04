@@ -420,18 +420,12 @@ export async function getAllFolders() {
  * @returns {Promise<Array>}
  */
 export async function getRootFolders() {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(FOLDERS_STORE, 'readonly');
-        const idx = tx.objectStore(FOLDERS_STORE).index('parentId');
-        const req = idx.getAll(IDBKeyRange.only(null));
-        req.onsuccess = () => {
-            const folders = req.result || [];
-            folders.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
-            resolve(folders);
-        };
-        req.onerror = (e) => reject(e.target.error);
-    });
+    // Note: cannot use idx.getAll(IDBKeyRange.only(null)) — null is not a
+    // valid IDB key, throws DataError. Filter in JS instead.
+    const all = await getAllFolders();
+    return all
+        .filter(f => !f.parentId)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 }
 
 /**

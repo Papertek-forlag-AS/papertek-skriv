@@ -101,13 +101,13 @@ function saveActiveLevel(level) {
 
 // ─── Scramble animation (matches writing-spinner) ────────────────────────
 
-function scrambleReveal(el, finalText, onDone) {
+function scrambleReveal(el, finalText, onDone, duration = SCRAMBLE_DURATION) {
     const len = finalText.length;
     const start = Date.now();
 
     function tick() {
         const elapsed = Date.now() - start;
-        const progress = Math.min(1, elapsed / SCRAMBLE_DURATION);
+        const progress = Math.min(1, elapsed / duration);
         const settled = Math.floor(progress * len);
 
         let out = finalText.slice(0, settled);
@@ -129,6 +129,19 @@ function scrambleReveal(el, finalText, onDone) {
         }
     }
     tick();
+}
+
+// Scramble every text-bearing element on the freshly-rendered card in parallel.
+// Title settles fast (short); prompt paragraphs/list items get a longer
+// duration so the matrix effect feels deliberate on long prompts.
+function scrambleCard(root) {
+    const title = root.querySelector('[data-task-title]');
+    if (title) scrambleReveal(title, title.textContent, null, 700);
+
+    const promptParts = root.querySelectorAll('[data-prompt] p, [data-prompt] li');
+    promptParts.forEach(el => {
+        scrambleReveal(el, el.textContent, null, 1400);
+    });
 }
 
 // ─── Markdown-light → HTML (paragraphs + lists) ──────────────────────────
@@ -287,12 +300,9 @@ export function initGermanExamSpinner(container, options = {}) {
         currentTask = task;
         modelAnswerOpen = false;
 
-        // Render card with scrambled title first, then settle
+        // Render card and scramble all task text in parallel
         renderCard(task);
-        const titleEl = root.querySelector('[data-task-title]');
-        if (titleEl) {
-            scrambleReveal(titleEl, task.title);
-        }
+        scrambleCard(root);
         updateDeckStatus();
     }
 
