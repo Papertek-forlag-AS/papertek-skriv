@@ -2,11 +2,23 @@
  * Frame Guide Panel
  * Left-side accordion panel showing writing frame structure.
  * Students consult while writing, mark sections done, insert sentence starters.
+ *
+ * Eager-scaffold model: when a frame is applied, all section markers and
+ * default paragraph slots are inserted into the editor up front and remain
+ * visible while the guide is open. "Merk som ferdig" toggles state on the
+ * existing marker. "+ Nytt avsnitt" appends extra paragraph slots within a
+ * section. The writing-spinner word bank supplies on-demand starter variation
+ * via "🎲 Flere forslag".
  */
-import { t } from '../shared/i18n.js';
+import { t, getCurrentLanguage } from '../shared/i18n.js';
 import { showToast } from '../shared/toast-notification.js';
 
 const DIVIDER_CLASS = 'skriv-frame-divider';
+const SECTION_MARKER_CLASS = 'section-marker';
+const PARAGRAPH_MARKER_CLASS = 'paragraph-marker';
+
+const SCRAMBLE_CHARS = 'abcdefghijklmnoprstuvwxyzæøå';
+const SCRAMBLE_DURATION = 500;
 
 const CSS = `
 /* Frame Guide Panel */
@@ -173,12 +185,39 @@ const CSS = `
     background: #d1fae5;
     transform: translateX(2px);
 }
+.frame-guide-starter.spinner-generated {
+    /* Visually identical to authored starters; class kept for testing/styling hooks */
+}
 
-/* Done button */
-.frame-guide-done-btn {
+/* "🎲 Flere forslag" button */
+.frame-guide-spinner-btn {
     display: block;
     width: 100%;
-    margin-top: 0.5rem;
+    margin: 0.35rem 0 0.25rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.72rem;
+    color: #78716c;
+    background: transparent;
+    border: 1px dashed #d6d3d1;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color 0.1s, border-color 0.1s;
+}
+.frame-guide-spinner-btn:hover {
+    color: #059669;
+    border-color: #a7f3d0;
+}
+.frame-guide-spinner-btn[disabled] {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Done button */
+.frame-guide-done-btn,
+.frame-guide-add-paragraph-btn {
+    display: block;
+    width: 100%;
+    margin-top: 0.4rem;
     padding: 0.4rem;
     font-size: 0.75rem;
     border: 1px dashed #d6d3d1;
@@ -188,7 +227,8 @@ const CSS = `
     cursor: pointer;
     transition: all 0.15s;
 }
-.frame-guide-done-btn:hover {
+.frame-guide-done-btn:hover,
+.frame-guide-add-paragraph-btn:hover {
     border-color: #059669;
     color: #059669;
 }
@@ -207,6 +247,12 @@ const CSS = `
     user-select: none;
     cursor: pointer;
 }
+/* Hide dividers when the guide sidebar is collapsed — they're navigation
+   markers tied to the guide, not document content. Kept in DOM so toggling
+   the sidebar back restores them. */
+.skriv-frame-guide-collapsed .skriv-frame-divider {
+    display: none;
+}
 .skriv-frame-divider::before,
 .skriv-frame-divider::after {
     content: '';
@@ -222,6 +268,22 @@ const CSS = `
 }
 .skriv-frame-divider:hover .frame-divider-label {
     color: #059669;
+}
+/* Paragraph-level markers are slightly subtler than section markers */
+.skriv-frame-divider.paragraph-marker .frame-divider-label {
+    font-size: 0.6rem;
+    color: #b7b3ad;
+    font-style: italic;
+}
+/* Completed section marker */
+.skriv-frame-divider.section-marker.is-completed .frame-divider-label {
+    color: #059669;
+    text-decoration: line-through;
+    text-decoration-color: #a7f3d0;
+}
+.skriv-frame-divider.section-marker.is-completed::before,
+.skriv-frame-divider.section-marker.is-completed::after {
+    background: #a7f3d0;
 }
 
 /* Dark mode */
@@ -241,10 +303,15 @@ const CSS = `
     .frame-guide-instruction { color: #a8a29e; }
     .frame-guide-starter { background: #064e3b; border-color: #065f46; color: #6ee7b7; }
     .frame-guide-starter:hover { background: #065f46; }
-    .frame-guide-done-btn { border-color: #44403c; color: #a8a29e; }
+    .frame-guide-done-btn,
+    .frame-guide-add-paragraph-btn,
+    .frame-guide-spinner-btn { border-color: #44403c; color: #a8a29e; }
     .frame-guide-progress-bar { background: #44403c; }
     .skriv-frame-divider::before, .skriv-frame-divider::after { background: #44403c; }
     .frame-divider-label { color: #78716c; }
+    .skriv-frame-divider.paragraph-marker .frame-divider-label { color: #57534e; }
+    .skriv-frame-divider.section-marker.is-completed::before,
+    .skriv-frame-divider.section-marker.is-completed::after { background: #065f46; }
 }
 
 /* Mobile */
@@ -256,21 +323,86 @@ const CSS = `
 }
 `;
 
+// --- Spinner word-bank loading (shared semantics with writing-spinner) ---
+async function loadSpinnerStarters() {
+    const lang = getCurrentLanguage();
+    try {
+        const mod = lang === 'nn'
+            ? await import('./spinner-data-nn.js')
+            : await import('./spinner-data-nb.js');
+        return mod.starters || {};
+    } catch (err) {
+        console.error('Failed to load spinner starters:', err);
+        return {};
+    }
+}
+
+function levelToTier(level) {
+    return (level === 'ungdomsskole' || level === 'barneskole') ? 'us' : 'vgs';
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// --- Scramble animation for spinner-generated starters ---
+function scrambleReveal(el, finalText, onDone) {
+    const len = finalText.length;
+    const startTime = Date.now();
+
+    function tick() {
+        const elapsed = Date.now() - startTime;
+        const resolved = Math.min(len, Math.floor((elapsed / SCRAMBLE_DURATION) * len));
+        let display = '';
+        for (let i = 0; i < len; i++) {
+            if (i < resolved) display += finalText[i];
+            else if (finalText[i] === ' ') display += ' ';
+            else display += SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+        }
+        el.textContent = display;
+        if (resolved < len) {
+            requestAnimationFrame(tick);
+        } else {
+            el.textContent = finalText;
+            if (onDone) onDone();
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
 export function initFrameGuide(editor, container, options = {}) {
     // options.onSave — callback to trigger auto-save
+    // options.getLevel — () => school level (for spinner integration)
     let panel = null;
     let styleEl = null;
     let frameData = null;
     let frameType = null;
-    let sectionStates = []; // { completed: boolean, expanded: boolean }[]
+    let sectionStates = []; // { completed, expanded, spinnerStarters }
     let panelVisible = false;
+    let lastRange = null;
+    let starterDataPromise = null;
 
     // Inject CSS
     styleEl = document.createElement('style');
     styleEl.textContent = CSS;
     document.head.appendChild(styleEl);
 
-    // --- Create panel structure ---
+    // --- Selection capture: store the editor's last known range ---
+    function handleSelectionChange() {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return;
+        const range = sel.getRangeAt(0);
+        if (editor.contains(range.startContainer)) {
+            lastRange = range.cloneRange();
+        }
+    }
+    document.addEventListener('selectionchange', handleSelectionChange);
+
+    // --- Panel structure ---
     panel = document.createElement('div');
     panel.className = 'skriv-frame-guide hidden';
     panel.innerHTML = `
@@ -286,13 +418,105 @@ export function initFrameGuide(editor, container, options = {}) {
     `;
     container.appendChild(panel);
 
-    // --- Build sections from frame data ---
+    // --- Slot/label helpers ---
+    function getDefaultSlotCount(sectionIndex) {
+        const total = frameData.sections.length;
+        const section = frameData.sections[sectionIndex];
+        if (sectionIndex === 0 || sectionIndex === total - 1) return 1;
+        if (section.subsections && section.subsections.length > 0) {
+            return section.subsections.length;
+        }
+        return 3;
+    }
+
+    function getDefaultSlotLabel(sectionIndex, paragraphIndex) {
+        const section = frameData.sections[sectionIndex];
+        const slotCount = getDefaultSlotCount(sectionIndex);
+        if (slotCount === 1) return section.title;
+        if (section.subsections && paragraphIndex < section.subsections.length) {
+            return `${section.title} — ${section.subsections[paragraphIndex].title}`;
+        }
+        return `${section.title} — ${t('skriv.frameGuideParagraphSuffix')} ${paragraphIndex + 1}`;
+    }
+
+    function makeMarker({ sectionIndex, paragraphIndex, label, isSection, completed = false }) {
+        const div = document.createElement('div');
+        div.className = `${DIVIDER_CLASS} ${isSection ? SECTION_MARKER_CLASS : PARAGRAPH_MARKER_CLASS}`;
+        if (isSection && completed) div.classList.add('is-completed');
+        div.contentEditable = 'false';
+        div.dataset.sectionIndex = String(sectionIndex);
+        div.dataset.paragraphIndex = String(paragraphIndex);
+        div.dataset.sectionTitle = frameData.sections[sectionIndex].title;
+        if (isSection) div.dataset.completed = completed ? 'true' : 'false';
+        div.innerHTML = `<span class="frame-divider-label">${escapeHtml(label)}</span>`;
+        return div;
+    }
+
+    function makeParagraphSlot() {
+        const p = document.createElement('p');
+        p.innerHTML = '<br>';
+        return p;
+    }
+
+    function isEmptyPlaceholderBlock(el) {
+        if (!el) return false;
+        if (el.nodeType !== Node.ELEMENT_NODE) return false;
+        if (el.tagName !== 'P' && el.tagName !== 'DIV') return false;
+        if (el.classList.contains(DIVIDER_CLASS)) return false;
+        const html = el.innerHTML.replace(/<br\s*\/?>/gi, '').trim();
+        return html === '';
+    }
+
+    function isEditorEffectivelyEmpty() {
+        if (editor.children.length === 0) return true;
+        if (editor.children.length === 1 && isEmptyPlaceholderBlock(editor.children[0])) return true;
+        return false;
+    }
+
+    // --- Eager scaffold: insert all section/paragraph markers + slots ---
+    function scaffoldEditor() {
+        const fragment = document.createDocumentFragment();
+        frameData.sections.forEach((section, sectionIndex) => {
+            const slotCount = getDefaultSlotCount(sectionIndex);
+            for (let pIdx = 0; pIdx < slotCount; pIdx++) {
+                const isSectionMarker = pIdx === 0;
+                fragment.appendChild(makeMarker({
+                    sectionIndex,
+                    paragraphIndex: pIdx,
+                    label: getDefaultSlotLabel(sectionIndex, pIdx),
+                    isSection: isSectionMarker,
+                }));
+                fragment.appendChild(makeParagraphSlot());
+            }
+        });
+
+        if (isEditorEffectivelyEmpty()) {
+            editor.innerHTML = '';
+            editor.appendChild(fragment);
+        } else {
+            editor.insertBefore(fragment, editor.firstChild);
+        }
+    }
+
+    // --- Build sections in sidebar ---
     function applyFrame(data, type) {
         frameData = data;
         frameType = type;
-        sectionStates = data.sections.map(() => ({ completed: false, expanded: false }));
-        // Expand first section by default
+        sectionStates = data.sections.map(s => ({
+            completed: false,
+            expanded: false,
+            spinnerStarters: {
+                section: [],
+                subsections: (s.subsections || []).map(() => []),
+            },
+        }));
         if (sectionStates.length > 0) sectionStates[0].expanded = true;
+
+        // Eagerly scaffold dividers if editor has none yet
+        if (!editor.querySelector(`.${DIVIDER_CLASS}`)) {
+            scaffoldEditor();
+        }
+
         renderSections();
         updateProgress();
         show();
@@ -315,22 +539,21 @@ export function initFrameGuide(editor, container, options = {}) {
             header.className = 'frame-guide-section-header';
             header.innerHTML = `
                 <span class="frame-guide-section-arrow">${state.expanded ? '▼' : '▶'}</span>
-                <span class="frame-guide-section-title">${section.title}</span>
+                <span class="frame-guide-section-title">${escapeHtml(section.title)}</span>
                 ${state.completed ? '<span class="frame-guide-check">✓</span>' : ''}
             `;
             header.addEventListener('click', () => {
                 state.expanded = !state.expanded;
                 renderSections();
-                // If there's a divider for this section, scroll to it
-                scrollToDivider(i);
+                scrollToSectionMarker(i);
             });
 
-            // Content (instruction + subsections + prompts + done button)
+            // Content (instruction + subsections + prompts + buttons)
             const content = document.createElement('div');
             content.className = 'frame-guide-section-content';
             if (!state.expanded) content.style.display = 'none';
 
-            // Instruction
+            // Section instruction
             if (section.instruction) {
                 const instr = document.createElement('p');
                 instr.className = 'frame-guide-instruction';
@@ -340,26 +563,32 @@ export function initFrameGuide(editor, container, options = {}) {
 
             // Subsections
             if (section.subsections && section.subsections.length > 0) {
-                section.subsections.forEach(sub => {
+                section.subsections.forEach((sub, subIdx) => {
                     const subEl = document.createElement('div');
                     subEl.className = 'frame-guide-subsection';
-                    subEl.innerHTML = `<strong>${sub.title}</strong>`;
+                    subEl.innerHTML = `<strong>${escapeHtml(sub.title)}</strong>`;
                     if (sub.instruction) {
                         const subInstr = document.createElement('p');
                         subInstr.className = 'frame-guide-sub-instruction';
                         subInstr.textContent = sub.instruction;
                         subEl.appendChild(subInstr);
                     }
-                    // Subsection prompts
                     if (sub.prompts && sub.prompts.length > 0) {
                         sub.prompts.forEach(prompt => {
-                            const btn = document.createElement('button');
-                            btn.className = 'frame-guide-starter';
-                            btn.textContent = prompt;
-                            btn.title = 'Klikk for å sette inn';
-                            btn.addEventListener('click', () => insertStarter(prompt));
-                            subEl.appendChild(btn);
+                            subEl.appendChild(makeStarterButton(prompt, i));
                         });
+                    }
+                    // Already-generated spinner starters for this subsection
+                    state.spinnerStarters.subsections[subIdx]?.forEach(text => {
+                        subEl.appendChild(makeStarterButton(text, i, { generated: true }));
+                    });
+                    // 🎲 Flere forslag (subsection-level)
+                    if (sub.spinnerBucket) {
+                        subEl.appendChild(makeSpinnerButton({
+                            sectionIndex: i,
+                            subsectionIndex: subIdx,
+                            bucket: sub.spinnerBucket,
+                        }));
                     }
                     content.appendChild(subEl);
                 });
@@ -368,30 +597,43 @@ export function initFrameGuide(editor, container, options = {}) {
             // Section-level prompts
             if (section.prompts && section.prompts.length > 0) {
                 section.prompts.forEach(prompt => {
-                    const btn = document.createElement('button');
-                    btn.className = 'frame-guide-starter';
-                    btn.textContent = prompt;
-                    btn.title = 'Klikk for å sette inn';
-                    btn.addEventListener('click', () => insertStarter(prompt));
-                    content.appendChild(btn);
+                    content.appendChild(makeStarterButton(prompt, i));
                 });
+            }
+            // Already-generated section-level spinner starters
+            state.spinnerStarters.section.forEach(text => {
+                content.appendChild(makeStarterButton(text, i, { generated: true }));
+            });
+            // 🎲 Flere forslag (section-level) — only when section has no subsections,
+            // since subsection-level buttons cover the multi-bucket case.
+            if ((!section.subsections || section.subsections.length === 0) && section.spinnerBucket) {
+                content.appendChild(makeSpinnerButton({
+                    sectionIndex: i,
+                    subsectionIndex: -1,
+                    bucket: section.spinnerBucket,
+                }));
             }
 
             // Done button
             const doneBtn = document.createElement('button');
             doneBtn.className = 'frame-guide-done-btn' + (state.completed ? ' active' : '');
-            doneBtn.textContent = state.completed ? '✓ Ferdig' : 'Merk som ferdig';
+            doneBtn.textContent = state.completed
+                ? t('skriv.frameGuideMarkDoneActive')
+                : t('skriv.frameGuideMarkDone');
             doneBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 state.completed = !state.completed;
+                const primary = editor.querySelector(
+                    `.${SECTION_MARKER_CLASS}[data-section-index="${i}"][data-paragraph-index="0"]`
+                );
+                if (primary) {
+                    primary.dataset.completed = state.completed ? 'true' : 'false';
+                    primary.classList.toggle('is-completed', state.completed);
+                }
                 if (state.completed) {
                     state.expanded = false;
-                    insertDivider(i);
-                    // Auto-expand next incomplete section
                     const nextIdx = sectionStates.findIndex((s, idx) => idx > i && !s.completed);
                     if (nextIdx !== -1) sectionStates[nextIdx].expanded = true;
-                } else {
-                    removeDivider(i);
                 }
                 renderSections();
                 updateProgress();
@@ -399,10 +641,97 @@ export function initFrameGuide(editor, container, options = {}) {
             });
             content.appendChild(doneBtn);
 
+            // + Nytt avsnitt button (only for non-completed sections)
+            if (!state.completed) {
+                const addBtn = document.createElement('button');
+                addBtn.className = 'frame-guide-add-paragraph-btn';
+                addBtn.textContent = t('skriv.frameGuideAddParagraph');
+                addBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    addParagraphToSection(i);
+                });
+                content.appendChild(addBtn);
+            }
+
             sectionEl.appendChild(header);
             sectionEl.appendChild(content);
             sectionsEl.appendChild(sectionEl);
         });
+    }
+
+    function makeStarterButton(text, sourceSectionIndex, opts = {}) {
+        const btn = document.createElement('button');
+        btn.className = 'frame-guide-starter' + (opts.generated ? ' spinner-generated' : '');
+        btn.textContent = text;
+        btn.title = 'Klikk for å sette inn';
+        btn.addEventListener('click', () => insertStarter(text, sourceSectionIndex));
+        return btn;
+    }
+
+    function makeSpinnerButton({ sectionIndex, subsectionIndex, bucket }) {
+        const btn = document.createElement('button');
+        btn.className = 'frame-guide-spinner-btn';
+        btn.textContent = t('skriv.frameGuideMoreSuggestions');
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const text = await pickSpinnerStarter({ sectionIndex, subsectionIndex, bucket });
+            if (!text) {
+                btn.disabled = true;
+                btn.textContent = t('skriv.frameGuideNoMoreSuggestions');
+                return;
+            }
+            // Store on state so re-renders preserve it
+            const state = sectionStates[sectionIndex];
+            if (subsectionIndex >= 0) {
+                state.spinnerStarters.subsections[subsectionIndex].push(text);
+            } else {
+                state.spinnerStarters.section.push(text);
+            }
+            // Insert a new starter button before this spinner button, with scramble
+            const newBtn = makeStarterButton(text, sectionIndex, { generated: true });
+            btn.parentNode.insertBefore(newBtn, btn);
+            // Replace text content with empty string then animate
+            const finalText = text;
+            newBtn.textContent = '';
+            scrambleReveal(newBtn, finalText);
+        });
+        return btn;
+    }
+
+    // --- Spinner helpers ---
+    function ensureSpinnerData() {
+        if (!starterDataPromise) {
+            starterDataPromise = loadSpinnerStarters();
+        }
+        return starterDataPromise;
+    }
+
+    async function pickSpinnerStarter({ sectionIndex, subsectionIndex, bucket }) {
+        if (!bucket || !frameType) return null;
+        const starters = await ensureSpinnerData();
+        const tier = levelToTier(options.getLevel?.() || 'ungdomsskole');
+        const genreData = starters[frameType] || starters.generell;
+        if (!genreData) return null;
+        const tierData = genreData[tier] || genreData.us;
+        if (!tierData) return null;
+        const pool = tierData[bucket];
+        if (!pool || pool.length === 0) return null;
+
+        // Skip ones we've already shown for this slot
+        const state = sectionStates[sectionIndex];
+        const shown = subsectionIndex >= 0
+            ? state.spinnerStarters.subsections[subsectionIndex]
+            : state.spinnerStarters.section;
+        // Also skip authored prompts at this scope so we don't echo them
+        const sectionData = frameData.sections[sectionIndex];
+        const authored = subsectionIndex >= 0
+            ? (sectionData.subsections[subsectionIndex].prompts || [])
+            : (sectionData.prompts || []);
+        const used = new Set([...shown, ...authored]);
+
+        const available = pool.filter(s => !used.has(s));
+        if (available.length === 0) return null;
+        return available[Math.floor(Math.random() * available.length)];
     }
 
     // --- Progress bar ---
@@ -414,66 +743,143 @@ export function initFrameGuide(editor, container, options = {}) {
         panel.querySelector('.frame-guide-progress-text').textContent = `${completed}/${total} avsnitt`;
     }
 
-    // --- Insert sentence starter at cursor ---
-    function insertStarter(text) {
+    // --- Section navigation in editor ---
+    function getSectionIndexFromRange(range) {
+        if (!range) return -1;
+        let node = range.startContainer;
+        if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+        while (node && node.parentNode !== editor) {
+            node = node.parentNode;
+        }
+        if (!node) return -1;
+        let prev = node.classList && node.classList.contains(DIVIDER_CLASS)
+            ? node
+            : node.previousElementSibling;
+        while (prev) {
+            if (prev.classList && prev.classList.contains(DIVIDER_CLASS) &&
+                prev.dataset.sectionIndex !== undefined) {
+                return parseInt(prev.dataset.sectionIndex);
+            }
+            prev = prev.previousElementSibling;
+        }
+        return -1;
+    }
+
+    function placeCaretAtSectionEnd(sectionIndex) {
+        const nextSection = editor.querySelector(
+            `.${SECTION_MARKER_CLASS}[data-section-index="${sectionIndex + 1}"]`
+        );
+        let target;
+        if (nextSection) {
+            let prev = nextSection.previousElementSibling;
+            while (prev && prev.classList.contains(DIVIDER_CLASS)) {
+                prev = prev.previousElementSibling;
+            }
+            target = prev;
+        } else {
+            let last = editor.lastElementChild;
+            while (last && last.classList.contains(DIVIDER_CLASS)) {
+                last = last.previousElementSibling;
+            }
+            target = last;
+        }
+        if (!target) return false;
+
+        const range = document.createRange();
+        range.selectNodeContents(target);
+        range.collapse(false);
+
         editor.focus();
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        lastRange = range.cloneRange();
+        return true;
+    }
+
+    function scrollToSectionMarker(sectionIndex) {
+        const marker = editor.querySelector(
+            `.${SECTION_MARKER_CLASS}[data-section-index="${sectionIndex}"]`
+        );
+        if (marker) marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // --- Insert sentence starter ---
+    function insertStarter(text, sourceSectionIndex) {
+        const currentSection = lastRange ? getSectionIndexFromRange(lastRange) : -1;
+        const needsJump = sourceSectionIndex !== undefined &&
+                          sourceSectionIndex !== -1 &&
+                          currentSection !== sourceSectionIndex;
+
+        if (needsJump) {
+            if (!placeCaretAtSectionEnd(sourceSectionIndex)) {
+                editor.focus();
+            }
+        } else {
+            editor.focus();
+            if (lastRange && editor.contains(lastRange.startContainer)) {
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(lastRange);
+            }
+        }
         document.execCommand('insertText', false, text);
         showToast(t('frame_starter_inserted') || 'Satt inn');
         if (options.onSave) options.onSave();
     }
 
-    // --- Dividers in editor ---
-    function insertDivider(sectionIndex) {
-        const divider = document.createElement('div');
-        divider.className = DIVIDER_CLASS;
-        divider.contentEditable = 'false';
-        divider.dataset.sectionIndex = sectionIndex;
-        divider.dataset.sectionTitle = frameData.sections[sectionIndex].title;
-        divider.innerHTML = `<span class="frame-divider-label">${frameData.sections[sectionIndex].title} ✓</span>`;
+    // --- + Nytt avsnitt: add a paragraph slot inside a section ---
+    function addParagraphToSection(sectionIndex) {
+        // Counter: existing avsnitt-N labels in this section
+        const existingAddedLabelPrefix = `${frameData.sections[sectionIndex].title} — ${t('skriv.frameGuideParagraphSuffix')} `;
+        const existingMarkers = editor.querySelectorAll(
+            `.${DIVIDER_CLASS}[data-section-index="${sectionIndex}"]`
+        );
+        let addedCount = 0;
+        existingMarkers.forEach(m => {
+            const lbl = m.querySelector('.frame-divider-label')?.textContent || '';
+            if (lbl.startsWith(existingAddedLabelPrefix)) addedCount++;
+        });
 
-        // Find insertion point: after current block or at end of editor
-        const sel = window.getSelection();
-        let insertBefore = null;
-        if (sel && sel.rangeCount > 0) {
-            let node = sel.getRangeAt(0).startContainer;
-            while (node && node !== editor && node.parentNode !== editor) {
-                node = node.parentNode;
-            }
-            if (node && node !== editor) {
-                insertBefore = node.nextSibling;
-            }
-        }
+        const newParagraphIndex = existingMarkers.length; // monotonic across the section
+        const newLabel = `${frameData.sections[sectionIndex].title} — ${t('skriv.frameGuideParagraphSuffix')} ${addedCount + 1}`;
+        const newMarker = makeMarker({
+            sectionIndex,
+            paragraphIndex: newParagraphIndex,
+            label: newLabel,
+            isSection: false,
+        });
+        const newSlot = makeParagraphSlot();
 
-        if (insertBefore) {
-            editor.insertBefore(divider, insertBefore);
+        // Insert before the next section's primary marker (or at end)
+        const nextSection = editor.querySelector(
+            `.${SECTION_MARKER_CLASS}[data-section-index="${sectionIndex + 1}"]`
+        );
+        if (nextSection) {
+            editor.insertBefore(newMarker, nextSection);
+            editor.insertBefore(newSlot, nextSection);
         } else {
-            editor.appendChild(divider);
+            editor.appendChild(newMarker);
+            editor.appendChild(newSlot);
         }
 
-        // Ensure paragraph after divider for continued writing
-        if (!divider.nextElementSibling) {
-            const p = document.createElement('p');
-            p.innerHTML = '<br>';
-            editor.appendChild(p);
-        }
+        // Place caret in the new empty paragraph
+        const range = document.createRange();
+        range.selectNodeContents(newSlot);
+        range.collapse(true);
+        editor.focus();
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        lastRange = range.cloneRange();
+
+        if (options.onSave) options.onSave();
     }
 
-    function removeDivider(sectionIndex) {
-        const divider = editor.querySelector(`.${DIVIDER_CLASS}[data-section-index="${sectionIndex}"]`);
-        if (divider) divider.remove();
-    }
-
-    function scrollToDivider(sectionIndex) {
-        const divider = editor.querySelector(`.${DIVIDER_CLASS}[data-section-index="${sectionIndex}"]`);
-        if (divider) {
-            divider.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }
-
-    // --- Click divider in editor to open corresponding section in sidebar ---
+    // --- Click marker in editor → expand corresponding section in sidebar ---
     function handleEditorClick(e) {
         const divider = e.target.closest(`.${DIVIDER_CLASS}`);
-        if (divider) {
+        if (divider && divider.dataset.sectionIndex !== undefined) {
             const idx = parseInt(divider.dataset.sectionIndex);
             if (!isNaN(idx) && sectionStates[idx]) {
                 sectionStates[idx].expanded = true;
@@ -483,7 +889,7 @@ export function initFrameGuide(editor, container, options = {}) {
     }
     editor.addEventListener('click', handleEditorClick);
 
-    // --- Auto-detection: if student types a heading matching a section title ---
+    // --- Auto-detection: heading matches a section title ---
     function handleInput() {
         if (!frameData) return;
         const headings = editor.querySelectorAll('h1, h2, h3');
@@ -503,17 +909,19 @@ export function initFrameGuide(editor, container, options = {}) {
         panel.classList.remove('hidden');
         panelVisible = true;
         editor.style.marginLeft = '310px';
+        editor.classList.remove('skriv-frame-guide-collapsed');
     }
 
     function hide() {
         panel.classList.add('hidden');
         panelVisible = false;
         editor.style.marginLeft = '';
+        editor.classList.add('skriv-frame-guide-collapsed');
     }
 
-    function toggle() {
-        panelVisible ? hide() : show();
-    }
+    function isVisible() { return panelVisible; }
+
+    function toggle() { panelVisible ? hide() : show(); }
 
     // --- Remove frame entirely ---
     function removeFrame() {
@@ -521,8 +929,8 @@ export function initFrameGuide(editor, container, options = {}) {
         frameType = null;
         sectionStates = [];
         hide();
-        // Remove all dividers from editor
         editor.querySelectorAll(`.${DIVIDER_CLASS}`).forEach(el => el.remove());
+        editor.classList.remove('skriv-frame-guide-collapsed');
         if (options.onSave) options.onSave();
     }
 
@@ -534,30 +942,60 @@ export function initFrameGuide(editor, container, options = {}) {
     function hasFrame() { return !!frameData; }
     function setActiveFrameType(type) { frameType = type; }
 
-    // --- Rehydration: restore state from existing dividers in editor ---
+    // --- Rehydrate state from existing dividers in editor ---
     function rehydrate() {
         if (!frameData) return;
         const dividers = editor.querySelectorAll(`.${DIVIDER_CLASS}`);
-        dividers.forEach(d => {
-            const idx = parseInt(d.dataset.sectionIndex);
-            if (!isNaN(idx) && sectionStates[idx]) {
-                sectionStates[idx].completed = true;
-                sectionStates[idx].expanded = false;
-            }
-        });
-        if (dividers.length > 0) {
+
+        if (dividers.length === 0) {
+            // No markers — scaffold now
+            scaffoldEditor();
             renderSections();
             updateProgress();
+            return;
         }
+
+        // Detect new model: at least one divider has data-paragraph-index set
+        const newModel = Array.from(dividers).some(d => d.dataset.paragraphIndex !== undefined);
+
+        if (newModel) {
+            dividers.forEach(d => {
+                const sIdx = parseInt(d.dataset.sectionIndex);
+                if (!isNaN(sIdx) && sectionStates[sIdx]) {
+                    if (d.classList.contains(SECTION_MARKER_CLASS)) {
+                        const completed = d.dataset.completed === 'true';
+                        sectionStates[sIdx].completed = completed;
+                        if (completed) sectionStates[sIdx].expanded = false;
+                    }
+                } else {
+                    d.remove();
+                }
+            });
+        } else {
+            // Legacy model: each divider == a completed section marker
+            dividers.forEach(d => {
+                const idx = parseInt(d.dataset.sectionIndex);
+                if (!isNaN(idx) && sectionStates[idx]) {
+                    sectionStates[idx].completed = true;
+                    sectionStates[idx].expanded = false;
+                } else {
+                    d.remove();
+                }
+            });
+        }
+        renderSections();
+        updateProgress();
     }
 
     // --- Cleanup ---
     function destroy() {
+        document.removeEventListener('selectionchange', handleSelectionChange);
         editor.removeEventListener('click', handleEditorClick);
         editor.removeEventListener('input', handleInput);
         if (panel) panel.remove();
         if (styleEl) styleEl.remove();
         editor.style.marginLeft = '';
+        editor.classList.remove('skriv-frame-guide-collapsed');
     }
 
     return {
@@ -570,9 +1008,9 @@ export function initFrameGuide(editor, container, options = {}) {
         toggle,
         show,
         hide,
+        isVisible,
         rehydrate,
         getCleanText: () => {
-            // Return editor text excluding dividers
             const clone = editor.cloneNode(true);
             clone.querySelectorAll(`.${DIVIDER_CLASS}`).forEach(el => el.remove());
             return clone.textContent || '';

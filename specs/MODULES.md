@@ -45,7 +45,8 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 |-------------------------- |------------------------ |------------------------------- |------------------------------------- |
 | `editor-toolbar.js`       | `initEditorToolbar`     | i18n, config, frame-elements, special-chars-panel, Floating UI (CDN) | Floating formatting bar (B/I/U/lists/H1/H2) |
 | `matte.js`                | `initMatte`             | i18n                           | Superscript/subscript math formatting |
-| `frame-parser.js`         | `parseFrame`            | (none)                         | Markdown → structured frame object   |
+| `frame-parser.js`         | `parseFrameMarkdown`    | (none)                         | Markdown → structured frame object (incl. spinner-bucket per section/subsection) |
+| `frame-guide.js`          | `initFrameGuide`        | i18n, toast-notification, spinner-data-nb/nn (dynamic) | Eager-scaffolding sidebar guide: section/paragraph markers in editor, "Mark as done" toggle, "+ New paragraph", "🎲 More suggestions" spinner integration |
 | `frame-manager.js`        | `initFrameManager`      | frame-parser, frame-elements, i18n | Frame insertion & rendering      |
 | `frame-selector.js`       | `initFrameSelector`     | frame-manager, i18n            | Frame picker dialog                  |
 | `toc-manager.js`          | `initTOC`               | frame-elements, i18n           | Auto-generated Table of Contents     |

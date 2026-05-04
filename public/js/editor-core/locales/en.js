@@ -455,7 +455,17 @@ export default {
         frameSwitchFrame: 'Switch frame',
         frameSwitchConfirmTitle: 'Switch writing frame?',
         frameSwitchConfirmMessage: 'The active writing frame will be replaced.',
+        frameSwitchConfirmMessageWithMarkers: {
+            one: 'The active writing frame will be replaced. {{count}} section marker in your text will be deleted.',
+            other: 'The active writing frame will be replaced. {{count}} section markers in your text will be deleted.',
+        },
         frameSwitchConfirmYes: 'Switch',
+        frameGuideMarkDone: 'Mark as done',
+        frameGuideMarkDoneActive: '✓ Done',
+        frameGuideAddParagraph: '+ New paragraph',
+        frameGuideMoreSuggestions: '🎲 More suggestions',
+        frameGuideNoMoreSuggestions: 'No more suggestions',
+        frameGuideParagraphSuffix: 'paragraph',
 
         // Trash
         trashButton: 'Trash',

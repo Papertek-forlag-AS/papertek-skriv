@@ -269,7 +269,10 @@ export async function launchEditor(container, docId, onBack) {
     // const matteApi = initMatte(editor, toolbarApi.toolbarEl); // Deactivated
     const tocApi = initTOC(editor);
     const refsApi = initReferences(editor, { onSave: autoSave.schedule });
-    const frameApi = initFrameGuide(editor, writingEnv, { onSave: () => autoSave.schedule() });
+    const frameApi = initFrameGuide(editor, writingEnv, {
+        onSave: () => autoSave.schedule(),
+        getLevel: () => getSchoolLevel(),
+    });
     const counterCleanup = attachWordCounter(editor, wordCountDisplay);
 
     // Load saved references

@@ -443,7 +443,17 @@ export default {
         frameSwitchFrame: 'Bytt skriveramme',
         frameSwitchConfirmTitle: 'Bytte skriveramme?',
         frameSwitchConfirmMessage: 'Den aktive skriverammen blir byttet ut.',
+        frameSwitchConfirmMessageWithMarkers: {
+            one: 'Den aktive skriverammen blir byttet ut. {{count}} avsnittsmarkør i teksten din blir slettet.',
+            other: 'Den aktive skriverammen blir byttet ut. {{count}} avsnittsmarkører i teksten din blir slettet.',
+        },
         frameSwitchConfirmYes: 'Bytt',
+        frameGuideMarkDone: 'Merk som ferdig',
+        frameGuideMarkDoneActive: '✓ Ferdig',
+        frameGuideAddParagraph: '+ Nytt avsnitt',
+        frameGuideMoreSuggestions: '🎲 Flere forslag',
+        frameGuideNoMoreSuggestions: 'Ingen flere forslag',
+        frameGuideParagraphSuffix: 'avsnitt',
 
         // Trash
         trashButton: 'Papirkurv',

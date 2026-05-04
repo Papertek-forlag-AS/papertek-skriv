@@ -440,7 +440,17 @@ export default {
         frameSwitchFrame: 'Byt skriveramme',
         frameSwitchConfirmTitle: 'Byte skriveramme?',
         frameSwitchConfirmMessage: 'Den aktive skriveramma vert bytt ut.',
+        frameSwitchConfirmMessageWithMarkers: {
+            one: 'Den aktive skriveramma vert bytt ut. {{count}} avsnittsmarkør i teksten din vert sletta.',
+            other: 'Den aktive skriveramma vert bytt ut. {{count}} avsnittsmarkørar i teksten din vert sletta.',
+        },
         frameSwitchConfirmYes: 'Byt',
+        frameGuideMarkDone: 'Merk som ferdig',
+        frameGuideMarkDoneActive: '✓ Ferdig',
+        frameGuideAddParagraph: '+ Nytt avsnitt',
+        frameGuideMoreSuggestions: '🎲 Fleire forslag',
+        frameGuideNoMoreSuggestions: 'Ingen fleire forslag',
+        frameGuideParagraphSuffix: 'avsnitt',
 
         // Trash
         trashButton: 'Papirkorg',

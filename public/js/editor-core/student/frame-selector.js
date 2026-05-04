@@ -158,11 +158,17 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
     async function handleSelectFrame(frame) {
         const hasExistingFrame = frameGuide.hasFrame();
 
-        // If there's an existing frame, confirm switch
+        // If there's an existing frame, confirm switch.
+        // If the student has already marked sections done (=dividers in editor),
+        // use a stronger warning so they know the markers will be deleted.
         if (hasExistingFrame) {
+            const markerCount = editor.querySelectorAll('.skriv-frame-divider').length;
+            const message = markerCount > 0
+                ? t('skriv.frameSwitchConfirmMessageWithMarkers', { count: markerCount })
+                : t('skriv.frameSwitchConfirmMessage');
             const confirmed = await showInPageConfirm(
                 t('skriv.frameSwitchConfirmTitle'),
-                t('skriv.frameSwitchConfirmMessage'),
+                message,
                 t('skriv.frameSwitchConfirmYes'),
                 t('common.cancel')
             );
