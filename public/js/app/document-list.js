@@ -520,14 +520,23 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
  */
 function updateCleanupDesk(deskEl, orphanDocs, onOpenDocument, container, folders) {
     deskEl.innerHTML = '';
+    deskEl.style.display = '';
 
     if (orphanDocs.length === 0) {
-        // No orphans — hide the desk entirely (everything is either in a
-        // folder or in the trash). Re-rendering will make it visible again.
-        deskEl.style.display = 'none';
+        // "All clear" reward state — celebrate the empty desk
+        const clearPanel = document.createElement('div');
+        clearPanel.className = 'flex flex-col items-center justify-center h-full p-4 text-center';
+        clearPanel.innerHTML = `
+            <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mb-2">
+                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+            </div>
+            <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400">${escapeHtml(t('sidebar.allOrganized'))}</p>
+        `;
+        deskEl.appendChild(clearPanel);
         return;
     }
-    deskEl.style.display = '';
 
     // "Messy desk" state — orphans need cleanup
     const header = document.createElement('div');
