@@ -188,6 +188,25 @@ export default {
         },
     },
 
+    germanExam: {
+        sidebar: 'Tysk eksamenstrening',
+        screenTitle: 'Tysk eksamenstrening',
+        levelTysk1: 'Tysk 1',
+        levelTysk2: 'Tysk 2',
+        deckRemaining: '{{n}} av {{total}} oppgaver igjen',
+        deckEmpty: 'Du har vært gjennom alle oppgavene.',
+        reshuffle: 'Stokk om',
+        reshuffleAndRestart: 'Stokk om og start på nytt',
+        spin: 'Snurr!',
+        clickToSpin: 'Klikk «Snurr!» for å få en oppgave',
+        showModelAnswer: 'Vis forslag på enkel norsk',
+        hideModelAnswer: 'Skjul forslag',
+        modelAnswerHeading: 'Forslag på enkel norsk',
+        writeAnswer: 'Skriv svar',
+        folderName: 'Tysk',
+        docTitlePattern: '{{level}} – {{term}} {{year}} – {{title}}',
+    },
+
     radar: {
         button: 'Gjentakelse',
         tooltip: '«{{word}}» brukes {{count}} ganger',

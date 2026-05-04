@@ -197,6 +197,25 @@ export default {
         },
     },
 
+    germanExam: {
+        sidebar: 'German exam practice',
+        screenTitle: 'German exam practice',
+        levelTysk1: 'German 1',
+        levelTysk2: 'German 2',
+        deckRemaining: '{{n}} of {{total}} tasks left',
+        deckEmpty: 'You have seen every task.',
+        reshuffle: 'Reshuffle',
+        reshuffleAndRestart: 'Reshuffle and start over',
+        spin: 'Spin!',
+        clickToSpin: 'Click "Spin!" to get a task',
+        showModelAnswer: 'Show simple-Norwegian draft',
+        hideModelAnswer: 'Hide draft',
+        modelAnswerHeading: 'Simple-Norwegian draft',
+        writeAnswer: 'Write answer',
+        folderName: 'German',
+        docTitlePattern: '{{level}} – {{term}} {{year}} – {{title}}',
+    },
+
     radar: {
         button: 'Repetition',
         tooltip: '"{{word}}" is used {{count}} times',
