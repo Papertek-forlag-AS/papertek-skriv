@@ -407,6 +407,10 @@ export function initFrameGuide(editor, container, options = {}) {
     let lastRange = null;
     let starterDataPromise = null;
     let activeSectionIndex = -1;
+    // Per-scope (section[/subsection]) history of recently shown spinner starters
+    // so consecutive "More suggestions" clicks return different results until the
+    // bucket is exhausted, then the history resets.
+    const spinnerHistory = new Map(); // key: `${sectionIndex}:${subsectionIndex}` → string[]
 
     // Inject CSS
     styleEl = document.createElement('style');
@@ -569,6 +573,7 @@ export function initFrameGuide(editor, container, options = {}) {
             },
         }));
         activeSectionIndex = -1;
+        spinnerHistory.clear();
         if (sectionStates.length > 0) sectionStates[0].expanded = true;
 
         // Eagerly scaffold dividers if editor has none yet
@@ -638,12 +643,12 @@ export function initFrameGuide(editor, container, options = {}) {
                     }
                     if (sub.prompts && sub.prompts.length > 0) {
                         sub.prompts.forEach(prompt => {
-                            subEl.appendChild(makeStarterButton(prompt, i));
+                            subEl.appendChild(makeStarterButton(prompt, i, subIdx));
                         });
                     }
                     // Already-generated spinner starters for this subsection
                     state.spinnerStarters.subsections[subIdx]?.forEach(text => {
-                        subEl.appendChild(makeStarterButton(text, i, { generated: true }));
+                        subEl.appendChild(makeStarterButton(text, i, subIdx, { generated: true }));
                     });
                     // 🎲 Flere forslag (subsection-level)
                     if (sub.spinnerBucket) {
@@ -660,12 +665,12 @@ export function initFrameGuide(editor, container, options = {}) {
             // Section-level prompts
             if (section.prompts && section.prompts.length > 0) {
                 section.prompts.forEach(prompt => {
-                    content.appendChild(makeStarterButton(prompt, i));
+                    content.appendChild(makeStarterButton(prompt, i, -1));
                 });
             }
             // Already-generated section-level spinner starters
             state.spinnerStarters.section.forEach(text => {
-                content.appendChild(makeStarterButton(text, i, { generated: true }));
+                content.appendChild(makeStarterButton(text, i, -1, { generated: true }));
             });
             // 🎲 Flere forslag (section-level) — only when section has no subsections,
             // since subsection-level buttons cover the multi-bucket case.
@@ -724,12 +729,12 @@ export function initFrameGuide(editor, container, options = {}) {
         });
     }
 
-    function makeStarterButton(text, sourceSectionIndex, opts = {}) {
+    function makeStarterButton(text, sourceSectionIndex, sourceSubsectionIndex, opts = {}) {
         const btn = document.createElement('button');
         btn.className = 'frame-guide-starter' + (opts.generated ? ' spinner-generated' : '');
         btn.textContent = text;
         btn.title = 'Klikk for å sette inn';
-        btn.addEventListener('click', () => insertStarter(text, sourceSectionIndex));
+        btn.addEventListener('click', () => insertStarter(text, sourceSectionIndex, sourceSubsectionIndex));
         return btn;
     }
 
@@ -745,20 +750,25 @@ export function initFrameGuide(editor, container, options = {}) {
                 btn.textContent = t('skriv.frameGuideNoMoreSuggestions');
                 return;
             }
-            // Store on state so re-renders preserve it
+
+            // Replace, don't append: keep only the latest spinner-generated
+            // starter at this scope so the student can keep spinning until
+            // one fits without piling up rejected suggestions.
             const state = sectionStates[sectionIndex];
             if (subsectionIndex >= 0) {
-                state.spinnerStarters.subsections[subsectionIndex].push(text);
+                state.spinnerStarters.subsections[subsectionIndex] = [text];
             } else {
-                state.spinnerStarters.section.push(text);
+                state.spinnerStarters.section = [text];
             }
-            // Insert a new starter button before this spinner button, with scramble
-            const newBtn = makeStarterButton(text, sectionIndex, { generated: true });
+            // Remove any existing spinner-generated buttons at this scope
+            btn.parentNode.querySelectorAll('.frame-guide-starter.spinner-generated')
+                .forEach(el => el.remove());
+
+            // Insert the new one just before this spinner button, with scramble
+            const newBtn = makeStarterButton(text, sectionIndex, subsectionIndex, { generated: true });
             btn.parentNode.insertBefore(newBtn, btn);
-            // Replace text content with empty string then animate
-            const finalText = text;
             newBtn.textContent = '';
-            scrambleReveal(newBtn, finalText);
+            scrambleReveal(newBtn, text);
         });
         return btn;
     }
@@ -780,30 +790,40 @@ export function initFrameGuide(editor, container, options = {}) {
         const tierData = genreData[tier] || genreData.us;
         if (!tierData) return null;
 
-        // Filter list: shown for this slot + authored prompts at same scope
-        const state = sectionStates[sectionIndex];
-        const shown = subsectionIndex >= 0
-            ? state.spinnerStarters.subsections[subsectionIndex]
-            : state.spinnerStarters.section;
+        // Track shown history per scope (independent of what's currently
+        // displayed) so consecutive clicks return different results.
+        const historyKey = `${sectionIndex}:${subsectionIndex}`;
+        let history = spinnerHistory.get(historyKey) || [];
+
+        // Authored prompts at the same scope are also excluded so we don't
+        // echo what the markdown already provides.
         const sectionData = frameData.sections[sectionIndex];
         const authored = subsectionIndex >= 0
             ? (sectionData.subsections[subsectionIndex].prompts || [])
             : (sectionData.prompts || []);
-        const used = new Set([...shown, ...authored]);
 
         // Try the requested bucket first, then fall back to other buckets in
         // the same genre. Different genres use different bucket-name
         // conventions (analyse: innledning/hoveddel/…, novelle: aapning/
         // skildring/…), so the position-default may not match a real bucket.
-        // Falling through keeps the button useful instead of silently failing.
         const requested = bucket && tierData[bucket] ? [bucket] : [];
         const others = Object.keys(tierData).filter(b => b !== bucket);
-        for (const b of [...requested, ...others]) {
-            const pool = tierData[b];
-            if (!pool || pool.length === 0) continue;
-            const available = pool.filter(s => !used.has(s));
-            if (available.length === 0) continue;
-            return available[Math.floor(Math.random() * available.length)];
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const used = new Set([...history, ...authored]);
+            for (const b of [...requested, ...others]) {
+                const pool = tierData[b];
+                if (!pool || pool.length === 0) continue;
+                const available = pool.filter(s => !used.has(s));
+                if (available.length === 0) continue;
+                const pick = available[Math.floor(Math.random() * available.length)];
+                history.push(pick);
+                spinnerHistory.set(historyKey, history);
+                return pick;
+            }
+            // Exhausted: reset history (keep just the most recent to avoid an
+            // immediate repeat) and try again.
+            history = history.length > 0 ? [history[history.length - 1]] : [];
         }
         return null;
     }
@@ -818,44 +838,49 @@ export function initFrameGuide(editor, container, options = {}) {
     }
 
     // --- Section navigation in editor ---
-    function getSectionIndexFromRange(range) {
-        if (!range) return -1;
+    function findNearestPrecedingMarker(range) {
+        if (!range) return null;
         let node = range.startContainer;
         if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
         while (node && node.parentNode !== editor) {
             node = node.parentNode;
         }
-        if (!node) return -1;
+        if (!node) return null;
         let prev = node.classList && node.classList.contains(DIVIDER_CLASS)
             ? node
             : node.previousElementSibling;
         while (prev) {
             if (prev.classList && prev.classList.contains(DIVIDER_CLASS) &&
                 prev.dataset.sectionIndex !== undefined) {
-                return parseInt(prev.dataset.sectionIndex);
+                return prev;
             }
             prev = prev.previousElementSibling;
         }
-        return -1;
+        return null;
     }
 
-    function placeCaretAtSectionEnd(sectionIndex) {
-        const nextSection = editor.querySelector(
-            `.${SECTION_MARKER_CLASS}[data-section-index="${sectionIndex + 1}"]`
+    function getSectionIndexFromRange(range) {
+        const marker = findNearestPrecedingMarker(range);
+        return marker ? parseInt(marker.dataset.sectionIndex) : -1;
+    }
+
+    function getParagraphIndexFromRange(range) {
+        const marker = findNearestPrecedingMarker(range);
+        return marker ? parseInt(marker.dataset.paragraphIndex) : -1;
+    }
+
+    /**
+     * Place caret at end of the paragraph slot belonging to a specific
+     * (sectionIndex, paragraphIndex). Returns true if successful.
+     */
+    function placeCaretAtSlot(sectionIndex, paragraphIndex) {
+        const marker = editor.querySelector(
+            `.${DIVIDER_CLASS}[data-section-index="${sectionIndex}"][data-paragraph-index="${paragraphIndex}"]`
         );
-        let target;
-        if (nextSection) {
-            let prev = nextSection.previousElementSibling;
-            while (prev && prev.classList.contains(DIVIDER_CLASS)) {
-                prev = prev.previousElementSibling;
-            }
-            target = prev;
-        } else {
-            let last = editor.lastElementChild;
-            while (last && last.classList.contains(DIVIDER_CLASS)) {
-                last = last.previousElementSibling;
-            }
-            target = last;
+        if (!marker) return false;
+        let target = marker.nextElementSibling;
+        while (target && target.classList && target.classList.contains(DIVIDER_CLASS)) {
+            target = target.nextElementSibling;
         }
         if (!target) return false;
 
@@ -879,14 +904,32 @@ export function initFrameGuide(editor, container, options = {}) {
     }
 
     // --- Insert sentence starter ---
-    function insertStarter(text, sourceSectionIndex) {
+    // sourceSubsectionIndex: -1 if section-level prompt, otherwise the
+    // subsection index. For sections with subsections (like Analyse), each
+    // subsection maps 1:1 to its own paragraph slot in the editor.
+    function insertStarter(text, sourceSectionIndex, sourceSubsectionIndex) {
         const currentSection = lastRange ? getSectionIndexFromRange(lastRange) : -1;
-        const needsJump = sourceSectionIndex !== undefined &&
-                          sourceSectionIndex !== -1 &&
-                          currentSection !== sourceSectionIndex;
+        const currentParagraph = lastRange ? getParagraphIndexFromRange(lastRange) : -1;
+
+        let needsJump = false;
+        let targetParagraphIndex = 0;
+
+        if (sourceSectionIndex !== undefined && sourceSectionIndex !== -1) {
+            if (sourceSubsectionIndex !== undefined && sourceSubsectionIndex >= 0) {
+                // Subsection-bound: the prompt belongs to a specific slot.
+                // Jump unless caret is already in exactly that slot.
+                targetParagraphIndex = sourceSubsectionIndex;
+                needsJump = currentSection !== sourceSectionIndex ||
+                            currentParagraph !== sourceSubsectionIndex;
+            } else {
+                // Section-level prompt: jump only if caret isn't in this section
+                targetParagraphIndex = 0;
+                needsJump = currentSection !== sourceSectionIndex;
+            }
+        }
 
         if (needsJump) {
-            if (!placeCaretAtSectionEnd(sourceSectionIndex)) {
+            if (!placeCaretAtSlot(sourceSectionIndex, targetParagraphIndex)) {
                 editor.focus();
             }
         } else {
