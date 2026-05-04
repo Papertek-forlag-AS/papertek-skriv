@@ -681,7 +681,14 @@ export function initFrameGuide(editor, container, options = {}) {
                 ${indicator}
             `;
             header.addEventListener('click', () => {
-                state.expanded = !state.expanded;
+                const willExpand = !state.expanded;
+                if (willExpand) {
+                    // Accordion: opening this section closes any other expanded section
+                    sectionStates.forEach((s, idx) => {
+                        if (idx !== i) s.expanded = false;
+                    });
+                }
+                state.expanded = willExpand;
                 renderSections();
                 scrollToSectionMarker(i);
             });
