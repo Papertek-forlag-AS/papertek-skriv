@@ -99,51 +99,51 @@ export async function launchEditor(container, docId, onBack) {
                 📷
                 ${t('image.button')}
             </button>
-            <button id="btn-spinner" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('spinner.title')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                ${t('spinner.title')}
-            </button>
-            <button id="btn-radar" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('radar.button')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                ${t('radar.button')}
-            </button>
-            <button id="btn-sentence-length" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('sentence.button')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                ${t('sentence.button')}
-            </button>
-            <button id="btn-paragraph-map" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('paragraphMap.button')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
-                ${t('paragraphMap.button')}
-            </button>
-            <button id="btn-table" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('table.button')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18M8 6v12M16 6v12"/></svg>
-                ${t('table.button')}
-            </button>
-            <button id="btn-feedback" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('feedback.button')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                ${t('feedback.button')}
-            </button>
-            <button id="btn-versions" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('versions.title')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                ${t('versions.title')}
-            </button>
-            <button id="btn-lix" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('lix.title')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0h6m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4"/></svg>
-                LIX
-            </button>
-            <button id="btn-argument-flow" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('argument.title')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-                ${t('argument.title')}
-            </button>
+            <div id="tools-wrapper" class="relative hidden flex-shrink-0">
+                <button id="btn-tools" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
+                    title="${t('skriv.toolsMenu')}">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+                    ${t('skriv.toolsMenu')} &#9660;
+                </button>
+                <div id="tools-menu" class="hidden absolute right-0 top-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg py-1 z-50 min-w-[200px]">
+                    <button id="btn-spinner" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span>${t('spinner.title')}</span>
+                    </button>
+                    <button id="btn-radar" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        <span>${t('radar.button')}</span>
+                    </button>
+                    <button id="btn-sentence-length" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>${t('sentence.button')}</span>
+                    </button>
+                    <button id="btn-paragraph-map" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
+                        <span>${t('paragraphMap.button')}</span>
+                    </button>
+                    <button id="btn-table" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18M8 6v12M16 6v12"/></svg>
+                        <span>${t('table.button')}</span>
+                    </button>
+                    <button id="btn-feedback" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>${t('feedback.button')}</span>
+                    </button>
+                    <button id="btn-versions" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>${t('versions.title')}</span>
+                    </button>
+                    <button id="btn-lix" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0h6m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4"/></svg>
+                        <span>LIX</span>
+                    </button>
+                    <button id="btn-argument-flow" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                        <span>${t('argument.title')}</span>
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="relative flex-shrink-0">
             <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors">
@@ -311,7 +311,7 @@ export async function launchEditor(container, docId, onBack) {
     }
 
     // --- Image Manager ---
-    const imageApi = initImageManager(editor, writingEnv, { onInsert: () => scheduleAutoSave() });
+    const imageApi = initImageManager(editor, writingEnv, { onInsert: () => autoSave.schedule() });
     const imageBtn = topBar.querySelector('#btn-image');
     if (imageBtn) {
         imageBtn.addEventListener('click', () => imageApi.openFilePicker());
@@ -476,10 +476,16 @@ export async function launchEditor(container, docId, onBack) {
 
     let suppressToast = true; // Suppress toast on initial auto-detect
 
+    const toolsWrapper = topBar.querySelector('#tools-wrapper');
+    const toolsMenu = topBar.querySelector('#tools-menu');
+    const toolsBtn = topBar.querySelector('#btn-tools');
+
     function updateAdvancedUI(enabled) {
         if (enabled) {
             advancedBtn.classList.remove('text-stone-500', 'border-stone-200');
             advancedBtn.classList.add('text-emerald-700', 'border-emerald-400', 'bg-emerald-50');
+            // Show the Verktøy dropdown
+            if (toolsWrapper) toolsWrapper.classList.remove('hidden');
             // Check if headings exist — if so, auto-insert TOC
             const hasHeadings = editor.querySelectorAll('h1, h2').length > 0;
             if (hasHeadings && !tocApi.hasTOC()) {
@@ -490,10 +496,33 @@ export async function launchEditor(container, docId, onBack) {
         } else {
             advancedBtn.classList.remove('text-emerald-700', 'border-emerald-400', 'bg-emerald-50');
             advancedBtn.classList.add('text-stone-500', 'border-stone-200');
+            // Hide the Verktøy dropdown and close menu
+            if (toolsWrapper) toolsWrapper.classList.add('hidden');
+            if (toolsMenu) toolsMenu.classList.add('hidden');
             tocApi.remove();
             if (!suppressToast) showToast(t('skriv.advancedOff'), { duration: 1500 });
         }
         if (!suppressToast) autoSave.schedule();
+    }
+
+    // Tools dropdown toggle
+    if (toolsBtn && toolsMenu) {
+        toolsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toolsMenu.classList.toggle('hidden');
+        });
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (toolsWrapper && !toolsWrapper.contains(e.target)) {
+                toolsMenu.classList.add('hidden');
+            }
+        });
+        // Close menu when any tool inside is clicked
+        toolsMenu.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                toolsMenu.classList.add('hidden');
+            });
+        });
     }
 
     // Listen for advanced mode changes from toolbar (including auto-detect)

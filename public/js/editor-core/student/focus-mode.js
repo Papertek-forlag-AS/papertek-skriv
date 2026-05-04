@@ -140,7 +140,7 @@ export function initFocusMode(editor, container, options = {}) {
     function createCloseButton() {
         closeBtn = document.createElement('button');
         closeBtn.className = 'skriv-focus-close';
-        closeBtn.setAttribute('aria-label', t('focusMode.close') || 'Close focus mode');
+        closeBtn.setAttribute('aria-label', t('focus.exit'));
         closeBtn.textContent = '×'; // multiplication sign as X
         closeBtn.addEventListener('click', deactivate);
         document.body.appendChild(closeBtn);
@@ -164,8 +164,7 @@ export function initFocusMode(editor, container, options = {}) {
     function updateWordCount() {
         if (!wordcountEl || !active) return;
         const count = countWords();
-        const label = t('focusMode.words') || '{count} ord';
-        wordcountEl.textContent = label.replace('{count}', count);
+        wordcountEl.textContent = t('focus.wordCount', { count });
     }
 
     // --- Paragraph focus ---

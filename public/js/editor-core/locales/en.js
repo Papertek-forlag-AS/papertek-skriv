@@ -384,6 +384,7 @@ export default {
             other: '{{count}} documents',
         },
         exportTitle: 'Export',
+        toolsMenu: 'Tools',
 
         // Advanced toggle + TOC
         advancedToggle: 'Advanced',

@@ -369,6 +369,7 @@ export default {
         wordsWritten: '{{count}} ord skrive',
         documentsCount: '{{count}} dokument',
         exportTitle: 'Eksporter',
+        toolsMenu: 'Verktøy',
 
         // Advanced toggle + TOC
         advancedToggle: 'Avansert',

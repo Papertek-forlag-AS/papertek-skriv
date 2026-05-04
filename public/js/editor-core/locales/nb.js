@@ -372,6 +372,7 @@ export default {
             other: '{{count}} dokumenter',
         },
         exportTitle: 'Eksporter',
+        toolsMenu: 'Verktøy',
 
         // Advanced toggle + TOC
         advancedToggle: 'Avansert',
