@@ -285,6 +285,27 @@ const CSS = `
 .skriv-frame-divider.section-marker.is-completed::after {
     background: #a7f3d0;
 }
+/* On-hold section marker: student moved away without marking done */
+.skriv-frame-divider.section-marker.is-on-hold .frame-divider-label {
+    color: #d97706;
+}
+.skriv-frame-divider.section-marker.is-on-hold .frame-divider-label::after {
+    content: ' ⏸';
+    font-size: 0.7em;
+    margin-left: 0.15em;
+}
+.skriv-frame-divider.section-marker.is-on-hold::before,
+.skriv-frame-divider.section-marker.is-on-hold::after {
+    background: #fcd34d;
+}
+/* On-hold sidebar header */
+.frame-guide-section.on-hold .frame-guide-section-title {
+    color: #b45309;
+}
+.frame-guide-section.on-hold .frame-guide-on-hold-icon {
+    color: #d97706;
+    font-weight: bold;
+}
 
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
@@ -385,6 +406,7 @@ export function initFrameGuide(editor, container, options = {}) {
     let panelVisible = false;
     let lastRange = null;
     let starterDataPromise = null;
+    let activeSectionIndex = -1;
 
     // Inject CSS
     styleEl = document.createElement('style');
@@ -398,9 +420,45 @@ export function initFrameGuide(editor, container, options = {}) {
         const range = sel.getRangeAt(0);
         if (editor.contains(range.startContainer)) {
             lastRange = range.cloneRange();
+            updateActiveSection();
         }
     }
     document.addEventListener('selectionchange', handleSelectionChange);
+
+    // --- Active-section tracking: detect when caret moves between sections.
+    // When student leaves a non-completed section without marking done, that
+    // section enters "on-hold" (amber). Entering a section clears its on-hold.
+    function updateActiveSection() {
+        if (!frameData || sectionStates.length === 0) return;
+        const newActive = getSectionIndexFromRange(lastRange);
+        if (newActive === activeSectionIndex) return;
+        const prev = activeSectionIndex;
+        activeSectionIndex = newActive;
+
+        let needsRender = false;
+        // Mark the section we just left as on-hold (unless completed)
+        if (prev >= 0 && sectionStates[prev] && !sectionStates[prev].completed && !sectionStates[prev].onHold) {
+            sectionStates[prev].onHold = true;
+            updateSectionMarkerVisuals(prev);
+            needsRender = true;
+        }
+        // Clear on-hold for the section we just entered
+        if (newActive >= 0 && sectionStates[newActive] && sectionStates[newActive].onHold) {
+            sectionStates[newActive].onHold = false;
+            updateSectionMarkerVisuals(newActive);
+            needsRender = true;
+        }
+        if (needsRender) renderSections();
+    }
+
+    function updateSectionMarkerVisuals(sectionIndex) {
+        const primary = editor.querySelector(
+            `.${SECTION_MARKER_CLASS}[data-section-index="${sectionIndex}"][data-paragraph-index="0"]`
+        );
+        if (!primary) return;
+        const state = sectionStates[sectionIndex];
+        primary.classList.toggle('is-on-hold', !!state.onHold && !state.completed);
+    }
 
     // --- Panel structure ---
     panel = document.createElement('div');
@@ -469,8 +527,7 @@ export function initFrameGuide(editor, container, options = {}) {
 
     function isEditorEffectivelyEmpty() {
         if (editor.children.length === 0) return true;
-        if (editor.children.length === 1 && isEmptyPlaceholderBlock(editor.children[0])) return true;
-        return false;
+        return [...editor.children].every(c => isEmptyPlaceholderBlock(c));
     }
 
     // --- Eager scaffold: insert all section/paragraph markers + slots ---
@@ -505,11 +562,13 @@ export function initFrameGuide(editor, container, options = {}) {
         sectionStates = data.sections.map(s => ({
             completed: false,
             expanded: false,
+            onHold: false,
             spinnerStarters: {
                 section: [],
                 subsections: (s.subsections || []).map(() => []),
             },
         }));
+        activeSectionIndex = -1;
         if (sectionStates.length > 0) sectionStates[0].expanded = true;
 
         // Eagerly scaffold dividers if editor has none yet
@@ -532,15 +591,19 @@ export function initFrameGuide(editor, container, options = {}) {
             const sectionEl = document.createElement('div');
             sectionEl.className = 'frame-guide-section' +
                 (state.completed ? ' completed' : '') +
-                (state.expanded ? ' expanded' : '');
+                (state.expanded ? ' expanded' : '') +
+                (state.onHold && !state.completed ? ' on-hold' : '');
 
             // Header (click to expand/collapse)
             const header = document.createElement('div');
             header.className = 'frame-guide-section-header';
+            const indicator = state.completed
+                ? '<span class="frame-guide-check">✓</span>'
+                : (state.onHold ? '<span class="frame-guide-on-hold-icon">⏸</span>' : '');
             header.innerHTML = `
                 <span class="frame-guide-section-arrow">${state.expanded ? '▼' : '▶'}</span>
                 <span class="frame-guide-section-title">${escapeHtml(section.title)}</span>
-                ${state.completed ? '<span class="frame-guide-check">✓</span>' : ''}
+                ${indicator}
             `;
             header.addEventListener('click', () => {
                 state.expanded = !state.expanded;
@@ -623,12 +686,14 @@ export function initFrameGuide(editor, container, options = {}) {
             doneBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 state.completed = !state.completed;
+                if (state.completed) state.onHold = false;
                 const primary = editor.querySelector(
                     `.${SECTION_MARKER_CLASS}[data-section-index="${i}"][data-paragraph-index="0"]`
                 );
                 if (primary) {
                     primary.dataset.completed = state.completed ? 'true' : 'false';
                     primary.classList.toggle('is-completed', state.completed);
+                    primary.classList.toggle('is-on-hold', !!state.onHold && !state.completed);
                 }
                 if (state.completed) {
                     state.expanded = false;
@@ -707,31 +772,40 @@ export function initFrameGuide(editor, container, options = {}) {
     }
 
     async function pickSpinnerStarter({ sectionIndex, subsectionIndex, bucket }) {
-        if (!bucket || !frameType) return null;
+        if (!frameType) return null;
         const starters = await ensureSpinnerData();
         const tier = levelToTier(options.getLevel?.() || 'ungdomsskole');
         const genreData = starters[frameType] || starters.generell;
         if (!genreData) return null;
         const tierData = genreData[tier] || genreData.us;
         if (!tierData) return null;
-        const pool = tierData[bucket];
-        if (!pool || pool.length === 0) return null;
 
-        // Skip ones we've already shown for this slot
+        // Filter list: shown for this slot + authored prompts at same scope
         const state = sectionStates[sectionIndex];
         const shown = subsectionIndex >= 0
             ? state.spinnerStarters.subsections[subsectionIndex]
             : state.spinnerStarters.section;
-        // Also skip authored prompts at this scope so we don't echo them
         const sectionData = frameData.sections[sectionIndex];
         const authored = subsectionIndex >= 0
             ? (sectionData.subsections[subsectionIndex].prompts || [])
             : (sectionData.prompts || []);
         const used = new Set([...shown, ...authored]);
 
-        const available = pool.filter(s => !used.has(s));
-        if (available.length === 0) return null;
-        return available[Math.floor(Math.random() * available.length)];
+        // Try the requested bucket first, then fall back to other buckets in
+        // the same genre. Different genres use different bucket-name
+        // conventions (analyse: innledning/hoveddel/…, novelle: aapning/
+        // skildring/…), so the position-default may not match a real bucket.
+        // Falling through keeps the button useful instead of silently failing.
+        const requested = bucket && tierData[bucket] ? [bucket] : [];
+        const others = Object.keys(tierData).filter(b => b !== bucket);
+        for (const b of [...requested, ...others]) {
+            const pool = tierData[b];
+            if (!pool || pool.length === 0) continue;
+            const available = pool.filter(s => !used.has(s));
+            if (available.length === 0) continue;
+            return available[Math.floor(Math.random() * available.length)];
+        }
+        return null;
     }
 
     // --- Progress bar ---
@@ -929,7 +1003,14 @@ export function initFrameGuide(editor, container, options = {}) {
         frameType = null;
         sectionStates = [];
         hide();
-        editor.querySelectorAll(`.${DIVIDER_CLASS}`).forEach(el => el.remove());
+        // Remove each divider plus the empty <p> slot that immediately follows it.
+        // This cleans up unused scaffold slots while preserving any paragraph
+        // the student actually wrote into.
+        editor.querySelectorAll(`.${DIVIDER_CLASS}`).forEach(el => {
+            const next = el.nextElementSibling;
+            if (next && isEmptyPlaceholderBlock(next)) next.remove();
+            el.remove();
+        });
         editor.classList.remove('skriv-frame-guide-collapsed');
         if (options.onSave) options.onSave();
     }
