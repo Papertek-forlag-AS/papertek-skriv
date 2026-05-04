@@ -154,13 +154,34 @@ const CSS = `
     font-size: 0.8rem;
 }
 .frame-guide-subsection {
-    margin: 0.5rem 0;
+    margin: 0.4rem 0;
     padding-left: 0.5rem;
     border-left: 2px solid #d6d3d1;
+}
+.frame-guide-subsection-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    padding: 0.2rem 0.1rem;
+    border-radius: 4px;
+    transition: background 0.1s;
+}
+.frame-guide-subsection-header:hover {
+    background: #f5f5f4;
+}
+.frame-guide-subsection-arrow {
+    font-size: 0.55rem;
+    color: #a8a29e;
+    width: 10px;
+    flex-shrink: 0;
 }
 .frame-guide-subsection strong {
     font-size: 0.8rem;
     color: #44403c;
+}
+.frame-guide-subsection-body {
+    margin-top: 0.25rem;
 }
 .frame-guide-sub-instruction {
     font-size: 0.75rem;
@@ -273,8 +294,9 @@ const CSS = `
 }
 .skriv-frame-divider.section-marker::before,
 .skriv-frame-divider.section-marker::after {
-    height: 2px;
-    background: #a8a29e;
+    height: 3px;
+    background: #78716c;
+    border-radius: 2px;
 }
 .skriv-frame-divider.section-marker .frame-divider-label {
     font-size: 1rem;
@@ -289,36 +311,36 @@ const CSS = `
     color: #b7b3ad;
     font-style: italic;
 }
-/* Section-end marker: subtle closing line, no label, just a tiny indicator */
+/* Section-end marker: solid closing line, slightly subtler than the start */
 .skriv-frame-divider.section-end-marker {
     margin: 0.25em 0 1.5em;
     cursor: default;
 }
 .skriv-frame-divider.section-end-marker::before,
 .skriv-frame-divider.section-end-marker::after {
-    background: transparent;
-    border-bottom: 1px dashed #d6d3d1;
-    height: 0;
+    background: #a8a29e;
+    height: 2px;
+    border-radius: 2px;
 }
 .skriv-frame-divider.section-end-marker .frame-divider-label {
-    font-size: 0.55rem;
-    color: #d6d3d1;
-    padding: 0 0.5rem;
+    font-size: 0.7rem;
+    color: #a8a29e;
+    padding: 0 0.6rem;
 }
 .skriv-frame-divider.section-end-marker:hover .frame-divider-label {
-    color: #d6d3d1;  /* don't highlight on hover - it's not interactive */
+    color: #a8a29e;  /* don't highlight on hover - it's not interactive */
 }
 /* End marker reflects parent section's state */
 .skriv-frame-divider.section-end-marker.is-completed::before,
 .skriv-frame-divider.section-end-marker.is-completed::after {
-    border-bottom-color: #a7f3d0;
+    background: #34d399;
 }
 .skriv-frame-divider.section-end-marker.is-completed .frame-divider-label {
     color: #059669;
 }
 .skriv-frame-divider.section-end-marker.is-on-hold::before,
 .skriv-frame-divider.section-end-marker.is-on-hold::after {
-    border-bottom-color: #fcd34d;
+    background: #fbbf24;
 }
 .skriv-frame-divider.section-end-marker.is-on-hold .frame-divider-label {
     color: #d97706;
@@ -326,12 +348,10 @@ const CSS = `
 /* Completed section marker */
 .skriv-frame-divider.section-marker.is-completed .frame-divider-label {
     color: #059669;
-    text-decoration: line-through;
-    text-decoration-color: #a7f3d0;
 }
 .skriv-frame-divider.section-marker.is-completed::before,
 .skriv-frame-divider.section-marker.is-completed::after {
-    background: #a7f3d0;
+    background: #34d399;
 }
 /* On-hold section marker: student moved away without marking done */
 .skriv-frame-divider.section-marker.is-on-hold .frame-divider-label {
@@ -641,6 +661,10 @@ export function initFrameGuide(editor, container, options = {}) {
                     (sub.prompts || []).slice(0, MAX_VISIBLE_STARTERS)
                 ),
             },
+            // Accordion state per subsection — closed by default; clicking
+            // a subsection title opens it and closes any other open one
+            // within the same section.
+            subsectionExpanded: (s.subsections || []).map(() => false),
         }));
         activeSectionIndex = -1;
         spinnerHistory.clear();
@@ -706,32 +730,54 @@ export function initFrameGuide(editor, container, options = {}) {
                 content.appendChild(instr);
             }
 
-            // Subsections
+            // Subsections — collapsed by default, accordion within section
             if (section.subsections && section.subsections.length > 0) {
                 section.subsections.forEach((sub, subIdx) => {
+                    const subExpanded = !!state.subsectionExpanded[subIdx];
                     const subEl = document.createElement('div');
-                    subEl.className = 'frame-guide-subsection';
-                    subEl.innerHTML = `<strong>${escapeHtml(sub.title)}</strong>`;
-                    if (sub.instruction) {
-                        const subInstr = document.createElement('p');
-                        subInstr.className = 'frame-guide-sub-instruction';
-                        subInstr.textContent = sub.instruction;
-                        subEl.appendChild(subInstr);
-                    }
-                    // Currently-visible starters (sliding window) — initial
-                    // fill from authored prompts, replaced over time as
-                    // student rolls "More suggestions".
-                    (state.starters.subsections[subIdx] || []).forEach(text => {
-                        subEl.appendChild(makeStarterButton(text, i, subIdx));
+                    subEl.className = 'frame-guide-subsection' + (subExpanded ? ' expanded' : '');
+
+                    // Clickable title row
+                    const subHeader = document.createElement('div');
+                    subHeader.className = 'frame-guide-subsection-header';
+                    subHeader.innerHTML = `
+                        <span class="frame-guide-subsection-arrow">${subExpanded ? '▼' : '▶'}</span>
+                        <strong>${escapeHtml(sub.title)}</strong>
+                    `;
+                    subHeader.addEventListener('click', () => {
+                        const willExpand = !state.subsectionExpanded[subIdx];
+                        if (willExpand) {
+                            // Accordion: opening this subsection closes others in this section
+                            state.subsectionExpanded = state.subsectionExpanded.map(() => false);
+                        }
+                        state.subsectionExpanded[subIdx] = willExpand;
+                        renderSections();
                     });
-                    // 🎲 Flere forslag (subsection-level)
-                    if (sub.spinnerBucket) {
-                        subEl.appendChild(makeSpinnerButton({
-                            sectionIndex: i,
-                            subsectionIndex: subIdx,
-                            bucket: sub.spinnerBucket,
-                        }));
+                    subEl.appendChild(subHeader);
+
+                    // Body (instruction + starters + spinner) — only when expanded
+                    if (subExpanded) {
+                        const subBody = document.createElement('div');
+                        subBody.className = 'frame-guide-subsection-body';
+                        if (sub.instruction) {
+                            const subInstr = document.createElement('p');
+                            subInstr.className = 'frame-guide-sub-instruction';
+                            subInstr.textContent = sub.instruction;
+                            subBody.appendChild(subInstr);
+                        }
+                        (state.starters.subsections[subIdx] || []).forEach(text => {
+                            subBody.appendChild(makeStarterButton(text, i, subIdx));
+                        });
+                        if (sub.spinnerBucket) {
+                            subBody.appendChild(makeSpinnerButton({
+                                sectionIndex: i,
+                                subsectionIndex: subIdx,
+                                bucket: sub.spinnerBucket,
+                            }));
+                        }
+                        subEl.appendChild(subBody);
                     }
+
                     content.appendChild(subEl);
                 });
             }
