@@ -256,7 +256,10 @@ export function initGermanExamSpinner(container, options = {}) {
             </article>
         `;
 
-        // Lazy-load SVG if present
+        // Lazy-load SVG if present.
+        // The default export is injected as innerHTML — SVG modules under
+        // german-exam-svg/ are part of the trust boundary. Only commit
+        // hand-authored SVG; never wire image() to an untrusted source.
         if (task.image) {
             const slot = cardHost.querySelector('[data-image]');
             task.image().then(mod => {
