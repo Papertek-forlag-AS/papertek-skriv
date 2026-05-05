@@ -120,6 +120,8 @@ export default {
         updateAvailable: 'Ei ny utgåve er tilgjengeleg.',
         updateNow: 'Oppdater no',
         updating: 'Oppdaterer...',
+        forceRefresh: 'Hent ny utgåve',
+        forceRefreshHint: 'Tøm cache og last på nytt',
     },
 
     level: {

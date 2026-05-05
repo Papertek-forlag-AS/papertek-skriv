@@ -129,6 +129,8 @@ export default {
         updateAvailable: 'A new version is available.',
         updateNow: 'Update now',
         updating: 'Updating...',
+        forceRefresh: 'Force refresh',
+        forceRefreshHint: 'Clear cache and reload',
     },
 
     level: {
