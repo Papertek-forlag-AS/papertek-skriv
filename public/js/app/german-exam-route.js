@@ -8,11 +8,13 @@
 
 import { t } from '../editor-core/shared/i18n.js';
 import { escapeHtml } from '../editor-core/shared/html-escape.js';
+import { showInPageConfirm } from '../editor-core/shared/in-page-modal.js';
 import { initGermanExamSpinner } from '../editor-core/student/german-exam-spinner.js';
 import { createDocument, saveDocument } from './document-store.js';
 import { getAllFolders, createFolder, addDocToFolder } from './folder-store.js';
 
 const TYSK_FOLDER_KEY = 'germanExam.folderName';
+const WRITE_EXPLAIN_SEEN_KEY = 'germanExam.writeExplainSeen';
 
 async function ensureTyskFolder() {
     const name = t(TYSK_FOLDER_KEY);
@@ -59,6 +61,20 @@ function stripHtml(html) {
 }
 
 async function handlePickTask(task, levelKey) {
+    // First time only: explain that "Write answer" creates a new doc in the
+    // Tysk folder. After confirmation we remember the choice so subsequent
+    // clicks proceed without interruption.
+    if (!localStorage.getItem(WRITE_EXPLAIN_SEEN_KEY)) {
+        const proceed = await showInPageConfirm(
+            t('germanExam.writeExplainTitle'),
+            t('germanExam.writeExplainBody'),
+            t('germanExam.writeExplainConfirm'),
+            t('common.cancel')
+        );
+        if (!proceed) return;
+        localStorage.setItem(WRITE_EXPLAIN_SEEN_KEY, '1');
+    }
+
     const folder = await ensureTyskFolder();
 
     const title = t('germanExam.docTitlePattern', {

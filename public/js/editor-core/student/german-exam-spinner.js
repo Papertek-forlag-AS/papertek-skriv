@@ -206,9 +206,6 @@ export function initGermanExamSpinner(container, options = {}) {
                         ? escapeHtml(t('germanExam.deckEmpty'))
                         : escapeHtml(t('germanExam.deckRemaining', { n: remaining, total }))
                 }</span>
-                <button type="button" data-reshuffle class="text-xs underline">
-                    ${escapeHtml(t('germanExam.reshuffle'))}
-                </button>
             </div>
 
             <div class="text-center mb-6">
@@ -323,11 +320,6 @@ export function initGermanExamSpinner(container, options = {}) {
             return;
         }
         if (e.target.closest('[data-spin]')) { handleSpin(); return; }
-        if (e.target.closest('[data-reshuffle]')) {
-            reshuffleDeck(activeLevel);
-            updateDeckStatus();
-            return;
-        }
         if (e.target.closest('[data-toggle-model]')) {
             modelAnswerOpen = !modelAnswerOpen;
             const modelEl = root.querySelector('[data-model]');
