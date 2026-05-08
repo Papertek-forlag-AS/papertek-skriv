@@ -140,8 +140,12 @@ export const writingTasks = {
 
 /**
  * Real Udir exam tasks (or Udir example exams). Prompts are quoted verbatim.
- * Model answers are teacher-authored simple-Norwegian drafts that the
- * student can use as scaffolding before writing their German response.
+ * Model answers are teacher-authored simple-Norwegian drafts written with
+ * German word order in mind (V2, short SVO sentences) so students can
+ * translate sentence-by-sentence. Each task can also ship a `vocab` array
+ * of [norwegian, german] pairs covering the trickier words; the spinner
+ * shows them as chips, and the seeded document includes them as a
+ * glossary so the student has the German equivalents at hand while writing.
  */
 export const examTasks = {
     'tysk-1': [
@@ -153,7 +157,31 @@ export const examTasks = {
             title: 'Oppgave 12: Melding til tanten',
             prompt: 'I denne oppgaven skal du skrive en melding på 60–80 ord.\n\nDu har fått en melding fra tanten din der hun foreslår at du tilbringer neste helg hjemme hos henne. Du har ikke noe lyst til det, og dessuten har du andre planer allerede.\n\nSkriv et svar på meldingen fra tanten din der du\n- avslår invitasjonen hennes på en hyggelig måte\n- skriver hvilke planer du allerede har for neste helg\n- lover å besøke henne på et annet tidspunkt',
             image: null,
-            modelAnswer: 'Hei kjære tante! Tusen takk for den hyggelige invitasjonen — det var snilt av deg å tenke på meg. Dessverre passer det ikke for meg å komme akkurat neste helg. På lørdag har jeg avtalt å feire bursdagen til en god venn, og søndag skal jeg være med familien på en dagstur. Kan vi heller finne en annen helg, kanskje om noen uker? Da kommer jeg gjerne på besøk en hel dag og blir lenge. Klem fra meg.',
+            modelAnswer: 'Kjære tante,\n\nTusen takk for den hyggelige invitasjonen din. Det var snilt av deg å tenke på meg. Dessverre passer det ikke for meg å komme neste helg. På lørdag feirer jeg bursdagen til en god venn. På søndag drar jeg på tur med familien min. Jeg foreslår en annen helg i mai. Da kommer jeg gjerne på besøk en hel dag. Jeg gleder meg til å se deg snart.\n\nMange klemmer\n[ditt navn]',
+            vocab: [
+                ['kjære', 'liebe / lieber'],
+                ['tante', 'Tante'],
+                ['takk for', 'danke für'],
+                ['invitasjonen', 'die Einladung'],
+                ['snilt av deg', 'nett von dir'],
+                ['dessverre', 'leider'],
+                ['passer det ikke', 'es passt nicht'],
+                ['neste helg', 'nächstes Wochenende'],
+                ['lørdag', 'Samstag'],
+                ['søndag', 'Sonntag'],
+                ['feirer', 'feiere'],
+                ['bursdagen', 'Geburtstag'],
+                ['en god venn', 'ein guter Freund'],
+                ['drar på tur', 'mache einen Ausflug'],
+                ['familien min', 'meine Familie'],
+                ['foreslår', 'schlage vor'],
+                ['mai', 'Mai'],
+                ['kommer på besøk', 'komme zu Besuch'],
+                ['en hel dag', 'einen ganzen Tag'],
+                ['gleder meg til', 'freue mich auf'],
+                ['snart', 'bald'],
+                ['mange klemmer', 'liebe Grüße'],
+            ],
             attribution: 'Udir, Tysk 1, eksempeloppgave 2026',
         },
         {
@@ -164,7 +192,49 @@ export const examTasks = {
             title: 'Oppgave 13: Sommerjobb',
             prompt: 'I denne oppgaven skal du skrive en tekst på 140–160 ord.\n\nDu har nettopp begynt i en sommerjobb på et av disse stedene: SPAR (matbutikk), Petshop (kjæledyrbutikk), Regent Sport (sportsbutikk) eller Wiik Gård (gårdsbruk).\n\nSkriv en tekst der du forteller\n- hvor du jobber\n- hvilke arbeidsoppgaver du har\n- hva du har gjort på jobben i dag\n- om du liker jobben eller ikke, og hvorfor\n- hvordan du kommer deg til jobben\n- når du jobber, og hvor lenge du skal jobbe der',
             image: () => import('./german-exam-svg/summer-job.js'),
-            modelAnswer: 'I sommer har jeg fått jobb i en SPAR-butikk her hjemme i bygda. Arbeidsoppgavene mine er å fylle opp hyllene, hjelpe kundene som trenger råd, og noen ganger sitter jeg i kassa. I dag jobbet jeg i frukt- og grøntavdelingen, pakket ut nye varer fra en lastebil og ryddet tomme esker. Jeg liker jobben fordi kollegaene er hyggelige og dagene går fort, men det er litt slitsomt å stå hele dagen. Jeg sykler til jobben — det tar omtrent ti minutter hjemmefra. Jeg jobber tre dager i uken, fra klokken ni til halv fire, og skal være der hele juli og august. Etterpå vil jeg ha tjent litt egne penger til høsten.',
+            modelAnswer: 'I sommer har jeg en jobb i en SPAR-butikk i bygda mi. Det er min første sommerjobb. Arbeidsoppgavene mine er enkle. Jeg fyller opp hyllene med nye varer. Jeg hjelper kundene som leter etter noe. Av og til sitter jeg i kassa. I dag har jeg jobbet i frukt- og grøntavdelingen. Jeg pakket ut bananer, epler og grønnsaker. Etterpå ryddet jeg tomme pappkasser i lageret. Jeg liker jobben fordi kollegaene mine er veldig hyggelige. Dagene går fort, men det er litt slitsomt å stå hele dagen. Jeg sykler til butikken hver morgen. Turen tar omtrent ti minutter hjemmefra. Jeg jobber tre dager i uken. Vaktene er fra klokken ni til halv fire. Jeg skal jobbe der hele juli og august. Jeg snakker mest med voksne kunder, og jeg har lært mange nye navn på varene. Etterpå har jeg tjent mine egne penger. Halvparten skal jeg spare, og resten bruker jeg på en ny sykkel.',
+            vocab: [
+                ['i sommer', 'diesen Sommer'],
+                ['jobb', 'Job / Arbeit'],
+                ['matbutikk', 'Lebensmittelgeschäft'],
+                ['bygda mi', 'mein Dorf'],
+                ['første sommerjobb', 'erster Sommerjob'],
+                ['arbeidsoppgaver', 'Aufgaben'],
+                ['enkle', 'einfach'],
+                ['fyller opp', 'fülle … auf'],
+                ['hyllene', 'die Regale'],
+                ['varer', 'Waren'],
+                ['hjelper kundene', 'helfe den Kunden'],
+                ['leter etter', 'suchen nach'],
+                ['av og til', 'manchmal'],
+                ['sitter i kassa', 'sitze an der Kasse'],
+                ['frukt- og grøntavdelingen', 'Obst- und Gemüseabteilung'],
+                ['pakket ut', 'ausgepackt'],
+                ['bananer, epler, grønnsaker', 'Bananen, Äpfel, Gemüse'],
+                ['ryddet tomme pappkasser', 'räumte leere Kartons auf'],
+                ['lageret', 'das Lager'],
+                ['kollegaene mine', 'meine Kollegen'],
+                ['hyggelige', 'nett'],
+                ['dagene går fort', 'die Tage vergehen schnell'],
+                ['slitsomt', 'anstrengend'],
+                ['å stå hele dagen', 'den ganzen Tag zu stehen'],
+                ['sykler', 'fahre mit dem Fahrrad'],
+                ['turen tar … minutter', 'die Fahrt dauert … Minuten'],
+                ['hjemmefra', 'von zu Hause'],
+                ['tre dager i uken', 'drei Tage pro Woche'],
+                ['vaktene', 'die Schichten'],
+                ['fra … til …', 'von … bis …'],
+                ['halv fire', 'halb vier (15:30)'],
+                ['hele juli og august', 'den ganzen Juli und August'],
+                ['voksne kunder', 'erwachsene Kunden'],
+                ['har lært', 'habe gelernt'],
+                ['navn på varene', 'Namen der Waren'],
+                ['tjent egne penger', 'eigenes Geld verdient'],
+                ['halvparten', 'die Hälfte'],
+                ['skal jeg spare', 'werde ich sparen'],
+                ['resten bruker jeg på', 'den Rest gebe ich aus für'],
+                ['ny sykkel', 'ein neues Fahrrad'],
+            ],
             attribution: 'Udir, Tysk 1, eksempeloppgave 2026',
         },
     ],

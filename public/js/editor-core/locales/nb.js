@@ -204,6 +204,8 @@ export default {
         showModelAnswer: 'Vis forslag på enkel norsk',
         hideModelAnswer: 'Skjul forslag',
         modelAnswerHeading: 'Forslag på enkel norsk',
+        vocabHeading: 'Norsk → tysk',
+        vocabDocHeading: 'Ordliste norsk → tysk',
         writeAnswer: 'Skriv svar',
         modeTabsLabel: 'Velg type oppgave',
         tabWriting: 'Skriveøvelse',

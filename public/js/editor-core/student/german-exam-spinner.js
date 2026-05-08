@@ -160,6 +160,33 @@ function scrambleCard(root) {
 
 // ─── Markdown-light → HTML (paragraphs + lists) ──────────────────────────
 
+function modelAnswerToHtml(text) {
+    if (!text) return '';
+    const paragraphs = text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+    return paragraphs.map(p => {
+        // Single \n inside a paragraph → <br> (e.g. sign-off above [navn])
+        const inner = p.split('\n').map(line => escapeHtml(line)).join('<br>');
+        return `<p class="my-2">${inner}</p>`;
+    }).join('');
+}
+
+function vocabToHtml(vocab) {
+    if (!Array.isArray(vocab) || vocab.length === 0) return '';
+    const chips = vocab.map(([no, de]) => `
+        <span class="inline-flex items-baseline gap-1 px-2 py-0.5 mr-1 mb-1 text-[11px] rounded-md bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800">
+            <span class="text-stone-600 dark:text-stone-300">${escapeHtml(no)}</span>
+            <span class="text-emerald-400 dark:text-emerald-500">→</span>
+            <span class="font-medium text-emerald-700 dark:text-emerald-300">${escapeHtml(de)}</span>
+        </span>
+    `).join('');
+    return `
+        <div class="mt-3">
+            <h4 class="text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400 mb-1">${escapeHtml(t('germanExam.vocabHeading'))}</h4>
+            <div class="flex flex-wrap">${chips}</div>
+        </div>
+    `;
+}
+
 function promptToHtml(prompt) {
     const blocks = prompt.split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
     return blocks.map(block => {
@@ -288,7 +315,8 @@ export function initGermanExamSpinner(container, options = {}) {
                     </button>
                     <div data-model class="${modelAnswerOpen ? 'mt-3' : 'hidden mt-3'} border-l-4 border-emerald-300 pl-3 text-stone-700 dark:text-stone-200">
                         <h3 class="text-sm font-semibold mb-1">${escapeHtml(t('germanExam.modelAnswerHeading'))}</h3>
-                        <p>${escapeHtml(task.modelAnswer)}</p>
+                        ${modelAnswerToHtml(task.modelAnswer)}
+                        ${vocabToHtml(task.vocab)}
                     </div>
                 </div>
                 <div class="mt-5 text-right">

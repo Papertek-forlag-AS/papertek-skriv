@@ -213,6 +213,8 @@ export default {
         showModelAnswer: 'Show simple-Norwegian draft',
         hideModelAnswer: 'Hide draft',
         modelAnswerHeading: 'Simple-Norwegian draft',
+        vocabHeading: 'Norwegian → German',
+        vocabDocHeading: 'Glossary Norwegian → German',
         writeAnswer: 'Write answer',
         modeTabsLabel: 'Choose task type',
         tabWriting: 'Writing practice',
