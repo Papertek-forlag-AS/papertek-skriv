@@ -1,28 +1,27 @@
 /**
- * Task corpus for the German Exam Spinner.
+ * Task corpus for the German Spinner.
  *
- * Each level has an array of tasks. Tasks are pulled from public Udir
- * eksamensoppgaver (writing parts only).
+ * Two corpora:
+ *   - writingTasks: open-ended PoC writing prompts for everyday practice.
+ *     Suitable for any student wanting to practice German writing.
+ *   - examTasks: real Udir-style exam prompts (or Udir example exams) for
+ *     students preparing for an actual eksamen.
  *
- * Shape:
+ * Same task shape in both:
  *   {
  *     id: string,                // stable; used as deck key
  *     year: number,
  *     term: 'vår' | 'høst',
  *     part: string,              // e.g. 'Del 2 – Skriftlig produksjon'
  *     title: string,
- *     prompt: string,            // German task text; \n\n separates paragraphs
+ *     prompt: string,            // task text; \n\n separates paragraphs
  *     image: null | (() => Promise<{ default: string }>),  // lazy SVG import
- *     modelAnswer: string,       // simple bokmål, ~80–150 words
- *     attribution: string,       // 'Udir, Tysk 1, vår 2023'
+ *     modelAnswer: string,       // simple-Norwegian draft, ~80–150 words
+ *     attribution: string,       // e.g. 'Udir, Tysk 1, vår 2023'
  *   }
- *
- * Note: the prompts and model answers below are PoC seed content.
- * Replace with verbatim Udir prompts and teacher-authored model answers
- * before shipping to production.
  */
 
-export const tasks = {
+export const writingTasks = {
     'tysk-1': [
         {
             id: 'tysk1-seed-01',
@@ -140,6 +139,46 @@ export const tasks = {
 };
 
 /**
- * Convenience: list of valid level keys.
+ * Real Udir exam tasks (or Udir example exams). Prompts are quoted verbatim.
+ * Model answers are teacher-authored simple-Norwegian drafts that the
+ * student can use as scaffolding before writing their German response.
+ */
+export const examTasks = {
+    'tysk-1': [
+        {
+            id: 'tysk1-exam-2026-12',
+            year: 2026,
+            term: 'eksempel',
+            part: 'Del 2 – Skriftlig produksjon',
+            title: 'Oppgave 12: Melding til tanten',
+            prompt: 'I denne oppgaven skal du skrive en melding på 60–80 ord.\n\nDu har fått en melding fra tanten din der hun foreslår at du tilbringer neste helg hjemme hos henne. Du har ikke noe lyst til det, og dessuten har du andre planer allerede.\n\nSkriv et svar på meldingen fra tanten din der du\n- avslår invitasjonen hennes på en hyggelig måte\n- skriver hvilke planer du allerede har for neste helg\n- lover å besøke henne på et annet tidspunkt',
+            image: null,
+            modelAnswer: 'Hei kjære tante! Tusen takk for den hyggelige invitasjonen — det var snilt av deg å tenke på meg. Dessverre passer det ikke for meg å komme akkurat neste helg. På lørdag har jeg avtalt å feire bursdagen til en god venn, og søndag skal jeg være med familien på en dagstur. Kan vi heller finne en annen helg, kanskje om noen uker? Da kommer jeg gjerne på besøk en hel dag og blir lenge. Klem fra meg.',
+            attribution: 'Udir, Tysk 1, eksempeloppgave 2026',
+        },
+        {
+            id: 'tysk1-exam-2026-13',
+            year: 2026,
+            term: 'eksempel',
+            part: 'Del 2 – Skriftlig produksjon',
+            title: 'Oppgave 13: Sommerjobb',
+            prompt: 'I denne oppgaven skal du skrive en tekst på 140–160 ord.\n\nDu har nettopp begynt i en sommerjobb på et av disse stedene: SPAR (matbutikk), Petshop (kjæledyrbutikk), Regent Sport (sportsbutikk) eller Wiik Gård (gårdsbruk).\n\nSkriv en tekst der du forteller\n- hvor du jobber\n- hvilke arbeidsoppgaver du har\n- hva du har gjort på jobben i dag\n- om du liker jobben eller ikke, og hvorfor\n- hvordan du kommer deg til jobben\n- når du jobber, og hvor lenge du skal jobbe der',
+            image: () => import('./german-exam-svg/summer-job.js'),
+            modelAnswer: 'I sommer har jeg fått jobb i en SPAR-butikk her hjemme i bygda. Arbeidsoppgavene mine er å fylle opp hyllene, hjelpe kundene som trenger råd, og noen ganger sitter jeg i kassa. I dag jobbet jeg i frukt- og grøntavdelingen, pakket ut nye varer fra en lastebil og ryddet tomme esker. Jeg liker jobben fordi kollegaene er hyggelige og dagene går fort, men det er litt slitsomt å stå hele dagen. Jeg sykler til jobben — det tar omtrent ti minutter hjemmefra. Jeg jobber tre dager i uken, fra klokken ni til halv fire, og skal være der hele juli og august. Etterpå vil jeg ha tjent litt egne penger til høsten.',
+            attribution: 'Udir, Tysk 1, eksempeloppgave 2026',
+        },
+    ],
+    'tysk-2': [],
+};
+
+/**
+ * Backward-compatible alias. Older callers that imported `tasks` get the
+ * writing corpus by default.
+ */
+export const tasks = writingTasks;
+
+/**
+ * Convenience: list of valid level + mode keys.
  */
 export const LEVELS = ['tysk-1', 'tysk-2'];
+export const MODES = ['writing', 'exam'];

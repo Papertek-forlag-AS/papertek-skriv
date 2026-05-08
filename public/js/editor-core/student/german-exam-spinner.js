@@ -20,18 +20,23 @@
 
 import { t } from '../shared/i18n.js';
 import { escapeHtml } from '../shared/html-escape.js';
-import { tasks as TASKS, LEVELS } from './german-exam-data.js';
+import { writingTasks, examTasks, LEVELS, MODES } from './german-exam-data.js';
 
 const DECK_KEY_PREFIX = 'papertek.skriv.germanExam.deck.';
 const LEVEL_KEY = 'papertek.skriv.germanExam.activeLevel';
+const MODE_KEY = 'papertek.skriv.germanExam.activeMode';
+
+function corpusFor(mode) {
+    return mode === 'exam' ? examTasks : writingTasks;
+}
 const SCRAMBLE_CHARS = 'abcdefghijklmnoprstuvwxyzäöüß';
 const SCRAMBLE_DURATION = 600;
 const SCRAMBLE_INTERVAL = 30;
 
 // ─── Deck persistence ────────────────────────────────────────────────────
 
-function deckKey(level) {
-    return DECK_KEY_PREFIX + level;
+function deckKey(mode, level) {
+    return DECK_KEY_PREFIX + mode + '.' + level;
 }
 
 function shuffle(arr) {
@@ -43,9 +48,9 @@ function shuffle(arr) {
     return a;
 }
 
-function loadDeck(level) {
+function loadDeck(mode, level) {
     try {
-        const raw = localStorage.getItem(deckKey(level));
+        const raw = localStorage.getItem(deckKey(mode, level));
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         return Array.isArray(parsed) ? parsed : null;
@@ -54,38 +59,38 @@ function loadDeck(level) {
     }
 }
 
-function saveDeck(level, ids) {
+function saveDeck(mode, level, ids) {
     try {
-        localStorage.setItem(deckKey(level), JSON.stringify(ids));
+        localStorage.setItem(deckKey(mode, level), JSON.stringify(ids));
     } catch {
         // localStorage unavailable — proceed without persistence
     }
 }
 
-function reshuffleDeck(level) {
-    const ids = (TASKS[level] || []).map(t => t.id);
+function reshuffleDeck(mode, level) {
+    const ids = (corpusFor(mode)[level] || []).map(t => t.id);
     const shuffled = shuffle(ids);
-    saveDeck(level, shuffled);
+    saveDeck(mode, level, shuffled);
     return shuffled;
 }
 
-function ensureDeck(level) {
-    const existing = loadDeck(level);
+function ensureDeck(mode, level) {
+    const existing = loadDeck(mode, level);
     if (existing && existing.length > 0) return existing;
-    return reshuffleDeck(level);
+    return reshuffleDeck(mode, level);
 }
 
-function pickTaskFromDeck(level) {
-    const deck = ensureDeck(level);
+function pickTaskFromDeck(mode, level) {
+    const deck = ensureDeck(mode, level);
     const id = deck[0];
     const remaining = deck.slice(1);
-    saveDeck(level, remaining);
-    const task = (TASKS[level] || []).find(t => t.id === id);
+    saveDeck(mode, level, remaining);
+    const task = (corpusFor(mode)[level] || []).find(t => t.id === id);
     return { task, deckAfter: remaining };
 }
 
-function totalTasks(level) {
-    return (TASKS[level] || []).length;
+function totalTasks(mode, level) {
+    return (corpusFor(mode)[level] || []).length;
 }
 
 // ─── Active level persistence ────────────────────────────────────────────
@@ -97,6 +102,15 @@ function loadActiveLevel() {
 
 function saveActiveLevel(level) {
     try { localStorage.setItem(LEVEL_KEY, level); } catch {}
+}
+
+function loadActiveMode() {
+    const v = localStorage.getItem(MODE_KEY);
+    return MODES.includes(v) ? v : 'writing';
+}
+
+function saveActiveMode(mode) {
+    try { localStorage.setItem(MODE_KEY, mode); } catch {}
 }
 
 // ─── Scramble animation (matches writing-spinner) ────────────────────────
@@ -150,8 +164,18 @@ function promptToHtml(prompt) {
     const blocks = prompt.split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
     return blocks.map(block => {
         if (/^[-*]\s/m.test(block)) {
-            const items = block.split(/\n/).map(l => l.replace(/^[-*]\s+/, '').trim()).filter(Boolean);
-            return '<ul class="list-disc pl-5 my-2">' + items.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ul>';
+            // Block has bullet lines. Lines before the first bullet are a
+            // lead-in paragraph (e.g. "Skriv en tekst der du forteller").
+            const lines = block.split(/\n/).map(l => l.trim()).filter(Boolean);
+            const firstBullet = lines.findIndex(l => /^[-*]\s/.test(l));
+            const prefix = firstBullet > 0 ? lines.slice(0, firstBullet).join(' ') : null;
+            const items = lines.slice(firstBullet)
+                .filter(l => /^[-*]\s/.test(l))
+                .map(l => l.replace(/^[-*]\s+/, ''));
+            let out = '';
+            if (prefix) out += `<p class="my-2">${escapeHtml(prefix)}</p>`;
+            out += '<ul class="list-disc pl-5 my-2">' + items.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ul>';
+            return out;
         }
         return `<p class="my-2">${escapeHtml(block)}</p>`;
     }).join('');
@@ -170,6 +194,7 @@ export function initGermanExamSpinner(container, options = {}) {
     const onPickTask = options.onPickTask || (() => {});
 
     let activeLevel = loadActiveLevel();
+    let activeMode = loadActiveMode();
     let currentTask = null;
     let modelAnswerOpen = false;
 
@@ -179,14 +204,30 @@ export function initGermanExamSpinner(container, options = {}) {
     container.appendChild(root);
 
     function render() {
-        const total = totalTasks(activeLevel);
-        const deck = ensureDeck(activeLevel);
+        const total = totalTasks(activeMode, activeLevel);
+        const deck = ensureDeck(activeMode, activeLevel);
         const remaining = deck.length;
         const deckExhausted = remaining === 0;
+        const corpusEmpty = total === 0;
 
         root.innerHTML = `
             <h1 class="text-2xl font-bold mb-4">${escapeHtml(t('germanExam.screenTitle'))}</h1>
 
+            <!-- Mode tabs (Writing / Exam) -->
+            <div class="flex gap-2 mb-3" role="tablist" aria-label="${escapeHtml(t('germanExam.modeTabsLabel'))}">
+                <button type="button" data-mode="writing"
+                    class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${activeMode === 'writing' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-stone-700 border-stone-300 dark:border-stone-600'}"
+                    role="tab" aria-selected="${activeMode === 'writing'}">
+                    ${escapeHtml(t('germanExam.tabWriting'))}
+                </button>
+                <button type="button" data-mode="exam"
+                    class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${activeMode === 'exam' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-stone-700 border-stone-300 dark:border-stone-600'}"
+                    role="tab" aria-selected="${activeMode === 'exam'}">
+                    ${escapeHtml(t('germanExam.tabExam'))}
+                </button>
+            </div>
+
+            <!-- Level tabs (Tysk 1 / Tysk 2) -->
             <div class="flex gap-2 mb-4" role="tablist" aria-label="${escapeHtml(t('germanExam.screenTitle'))}">
                 <button type="button" data-level="tysk-1"
                     class="px-4 py-2 rounded-lg border transition-colors ${activeLevel === 'tysk-1' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-stone-700 border-stone-300 dark:border-stone-600'}"
@@ -200,27 +241,33 @@ export function initGermanExamSpinner(container, options = {}) {
                 </button>
             </div>
 
-            <div class="flex items-center justify-between mb-4 text-sm text-stone-600 dark:text-stone-300">
-                <span data-deck-status>${
-                    deckExhausted
-                        ? escapeHtml(t('germanExam.deckEmpty'))
-                        : escapeHtml(t('germanExam.deckRemaining', { n: remaining, total }))
-                }</span>
-            </div>
+            ${corpusEmpty ? `
+                <div class="rounded-xl border border-dashed border-stone-300 dark:border-stone-600 p-8 text-center text-stone-500 dark:text-stone-400">
+                    <p class="text-sm">${escapeHtml(t('germanExam.corpusEmpty'))}</p>
+                </div>
+            ` : `
+                <div class="flex items-center justify-between mb-4 text-sm text-stone-600 dark:text-stone-300">
+                    <span data-deck-status>${
+                        deckExhausted
+                            ? escapeHtml(t('germanExam.deckEmpty'))
+                            : escapeHtml(t('germanExam.deckRemaining', { n: remaining, total }))
+                    }</span>
+                </div>
 
-            <div class="text-center mb-6">
-                <button type="button" data-spin
-                    class="px-8 py-4 text-lg font-semibold rounded-xl bg-emerald-600 text-white shadow hover:bg-emerald-700 transition-colors">
-                    ${escapeHtml(deckExhausted ? t('germanExam.reshuffleAndRestart') : t('germanExam.spin'))}
-                </button>
-                <p class="mt-2 text-xs text-stone-500" data-spin-hint>${escapeHtml(t('germanExam.clickToSpin'))}</p>
-            </div>
+                <div class="text-center mb-6">
+                    <button type="button" data-spin
+                        class="px-8 py-4 text-lg font-semibold rounded-xl bg-emerald-600 text-white shadow hover:bg-emerald-700 transition-colors">
+                        ${escapeHtml(deckExhausted ? t('germanExam.reshuffleAndRestart') : t('germanExam.spin'))}
+                    </button>
+                    <p class="mt-2 text-xs text-stone-500" data-spin-hint>${escapeHtml(t('germanExam.clickToSpin'))}</p>
+                </div>
 
-            <div data-card></div>
+                <div data-card></div>
+            `}
         `;
 
         // Re-render the existing card if any (e.g. after level switch we clear it)
-        if (currentTask) {
+        if (currentTask && !corpusEmpty) {
             renderCard(currentTask);
         }
     }
@@ -271,8 +318,8 @@ export function initGermanExamSpinner(container, options = {}) {
         const status = root.querySelector('[data-deck-status]');
         const spinBtn = root.querySelector('[data-spin]');
         if (!status || !spinBtn) return;
-        const total = totalTasks(activeLevel);
-        const remaining = (loadDeck(activeLevel) || []).length;
+        const total = totalTasks(activeMode, activeLevel);
+        const remaining = (loadDeck(activeMode, activeLevel) || []).length;
         const deckExhausted = remaining === 0;
         status.textContent = deckExhausted
             ? t('germanExam.deckEmpty')
@@ -283,17 +330,17 @@ export function initGermanExamSpinner(container, options = {}) {
     }
 
     function handleSpin() {
-        const deck = loadDeck(activeLevel) || [];
+        const deck = loadDeck(activeMode, activeLevel) || [];
         if (deck.length === 0) {
             // Reshuffle path
-            reshuffleDeck(activeLevel);
+            reshuffleDeck(activeMode, activeLevel);
             updateDeckStatus();
             return;
         }
-        const { task } = pickTaskFromDeck(activeLevel);
+        const { task } = pickTaskFromDeck(activeMode, activeLevel);
         if (!task) {
             // Stale id in deck — reshuffle and try again
-            reshuffleDeck(activeLevel);
+            reshuffleDeck(activeMode, activeLevel);
             updateDeckStatus();
             return;
         }
@@ -307,6 +354,18 @@ export function initGermanExamSpinner(container, options = {}) {
     }
 
     function handleClick(e) {
+        const modeBtn = e.target.closest('[data-mode]');
+        if (modeBtn) {
+            const newMode = modeBtn.dataset.mode;
+            if (newMode !== activeMode && MODES.includes(newMode)) {
+                activeMode = newMode;
+                saveActiveMode(activeMode);
+                currentTask = null;
+                modelAnswerOpen = false;
+                render();
+            }
+            return;
+        }
         const levelBtn = e.target.closest('[data-level]');
         if (levelBtn) {
             const newLevel = levelBtn.dataset.level;
@@ -331,7 +390,7 @@ export function initGermanExamSpinner(container, options = {}) {
             return;
         }
         if (e.target.closest('[data-write]') && currentTask) {
-            onPickTask(currentTask, activeLevel);
+            onPickTask(currentTask, activeLevel, activeMode);
             return;
         }
     }
