@@ -122,6 +122,44 @@ function ensureGrammarFeaturesStyles() {
         html.dark .dict-conj-pronoun { color: #a8a29e; }
         .dict-conj-form { color: #1c1917; font-weight: 500; }
         html.dark .dict-conj-form { color: #fafaf9; }
+
+        /* 2D case grid: Bestemt/Ubestemt × ent/fl */
+        .dict-case-grid {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.7rem;
+            font-variant-numeric: tabular-nums;
+        }
+        .dict-case-grid th, .dict-case-grid td {
+            padding: 0.25rem 0.4rem;
+            text-align: left;
+            vertical-align: top;
+        }
+        .dict-case-grid thead th {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: #78716c;
+            border-bottom: 1px solid #e7e5e4;
+        }
+        html.dark .dict-case-grid thead th { color: #a8a29e; border-bottom-color: #44403c; }
+        .dict-case-grid tbody th.dict-case-label {
+            font-weight: 600;
+            color: #44403c;
+            white-space: nowrap;
+        }
+        html.dark .dict-case-grid tbody th.dict-case-label { color: #d6d3d1; }
+        .dict-case-grid tbody td {
+            color: #1c1917;
+        }
+        html.dark .dict-case-grid tbody td { color: #fafaf9; }
+        .dict-case-grid tbody tr + tr th,
+        .dict-case-grid tbody tr + tr td {
+            border-top: 1px dashed #e7e5e4;
+        }
+        html.dark .dict-case-grid tbody tr + tr th,
+        html.dark .dict-case-grid tbody tr + tr td {
+            border-top-color: #44403c;
+        }
     `;
     document.head.appendChild(style);
 }
@@ -235,6 +273,7 @@ export function initLeksihjelpSettings(host, bridge) {
                 <section>
                     <h3 class="font-medium mb-0.5">${escapeHtml(t('leksihjelp.grammarLevel'))}</h3>
                     <p class="text-xs text-stone-500 dark:text-stone-400 mb-2">${escapeHtml(t('leksihjelp.grammarLevelHint'))}</p>
+                    <div class="leksihjelp-grammar-presets flex flex-wrap gap-1.5 mb-2" data-grammar-presets></div>
                     <div class="leksihjelp-grammar-features text-xs text-stone-700 dark:text-stone-200" data-grammar-features></div>
                     <p class="text-[11px] text-stone-500 dark:text-stone-400 mt-2 italic">${escapeHtml(t('leksihjelp.grammarLevelTip'))}</p>
                 </section>
@@ -394,14 +433,99 @@ export function initLeksihjelpSettings(host, bridge) {
         return html;
     }
 
+    // Definite + indefinite articles across DE / ES / FR. Used to bucket
+    // case-form entries into the 4-column "Bestemt ent. / Ubestemt ent. /
+    // Bestemt fl. / Ubestemt fl." grid. Norwegian noun forms aren't keyed
+    // by case (suffix-based), so the grid falls back to a simple list for
+    // entries it can't classify.
+    const DEFINITE_ARTICLES = new Set([
+        // de
+        'der', 'die', 'das', 'des', 'dem', 'den',
+        // es
+        'el', 'la', 'los', 'las',
+        // fr
+        'le', 'l', 'les',
+    ]);
+    const INDEFINITE_ARTICLES = new Set([
+        // de
+        'ein', 'eine', 'einen', 'einem', 'eines', 'einer',
+        // es
+        'un', 'una', 'unos', 'unas',
+        // fr
+        'un', 'une', 'des',
+    ]);
+    const CASE_ROW_ORDER = ['nominativ', 'akkusativ', 'dativ', 'genitiv'];
+    const CASE_LABEL_NB = {
+        nominativ: 'Nominativ',
+        akkusativ: 'Akkusativ',
+        dativ: 'Dativ',
+        genitiv: 'Genitiv',
+    };
+
+    function classifyCaseEntry(e) {
+        const display = (e.display || '').trim();
+        const parts = display.split(/\s+/);
+        const article = parts.length > 1 ? parts[0].toLowerCase() : null;
+        const isPlural = /plural|fleirtal|flertall|pluriel|plural/i.test(e.translation || '');
+        if (article && DEFINITE_ARTICLES.has(article))   return isPlural ? 'def_pl'   : 'def_sg';
+        if (article && INDEFINITE_ARTICLES.has(article)) return isPlural ? 'indef_pl' : 'indef_sg';
+        if (!article && isPlural) return 'indef_pl';
+        return 'unknown';
+    }
+
     function renderCaseTableHTML(forms) {
         const cases = forms.filter(f => f.type === 'case');
         if (cases.length === 0) return '';
-        let html = `<div class="dict-tense-block"><div class="dict-tense-name">Kasus</div><table class="dict-conj-table"><tbody>`;
-        for (const r of cases) {
+
+        // Bucket per case + variant. If at least one case has all four cells
+        // populated, render the 2D grid; otherwise fall back to the linear list.
+        const grid = new Map();
+        for (const cs of CASE_ROW_ORDER) grid.set(cs, { def_sg: null, indef_sg: null, def_pl: null, indef_pl: null });
+        let hasAny = false;
+        for (const e of cases) {
+            const cs = (e.caseName || '').toLowerCase();
+            if (!grid.has(cs)) continue;
+            const cell = classifyCaseEntry(e);
+            if (cell === 'unknown') continue;
+            const row = grid.get(cs);
+            // First match wins (preserves the wordList's source order).
+            if (!row[cell]) {
+                row[cell] = e.display || e.word || '';
+                hasAny = true;
+            }
+        }
+
+        if (!hasAny) {
+            // Linear fallback for languages without article-based grids.
+            let html = `<div class="dict-tense-block"><div class="dict-tense-name">Kasus</div><table class="dict-conj-table"><tbody>`;
+            for (const r of cases) {
+                html += `<tr>
+                    <td class="dict-conj-pronoun">${escapeHtml(r.caseName || '')}</td>
+                    <td class="dict-conj-form">${escapeHtml(r.display || r.word || '')}</td>
+                </tr>`;
+            }
+            html += `</tbody></table></div>`;
+            return html;
+        }
+
+        let html = `<div class="dict-tense-block"><div class="dict-tense-name">Bøyning (kasus)</div>
+            <table class="dict-case-grid"><thead><tr>
+                <th></th>
+                <th>Bestemt ent.</th>
+                <th>Ubestemt ent.</th>
+                <th>Bestemt fl.</th>
+                <th>Ubestemt fl.</th>
+            </tr></thead><tbody>`;
+        for (const cs of CASE_ROW_ORDER) {
+            const row = grid.get(cs);
+            // Skip rows that came back empty (entry may not have all cases).
+            if (!row.def_sg && !row.indef_sg && !row.def_pl && !row.indef_pl) continue;
             html += `<tr>
-                <td class="dict-conj-pronoun">${escapeHtml(r.caseName || '')}</td>
-                <td class="dict-conj-form">${escapeHtml(r.display || r.word || '')}</td>
+                <th class="dict-case-label">${escapeHtml(CASE_LABEL_NB[cs] || cs)}</th>
+                <td>${escapeHtml(row.def_sg || '—')}</td>
+                <td>${escapeHtml(row.indef_sg || '—')}</td>
+                <td>${escapeHtml(row.def_pl || '—')}</td>
+                <td>${escapeHtml(row.indef_pl || '—')}</td>
             </tr>`;
         }
         html += `</tbody></table></div>`;
@@ -498,36 +622,144 @@ export function initLeksihjelpSettings(host, bridge) {
         });
     }
 
-    // ── Grammatikknivå (vendored grammar-features-section.js) ─────────
+    // ── Grammatikknivå (vendored grammar-features-section.js + presets) ─
     // The vendored module renders a checkbox per grammar feature
     // (verb tenses, noun cases, comparison) for the current Oppslagsspråk.
     // It persists selections to chrome.storage.local.enabledGrammarFeatures
     // (which the seam reads — toggling re-runs the wordList filter).
+    //
+    // The extension popup also exposes preset pills (Lite / Middels / Mye / Alt)
+    // sourced from the `presets` array in grammarfeatures-{lang}.json. We
+    // render them above the checkbox tree so students can flip the whole
+    // set at once instead of clicking 12 boxes.
     const grammarContainer = drawer.querySelector('[data-grammar-features]');
+    const grammarPresetsContainer = drawer.querySelector('[data-grammar-presets]');
     let grammarSectionApi = null;
+    let _grammarFeaturesData = null;
 
     async function loadGrammarFeatures(lang) {
         try {
             const res = await fetch(`/js/leksihjelp/data/grammarfeatures-${lang}.json`);
             if (!res.ok) return null;
-            return await res.json();
+            const data = await res.json();
+            _grammarFeaturesData = data;
+            return data;
         } catch (_) { return null; }
     }
 
-    function mountGrammarFeatures() {
+    async function readEnabledFeatureIds() {
+        return new Promise(resolve => {
+            window.chrome.storage.local.get('enabledGrammarFeatures', (result) => {
+                const stored = result && result.enabledGrammarFeatures;
+                if (!stored) return resolve(new Set());
+                if (Array.isArray(stored)) return resolve(new Set(stored));
+                if (typeof stored === 'object') {
+                    return resolve(new Set(Object.keys(stored).filter(k => stored[k] === true)));
+                }
+                resolve(new Set());
+            });
+        });
+    }
+
+    async function detectActivePreset() {
+        if (!_grammarFeaturesData || !Array.isArray(_grammarFeaturesData.presets)) return null;
+        const enabled = await readEnabledFeatureIds();
+        for (const preset of _grammarFeaturesData.presets) {
+            const presetSet = new Set(preset.features || []);
+            if (presetSet.size !== enabled.size) continue;
+            let match = true;
+            for (const id of presetSet) {
+                if (!enabled.has(id)) { match = false; break; }
+            }
+            if (match) return preset.id;
+        }
+        return null;
+    }
+
+    async function applyPreset(presetId) {
+        if (!_grammarFeaturesData || !Array.isArray(_grammarFeaturesData.presets)) return;
+        const preset = _grammarFeaturesData.presets.find(p => p.id === presetId);
+        if (!preset) return;
+        const features = Array.isArray(preset.features) ? preset.features : [];
+        // Same shape grammar-features-section.js writes (object map of id→true).
+        const obj = {};
+        for (const id of features) obj[id] = true;
+        await new Promise(resolve =>
+            window.chrome.storage.local.set({ enabledGrammarFeatures: obj }, resolve)
+        );
+        try { window.chrome.runtime.sendMessage({ type: 'GRAMMAR_FEATURES_CHANGED' }); } catch (_) {}
+        // Re-render checkboxes via the vendored module's refresh hook so they
+        // reflect the new active set without the user having to scroll.
+        if (grammarSectionApi && grammarSectionApi.refresh) {
+            grammarSectionApi.refresh(bridge.getLookupLang());
+        }
+        await renderPresetPills();
+    }
+
+    async function renderPresetPills() {
+        if (!grammarPresetsContainer || !_grammarFeaturesData) return;
+        const presets = Array.isArray(_grammarFeaturesData.presets) ? _grammarFeaturesData.presets : [];
+        if (presets.length === 0) {
+            grammarPresetsContainer.innerHTML = '';
+            return;
+        }
+        const activeId = await detectActivePreset();
+        grammarPresetsContainer.innerHTML = presets.map(p => {
+            const active = p.id === activeId;
+            const cls = active
+                ? 'px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-600 text-white border border-emerald-600'
+                : 'px-2.5 py-1 rounded-full text-xs font-medium text-stone-700 dark:text-stone-200 bg-white dark:bg-stone-800 border border-stone-300 dark:border-stone-600 hover:border-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300';
+            return `<button type="button" class="${cls}" data-preset-id="${escapeHtml(p.id)}">${escapeHtml(p.name)}</button>`;
+        }).join('');
+    }
+
+    if (grammarPresetsContainer) {
+        grammarPresetsContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-preset-id]');
+            if (btn) applyPreset(btn.dataset.presetId);
+        });
+    }
+
+    // The vendored grammar-features-section.js expects a simplified storage
+    // adapter where `get(key)` returns the value directly, not the chrome
+    // `{key: value}` wrapper. Flatten through here.
+    const grammarStorageAdapter = {
+        get(key) {
+            return new Promise(resolve =>
+                window.chrome.storage.local.get(key, (r) => resolve(r ? r[key] : undefined))
+            );
+        },
+        set(obj) {
+            return new Promise(resolve =>
+                window.chrome.storage.local.set(obj, resolve)
+            );
+        },
+    };
+
+    async function mountGrammarFeatures() {
         if (!grammarContainer || !window.__lexiGrammarFeaturesSection) return;
         if (grammarSectionApi) {
             try { grammarSectionApi.destroy(); } catch (_) {}
             grammarSectionApi = null;
         }
+        // Pre-load the data so the preset pills can render immediately.
+        await loadGrammarFeatures(bridge.getLookupLang());
+        await renderPresetPills();
         grammarSectionApi = window.__lexiGrammarFeaturesSection.mount(grammarContainer, {
-            storage: window.chrome.storage.local,
+            storage: grammarStorageAdapter,
             runtime: window.chrome.runtime,
             loadGrammarFeatures,
             getCurrentLanguage: () => bridge.getLookupLang(),
         });
     }
     mountGrammarFeatures();
+
+    // Re-render pills when the storage changes from any source (preset click,
+    // checkbox toggle, vendored module persistence).
+    const onStorageChangedForPills = (changes) => {
+        if (changes && changes.enabledGrammarFeatures) renderPresetPills();
+    };
+    window.chrome.storage.onChanged.addListener(onStorageChangedForPills);
 
     let isOpen = false;
 
@@ -610,6 +842,8 @@ export function initLeksihjelpSettings(host, bridge) {
         if (searchInputEl && searchInputEl.value) runSearch();
         // Re-mount grammar features against the new language's feature definitions.
         if (grammarSectionApi && grammarSectionApi.refresh) grammarSectionApi.refresh(lang);
+        // Pull fresh presets for the new language and re-render the pills.
+        loadGrammarFeatures(lang).then(renderPresetPills);
     });
     const offExam = bridge.onExamModeChange((on) => {
         if (examModeCheckbox.checked !== on) examModeCheckbox.checked = on;
@@ -637,6 +871,7 @@ export function initLeksihjelpSettings(host, bridge) {
             if (grammarSectionApi && grammarSectionApi.destroy) {
                 try { grammarSectionApi.destroy(); } catch (_) {}
             }
+            try { window.chrome.storage.onChanged.removeListener(onStorageChangedForPills); } catch (_) {}
             drawer.remove();
         },
     };
