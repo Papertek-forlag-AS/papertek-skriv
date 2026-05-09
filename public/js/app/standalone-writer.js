@@ -271,7 +271,13 @@ export async function launchEditor(container, docId, onBack) {
     });
 
     // --- Initialize modules ---
-    const toolbarApi = initEditorToolbar(editor);
+    // German exam docs ship with a seeded prompt that contains a bullet list
+    // and a bold title — the toolbar's auto-detect would otherwise interpret
+    // those as "advanced content" and flip the student into advanced mode
+    // (which also auto-inserts a TOC). Opt out so the student starts in the
+    // simple writing mode and can enable advanced manually if they want it.
+    const isGermanExamDoc = !!(doc.germanHint && (doc.germanHint.simple || doc.germanHint.rich));
+    const toolbarApi = initEditorToolbar(editor, { skipAutoDetectAdvanced: isGermanExamDoc });
     // const matteApi = initMatte(editor, toolbarApi.toolbarEl); // Deactivated
     const tocApi = initTOC(editor);
     const refsApi = initReferences(editor, { onSave: autoSave.schedule });

@@ -44,7 +44,7 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 
 | Module                    | Init function           | Depends on (shared)            | Purpose                              |
 |-------------------------- |------------------------ |------------------------------- |------------------------------------- |
-| `editor-toolbar.js`       | `initEditorToolbar`     | i18n, config, frame-elements, special-chars-panel, Floating UI (CDN) | Floating formatting bar (B/I/U/lists/H1/H2) |
+| `editor-toolbar.js`       | `initEditorToolbar`     | i18n, config, frame-elements, special-chars-panel, Floating UI (CDN) | Floating formatting bar (B/I/U/lists/H1/H2). Accepts `{ skipAutoDetectAdvanced }` to opt out of auto-enabling advanced mode from existing headings/lists |
 | `matte.js`                | `initMatte`             | i18n                           | Superscript/subscript math formatting |
 | `frame-parser.js`         | `parseFrameMarkdown`    | (none)                         | Markdown → structured frame object (incl. spinner-bucket per section/subsection) |
 | `frame-guide.js`          | `initFrameGuide`        | i18n, toast-notification, spinner-data-nb/nn (dynamic) | Eager-scaffolding sidebar guide: section/paragraph markers in editor, "Mark as done" toggle, "+ New paragraph", "🎲 More suggestions" spinner integration |

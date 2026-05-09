@@ -25,9 +25,16 @@ import { initSpecialCharsPanel } from './special-chars-panel.js';
 /**
  * Initialize the floating editor toolbar.
  * @param {HTMLElement} editor - The contenteditable editor element
+ * @param {Object} [options]
+ * @param {boolean} [options.skipAutoDetectAdvanced=false] - When true, the
+ *   toolbar will NOT auto-enable advanced mode based on existing headings
+ *   or lists in the seeded document. Used for German exam docs where the
+ *   prompt's bullet list would otherwise pull the student into advanced
+ *   mode on first open.
  * @returns {Object} toolbar API with destroy(), isAdvancedMode(), onAdvancedChange(), setAdvancedMode()
  */
-export function initEditorToolbar(editor) {
+export function initEditorToolbar(editor, options = {}) {
+    const skipAutoDetectAdvanced = !!options.skipAutoDetectAdvanced;
     document.execCommand('defaultParagraphSeparator', false, 'p');
 
     const container = editor.closest('#writing-env') || editor.parentElement;
@@ -565,8 +572,12 @@ export function initEditorToolbar(editor) {
         // the student turned it off deliberately. The markers just preserve the ability to restore.
     }
 
-    // Detect after a short delay to ensure all listeners are registered
-    setTimeout(detectExistingAdvanced, 50);
+    // Detect after a short delay to ensure all listeners are registered.
+    // Skipped when caller opts out (e.g. German exam docs) so a seeded
+    // prompt with bullet points doesn't pull the student into advanced.
+    if (!skipAutoDetectAdvanced) {
+        setTimeout(detectExistingAdvanced, 50);
+    }
 
     return {
         destroy,

@@ -48,11 +48,17 @@ function renderInitialDocHtml(task) {
     // live in a side drawer (germanHint metadata on the doc), keeping the
     // writing canvas itself uncluttered. No glossary either — exam
     // conditions assume a dictionary, not a translation list.
-    const heading = `<h1>${escapeHtml(task.title)}</h1>`;
+    //
+    // No <h1>: the doc title input above the editor already shows the full
+    // title, so a heading inside the editor is redundant — and an H1 would
+    // trigger the auto Table of Contents, which is noise for a single-task
+    // document. Title becomes a bold paragraph; if the student wants a
+    // proper heading they can enable advanced mode.
+    const titleLine = `<p><strong>${escapeHtml(task.title)}</strong></p>`;
     const attribution = `<p><em>${escapeHtml(task.attribution)}</em></p>`;
     const promptHtml = promptToDocHtml(task.prompt);
     const writingSpace = '<p><br></p><p><br></p>';
-    return [heading, attribution, promptHtml, writingSpace].join('');
+    return [titleLine, attribution, promptHtml, writingSpace].join('');
 }
 
 function stripHtml(html) {
