@@ -325,13 +325,32 @@ and L-3 (`__lexiPresent` sentinel guarded on `chrome.runtime.id`):
 - L-1 was dropped (Phase 40.2 made vocab bundle-only — no Vocab API
   fetch at runtime). See `docs/leksihjelp-integration-handoff.md`.
 
-### S-7. ⏳ Spell-check inline marks (next phase)
+### S-7. ✅ Spell-check inline marks
 
-Once vendored files exist:
+Renderer auto-attaches to focused contenteditable elements once
+`vocab-seam.js` hydrates. No Skriv-side mounting needed — only:
 
-- Wire `spell-check.js` into the editor lifecycle.
-- CSS audit for z-index conflicts with LIX, paragraph map, argument flow.
-- Verify the popovers render correctly in Skriv's typography.
+- Body wrapped with `class="skriv-leksihjelp"` so the scoped CSS
+  applies to `#lexi-spell-overlay` (which the renderer mounts directly
+  on `<body>`, not inside `<main>`). The CSS only matches leksihjelp-
+  specific selectors so it doesn't bleed onto Skriv's UI.
+- `leksihjelp-loader.js` mirrors `bridge.status` → `spellCheckEnabled`
+  in the chrome.storage shim. When the bridge sees the leksihjelp
+  Chrome extension on the page, the embedded renderer turns itself off
+  via the existing `chrome.storage.onChanged` listener — single source
+  of truth for "who renders dots" without two parallel renderers
+  fighting over the same surface.
+- z-index: leksihjelp overlay sits at `2147483645` (max-int-2). Skriv's
+  existing overlays (LIX 30, argument-flow 30, writing-feedback 50,
+  drawers 40) are far below — dots and popovers always sit on top.
+
+Verified: typing "Jeg komer hjem snart" produces 1 dot for *komer →
+kommer*. Clicking the dot opens a popover with suggestions; clicking
+*kommer* fixes the word and removes the dot. Switching Skrivespråk
+to `de` and typing "Ich habe ein hund" produces 4 German dots
+(Akkusativ, capitalisation, V2, kommer→kommen residual). Setting
+`window.__lexiPresent = 'extension'` flips `spellCheckEnabled` to
+`false` so the renderer stops marking.
 
 ### S-8. ⏳ Dictionary popup (next phase)
 
@@ -426,7 +445,7 @@ Quick checklist either side can scan:
 - [x] **S-4** — Top-bar button in editor
 - [x] **S-5** — Special-chars panel refactor
 - [x] **S-6** — Loader + chrome shim + bundle wired into index.html + SW bump
-- [ ] **S-7** — Spell-check wire-up (depends on S-6)
+- [x] **S-7** — Spell-check wire-up (renderer auto-attaches; extension yields via spellCheckEnabled)
 - [ ] **S-8** — Dictionary popup (depends on S-6)
 - [ ] **S-9** — Per-document language seeding (depends on S-2..S-5; can ship after S-2)
 

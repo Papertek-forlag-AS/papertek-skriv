@@ -215,15 +215,20 @@
         // Initial sync: bridge → shim. The shim was seeded with 'nb'
         // defaults; replace with the bridge's localStorage-persisted
         // values so renderer reads the right language on first hydration.
+        // spellCheckEnabled mirrors bridge.status: when the leksihjelp
+        // Chrome extension is detected on the page, the embedded renderer
+        // yields to it (writing spellCheckEnabled=false flips the
+        // already-running renderer off via chrome.storage.onChanged).
         _writeStore({
-            'lang.spellcheck': bridge.getWritingLang(),
-            'lang.dictionary': bridge.getLookupLang(),
-            'examMode': bridge.getExamMode(),
+            'lang.spellcheck':  bridge.getWritingLang(),
+            'lang.dictionary':  bridge.getLookupLang(),
+            'examMode':         bridge.getExamMode(),
+            'spellCheckEnabled': bridge.getStatus() !== 'extension',
             // Surfaces that Skriv doesn't drive but the renderer reads —
             // mirror writingLang so they stay coherent.
-            'lang.prediction': bridge.getWritingLang(),
-            'lang.widget':     bridge.getWritingLang(),
-            'language':        bridge.getWritingLang(),
+            'lang.prediction':  bridge.getWritingLang(),
+            'lang.widget':      bridge.getWritingLang(),
+            'language':         bridge.getWritingLang(),
         });
 
         // Bridge → shim
@@ -240,6 +245,12 @@
         });
         bridge.onExamModeChange((on) => {
             _writeStore({ 'examMode': !!on });
+        });
+        bridge.onStatusChange((status) => {
+            // Embedded renderer stays live in 'absent' (no leksihjelp anywhere
+            // — Skriv IS leksihjelp here) and 'embedded' (Skriv's own copy).
+            // It only stands down when the Chrome extension takes over.
+            _writeStore({ 'spellCheckEnabled': status !== 'extension' });
         });
 
         // Shim → bridge. The renderer's lang-detect can write back to

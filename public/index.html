@@ -1404,12 +1404,14 @@
     }
     </style>
 </head>
-<body class="bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-200 antialiased">
+<body class="skriv-leksihjelp bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-200 antialiased">
+    <!-- The .skriv-leksihjelp class scopes the vendored content.css. The -->
+    <!-- spell-check renderer mounts #lexi-spell-overlay directly under -->
+    <!-- <body>, so the wrapper has to live on <body>. The scoped CSS only -->
+    <!-- targets leksihjelp-specific selectors (#lexi-*, .lh-*) so it -->
+    <!-- doesn't bleed onto Skriv's own UI. -->
     <a href="#app" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold" id="skip-to-content">Hopp til innhold</a>
-    <!-- skriv-leksihjelp wrapper: scopes the vendored content.css selectors -->
-    <!-- (see scripts/sync-leksihjelp.js — every selector is prefixed -->
-    <!-- with .skriv-leksihjelp on sync). -->
-    <main id="app" role="main" class="skriv-leksihjelp"></main>
+    <main id="app" role="main"></main>
 
     <!--
       Leksihjelp vendored bundle. Loaded as classic <script> tags BEFORE Skriv's
