@@ -20,7 +20,7 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 | `sidebar.js`           | `createSidebar` (returns `{ destroy, update, setDragActive }`) | folder-store, school-level, onboarding-modal, i18n, html-escape, toast-notification, in-page-modal | Collapsible folder tree navigation + change level button + drag-drop cues |
 | `school-level.js`      | `SCHOOL_LEVELS`, `LEVEL_SUBJECTS`, `getSchoolLevel`, `setSchoolLevel`, `hasSchoolLevel`, `getSubjectsForLevel` | (none) | School level data + localStorage persistence |
 | `onboarding-modal.js`  | `showOnboardingModal`                            | school-level, i18n, html-escape, dom-helpers | First-time school level selection modal |
-| `folder-picker.js`     | `createFolderPicker`, `createFolderBadges`       | folder-store, i18n, html-escape     | Multi-select folder assignment dropdown + badges |
+| `folder-picker.js`     | `createFolderPicker`, `createFolderBadges`       | folder-store, school-level, i18n, html-escape | Multi-select folder assignment dropdown + badges. Picker filters system folders by current school level (matches sidebar logic) so previous-curriculum folders don't pollute the list |
 | `sw-manager.js`        | `initServiceWorker`                              | i18n, toast-notification            | SW registration, update prompt, dev-mode disable |
 
 ## editor-core/shared/ — Cross-product utilities

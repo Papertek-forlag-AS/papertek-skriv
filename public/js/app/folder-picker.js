@@ -15,6 +15,7 @@ import {
     getAllFolders, buildFolderTree, flattenTree,
     getFolderPath, isPersonalFolder, isSystemFolder, PERSONAL_FOLDER_NAME,
 } from './folder-store.js';
+import { getSchoolLevel, getSubjectsForLevel } from './school-level.js';
 
 /**
  * Create a multi-select folder picker dropdown anchored to a trigger element.
@@ -36,7 +37,29 @@ export function createFolderPicker(trigger, currentFolderIds, onChange) {
         // Separate personal and regular folders
         const personalNode = tree.find(n => isPersonalFolder(n));
         const regularNodes = tree.filter(n => !isPersonalFolder(n));
-        const regularFlat = flattenTree(regularNodes);
+
+        // Filter root system folders to only show what's relevant to the
+        // current curriculum. Without this, switching school level (e.g.
+        // VG2 → barneskole) leaves all previously-seeded subject folders
+        // in the picker even though the sidebar correctly hides them.
+        // Rules:
+        //   - Custom folders (non-system) are always shown.
+        //   - System folders whose name is in the current level's subject
+        //     list are shown.
+        //   - Folders currently assigned to this document are shown so the
+        //     user can unassign them, even if they no longer match the level.
+        //   - Folders with subfolders are shown so user-created child
+        //     folders stay reachable.
+        const levelId = getSchoolLevel();
+        const levelSubjects = levelId ? getSubjectsForLevel(levelId) : null;
+        const visibleRegular = regularNodes.filter(node => {
+            if (!isSystemFolder(node)) return true;
+            if (node.children && node.children.length > 0) return true;
+            if (selected.has(node.id)) return true;
+            if (levelSubjects && levelSubjects.includes(node.name)) return true;
+            return false;
+        });
+        const regularFlat = flattenTree(visibleRegular);
 
         dropdown = document.createElement('div');
         dropdown.className = 'absolute z-50 mt-1 w-56 max-h-72 overflow-y-auto rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-800 shadow-lg py-1';
