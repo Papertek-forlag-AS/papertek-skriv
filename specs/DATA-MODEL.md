@@ -1,6 +1,6 @@
 # Data Model
 
-> Last updated: 2026-03-12
+> Last updated: 2026-05-09
 
 ## IndexedDB
 
@@ -26,6 +26,7 @@ Key path: `id`
 | `subject`    | string   | no       | yes      | **Legacy.** Subject name or `null`. Kept for backward compat; no longer written by UI. Use `folderIds` instead. Added in v3. |
 | `schoolYear` | string   | no       | yes      | School year label e.g. `'2025/2026'`. Aug 1 – Jul 31. Added in v3. |
 | `folderIds`  | array    | no       | yes (multiEntry) | Array of folder IDs the document belongs to (default `[]`). Orphan = empty array. Added in v4. |
+| `germanHint` | object   | no       |          | German exam draft pair `{ simple: string, rich: string }`. Set by `german-exam-route.js` when seeding a Tysk task; read by `german-hint-drawer.js` in the editor. Absent on non-German docs. Schemaless — no DB version bump required. |
 
 ### Object store: `trash`
 
@@ -95,8 +96,10 @@ Key path: `id`
 | `papertek.skriv.germanExam.deck.tysk-1` | string | JSON array of remaining (unseen) Tysk 1 task ids; auto-shuffles on exhaustion |
 | `papertek.skriv.germanExam.deck.tysk-2` | string | JSON array of remaining (unseen) Tysk 2 task ids; auto-shuffles on exhaustion |
 | `papertek.skriv.germanExam.activeLevel` | string | `'tysk-1'` or `'tysk-2'`; persists last selected level on the spinner screen |
+| `germanExam.writeExplainSeen`           | string | `'1'` once the user has seen the explain dialog before "Skriv svar" creates a doc |
+| `germanHintDrawer.variant.<docId>`      | string | `'simple'` or `'rich'`; per-document tab selection in the editor hint drawer |
 
 ## Other storage
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]`. Current version: `skriv-v40`.
+- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]`. Current version: `skriv-v50`.
 - **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.

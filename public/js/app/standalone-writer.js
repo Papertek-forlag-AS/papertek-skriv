@@ -34,6 +34,7 @@ import { initVersionHistory } from '../editor-core/student/version-history.js';
 import { initOnboardingTour } from '../editor-core/student/onboarding-tour.js';
 import { initLixScore } from '../editor-core/student/lix-score.js';
 import { initArgumentFlow } from '../editor-core/student/argument-flow.js';
+import { initGermanHintDrawer } from '../editor-core/student/german-hint-drawer.js';
 // import { initMatte } from '../editor-core/student/matte.js'; // Deactivated — re-enable when subject choice is added
 import { showSubmissionChecklist } from '../editor-core/student/submission-checklist.js';
 import { downloadText, downloadPDF, downloadDocx } from '../editor-core/student/text-export.js';
@@ -98,6 +99,11 @@ export async function launchEditor(container, docId, onBack) {
                 title="${t('image.button')}">
                 📷
                 ${t('image.button')}
+            </button>
+            <button id="btn-german-hint" class="hidden text-xs px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center gap-1.5"
+                title="${t('germanExam.hintButtonTitle')}">
+                💡
+                ${t('germanExam.hintButton')}
             </button>
             <div id="tools-wrapper" class="relative hidden flex-shrink-0">
                 <button id="btn-tools" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
@@ -471,6 +477,17 @@ export async function launchEditor(container, docId, onBack) {
         });
     }
 
+    // --- German Hint Drawer (only mounted when the doc was seeded with one) ---
+    let germanHintApi = null;
+    if (doc.germanHint && (doc.germanHint.simple || doc.germanHint.rich)) {
+        germanHintApi = initGermanHintDrawer(writingEnv, doc.germanHint, { docId });
+        const germanHintBtn = topBar.querySelector('#btn-german-hint');
+        if (germanHintBtn) {
+            germanHintBtn.classList.remove('hidden');
+            germanHintBtn.addEventListener('click', () => germanHintApi.toggle());
+        }
+    }
+
     // --- Onboarding Tour ---
     const tourApi = initOnboardingTour();
 
@@ -580,6 +597,7 @@ export async function launchEditor(container, docId, onBack) {
         tourApi.destroy();
         lixApi.destroy();
         argumentApi.destroy();
+        if (germanHintApi) germanHintApi.destroy();
         counterCleanup();
         onBack();
     });

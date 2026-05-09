@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-03-04
+> Last updated: 2026-05-09
 
 ## What is this?
 
@@ -27,7 +27,7 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v40)
+├── sw.js                   ← Service Worker (cache v50)
 ├── icons/                  ← PWA icons (192, 512)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md          (legacy)

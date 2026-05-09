@@ -85,6 +85,9 @@ app/main.js
   │     ├── student/paragraph-map.js
   │     ├── student/image-manager.js
   │     ├── student/submission-checklist.js
+  │     ├── student/german-hint-drawer.js
+  │     │     ├── shared/i18n.js
+  │     │     └── shared/html-escape.js
   │     └── student/text-export.js
   │           └── [CDN] jsPDF
   ├── app/trash-store.js
@@ -97,6 +100,7 @@ app/main.js
         ├── app/document-store.js
         ├── app/folder-store.js
         ├── shared/i18n.js
+        ├── shared/in-page-modal.js
         └── shared/html-escape.js
 ```
 

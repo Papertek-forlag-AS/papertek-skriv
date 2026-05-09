@@ -44,33 +44,15 @@ function promptToDocHtml(prompt) {
 }
 
 function renderInitialDocHtml(task) {
+    // Seeded doc content: only the task framing. The simple+rich drafts
+    // live in a side drawer (germanHint metadata on the doc), keeping the
+    // writing canvas itself uncluttered. No glossary either — exam
+    // conditions assume a dictionary, not a translation list.
     const heading = `<h1>${escapeHtml(task.title)}</h1>`;
     const attribution = `<p><em>${escapeHtml(task.attribution)}</em></p>`;
     const promptHtml = promptToDocHtml(task.prompt);
-
-    // Model answer — paragraphed (the source uses \n\n for paragraph breaks,
-    // e.g. salutation/body/sign-off in a melding).
-    const modelHeading = escapeHtml(t('germanExam.modelAnswerHeading'));
-    const modelParagraphs = (task.modelAnswer || '')
-        .split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
-        .map(p => {
-            const inner = p.split('\n').map(l => escapeHtml(l)).join('<br>');
-            return `<p>${inner}</p>`;
-        }).join('');
-    const modelBlock = `<details><summary>${modelHeading}</summary>${modelParagraphs}</details>`;
-
-    // Glossary — Norwegian → German pairs as a 2-column table inside <details>
-    let vocabBlock = '';
-    if (Array.isArray(task.vocab) && task.vocab.length > 0) {
-        const vocabHeading = escapeHtml(t('germanExam.vocabDocHeading'));
-        const rows = task.vocab.map(([no, de]) =>
-            `<tr><td>${escapeHtml(no)}</td><td>${escapeHtml(de)}</td></tr>`
-        ).join('');
-        vocabBlock = `<details><summary>${vocabHeading}</summary><table><tbody>${rows}</tbody></table></details>`;
-    }
-
     const writingSpace = '<p><br></p><p><br></p>';
-    return [heading, attribution, promptHtml, modelBlock, vocabBlock, writingSpace].filter(Boolean).join('');
+    return [heading, attribution, promptHtml, writingSpace].join('');
 }
 
 function stripHtml(html) {
@@ -104,7 +86,17 @@ async function handlePickTask(task, levelKey) {
     });
     const doc = await createDocument(title);
     const html = renderInitialDocHtml(task);
-    await saveDocument(doc.id, { html, plainText: stripHtml(html) });
+    const germanHint = (task.modelAnswers && (task.modelAnswers.simple || task.modelAnswers.rich))
+        ? {
+            simple: task.modelAnswers.simple || '',
+            rich: task.modelAnswers.rich || '',
+        }
+        : null;
+    await saveDocument(doc.id, {
+        html,
+        plainText: stripHtml(html),
+        ...(germanHint ? { germanHint } : {}),
+    });
     await addDocToFolder(doc.id, folder.id);
 
     window.location.hash = `#/doc/${doc.id}`;
