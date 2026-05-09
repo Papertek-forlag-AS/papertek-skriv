@@ -1,0 +1,1824 @@
+/* ── Leksihjelp Content Script Styles ── */
+
+.skriv-leksihjelp #lexi-tts-widget :focus-visible,
+.skriv-leksihjelp #lexi-prediction-dropdown :focus-visible {
+  outline: 2px solid #11B49A;
+  outline-offset: 2px;
+}
+
+/* ── PDF text layer (selectable text overlay on canvas, pdf.js v4) ──
+   Used by host apps that render PDFs (e.g. Papertek lockdown's oppgave
+   viewer). Harmless in the Chrome extension context — the rules only
+   match if a `.pdf-text-layer` element is present. */
+.skriv-leksihjelp .pdf-text-layer {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  z-index: 10;
+  /* Default: non-interactive. Parent toggles `.pdf-text-selectable` to
+     enable selection — host decides when (e.g. only in split/full PDF
+     modes where the page is large enough for precise drag-select). */
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.skriv-leksihjelp .pdf-text-selectable .pdf-text-layer {
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.skriv-leksihjelp .pdf-text-layer :is(span, .skriv-leksihjelp br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.skriv-leksihjelp .pdf-text-layer span.markedContent {
+  top: 0 !important;
+  height: 0 !important;
+}
+.skriv-leksihjelp .pdf-text-layer ::selection {
+  background: rgba(17, 180, 154, 0.3);
+}
+
+/* ── TTS Floating Widget ── */
+.skriv-leksihjelp #lexi-tts-widget {
+  position: fixed;
+  z-index: 2147483647;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  min-width: 320px;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #1e293b;
+  max-height: 80vh;
+  overflow: visible;
+  transition: opacity 0.2s, transform 0.2s;
+  /* Position at bottom center */
+  left: 50% !important;
+  transform: translateX(-50%);
+  bottom: 24px !important;
+  top: auto !important;
+}
+
+/* Phase 27: Exam-mode amber border tint on the floating widget. The widget
+ * is fully suppressed when exam mode is on (showWidget bails), so this rule
+ * is mostly a defensive marker — but if a future surface renders the widget
+ * shell in exam mode (e.g. teacher preview), the amber border gives a clear
+ * at-a-glance signal. Also ships to lockdown via the sync pipeline; the
+ * lockdown variant of leksihjelp may render this widget in exam contexts.
+ * Both the legacy-prefixed and current id selectors are included to match
+ * the shipping conventions. */
+.skriv-leksihjelp #lexi-tts-widget.lh-exam-mode,
+.skriv-leksihjelp .leksihjelp-floating-widget.lh-exam-mode,
+.skriv-leksihjelp .lh-floating-widget.lh-exam-mode {
+  border: 2px solid #f59e0b !important;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3), 0 8px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+.skriv-leksihjelp #lexi-tts-widget.visible {
+  display: flex;
+  animation: lexi-fadein 0.2s ease-out;
+}
+
+@keyframes lexi-fadein {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* ── Language Toggle ── */
+.skriv-leksihjelp #lexi-tts-widget .lh-lang-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-lang-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-lang-btn:hover {
+  background: rgba(17, 180, 154, 0.05);
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-lang-btn.active {
+  background: #11B49A;
+  color: white;
+  border-color: #11B49A;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-header .lh-close {
+  margin-left: auto;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-header:active {
+  cursor: grabbing;
+}
+
+.skriv-leksihjelp #lexi-tts-widget.dragged {
+  left: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #11B49A;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-close:hover {
+  color: #1e293b;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-pause-widget {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-pause-widget:hover {
+  color: var(--lh-accent, #11B49A);
+}
+
+/* ── Text area with font controls ── */
+.skriv-leksihjelp #lexi-tts-widget .lh-text-area-wrapper {
+  position: relative;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-font-controls {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-font-controls.mode-auto .lh-font-decrease,
+.skriv-leksihjelp #lexi-tts-widget .lh-font-controls.mode-auto .lh-font-increase {
+  display: none;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-header .lh-font-mode {
+  width: auto;
+  padding: 0 8px;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-font-btn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-font-btn:hover {
+  background: rgba(17, 180, 154, 0.1);
+  color: #11B49A;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-text-area {
+  font-size: 15px;
+  color: #1e293b;
+  line-height: 1.5;
+  min-height: 40px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 8px 10px;
+  padding-right: 56px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+
+.skriv-leksihjelp #lexi-tts-widget .lh-text-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-text-area::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-text-area::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-text-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* ── Word highlighting in text area ── */
+.skriv-leksihjelp #lexi-tts-widget .lh-word {
+  border-radius: 2px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-word-active {
+  background: rgba(17, 180, 154, 0.25);
+  color: #0B3E44;
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px rgba(17, 180, 154, 0.15);
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-lookup-btn {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #11B49A;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-play-btn:hover {
+  background: #0F6A75;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-play-btn:disabled {
+  background: #94a3b8;
+  cursor: default;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-play-btn.loading {
+  background: #7CC7A6;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-slider-group {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-slider-label {
+  font-size: 10px;
+  color: #94a3b8;
+  min-width: 52px;
+  font-weight: 500;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-slider {
+  flex: 1 1 0;
+  min-width: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #e2e8f0;
+  outline: none;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #11B49A;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-voice-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  color: #1e293b;
+  outline: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-voice-select:focus {
+  border-color: #11B49A;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-mode-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(17, 180, 154, 0.1);
+  color: #11B49A;
+  font-weight: 500;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Resized state: flex-constrained text area ── */
+.skriv-leksihjelp #lexi-tts-widget.resized {
+  overflow: hidden;
+}
+
+.skriv-leksihjelp #lexi-tts-widget.resized .lh-text-area-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.skriv-leksihjelp #lexi-tts-widget.resized .lh-text-area {
+  height: 100%;
+  max-height: none;
+}
+
+/* ── Resize Handles ── */
+.skriv-leksihjelp #lexi-tts-widget .lh-resize-handle {
+  position: absolute;
+  z-index: 10;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-resize-right {
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-resize-bottom {
+  bottom: -3px;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-resize-corner {
+  bottom: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+}
+
+.skriv-leksihjelp #lexi-tts-widget .lh-resize-corner::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(0, 0, 0, 0.15);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+}
+
+/* ── Font mode button ── */
+.skriv-leksihjelp #lexi-tts-widget .lh-font-mode {
+  width: auto;
+  padding: 0 5px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ── Word Prediction Dropdown ── */
+.skriv-leksihjelp #lexi-prediction-dropdown {
+  position: fixed;
+  z-index: 2147483646;
+  display: none;
+  min-width: 180px;
+  max-width: 300px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 4px;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown.visible {
+  display: block;
+  animation: lexi-fadein 0.15s ease-out;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+  gap: 8px;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-item:hover,
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-item.selected {
+  background: rgba(17, 180, 154, 0.1);
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-word {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-pos {
+  font-size: 9px;
+  color: #11B49A;
+  background: rgba(17, 180, 154, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-typo {
+  font-size: 9px;
+  color: #f59e0b;
+  font-weight: 500;
+  font-style: italic;
+  margin-left: 4px;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-translation {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* UX-02 (Phase 5 Plan 03): "Vis flere" / "Vis færre" reveal link.
+   Dyslexia-friendly text-link sizing (13px ≥ 14px-safe with the 1.4 line-
+   height the dropdown inherits), underlined so the affordance reads as
+   "clickable" to screen-reader + low-vision users, and subtle border-top
+   separator so it doesn't look like another pred item. Match the existing
+   .lh-pred-hint colour palette (conservative grays) rather than introducing
+   new CSS variables — the file doesn't use any today. */
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-vis-flere {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: underline;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  user-select: none;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-vis-flere:hover {
+  color: #1e293b;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-icon {
+  width: 12px;
+  height: 12px;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-lang {
+  font-size: 9px;
+  font-weight: 600;
+  color: #11B49A;
+  background: rgba(17, 180, 154, 0.08);
+  border: 1px solid rgba(17, 180, 154, 0.15);
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-lang:hover {
+  background: rgba(17, 180, 154, 0.15);
+  border-color: rgba(17, 180, 154, 0.3);
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-lang-option {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-lang-option:hover {
+  background: rgba(17, 180, 154, 0.1);
+  color: #11B49A;
+  border-color: rgba(17, 180, 154, 0.2);
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-lang-option.active {
+  background: rgba(17, 180, 154, 0.12);
+  color: #11B49A;
+  border-color: rgba(17, 180, 154, 0.3);
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-hint {
+  font-size: 10px;
+  color: #cbd5e1;
+  margin-left: auto;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-pause {
+  background: none;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  transition: all 0.15s;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-pause:hover {
+  background: rgba(17, 180, 154, 0.08);
+  color: #11B49A;
+  border-color: rgba(17, 180, 154, 0.2);
+}
+
+/* Scrollbar for dropdown */
+.skriv-leksihjelp #lexi-prediction-dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+
+.skriv-leksihjelp #lexi-prediction-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+}
+
+/* Toast — small temporary notification */
+.skriv-leksihjelp .lh-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  z-index: 2147483647;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+
+.skriv-leksihjelp .lh-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Plan 43-04: passive auto-detect language hint banner. Shown above the
+   active input when __lexiDetectLanguage reports a high-confidence
+   mismatch with the surface's stored language key. */
+.skriv-leksihjelp .lh-lang-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff8e1;
+  color: #5d4037;
+  padding: 6px 10px;
+  border: 1px solid #f7c948;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.3;
+  max-width: 360px;
+}
+.skriv-leksihjelp .lh-lang-hint .lh-lang-hint-msg {
+  flex: 1 1 auto;
+}
+.skriv-leksihjelp .lh-lang-hint .lh-lang-hint-accept,
+.skriv-leksihjelp .lh-lang-hint .lh-lang-hint-dismiss {
+  flex: 0 0 auto;
+  border: 1px solid #d4a017;
+  background: #fff;
+  color: #5d4037;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.skriv-leksihjelp .lh-lang-hint .lh-lang-hint-accept {
+  background: #ffd54f;
+  border-color: #b8860b;
+  font-weight: 600;
+}
+.skriv-leksihjelp .lh-lang-hint .lh-lang-hint-accept:hover {
+  background: #ffc107;
+}
+.skriv-leksihjelp .lh-lang-hint .lh-lang-hint-dismiss:hover {
+  background: #f5f5f5;
+}
+
+/* ── Dark mode (follows system preference) ── */
+@media (prefers-color-scheme: dark) {
+  .skriv-leksihjelp #lexi-tts-widget {
+    background: rgba(30, 32, 55, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+    color: #e2e8f0;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-lang-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-lang-btn:hover {
+    background: rgba(17, 180, 154, 0.1);
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-close {
+    color: #64748b;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-close:hover {
+    color: #e2e8f0;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-text-area {
+    color: #e2e8f0;
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-font-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-font-btn:hover {
+    background: rgba(17, 180, 154, 0.15);
+    color: #11B49A;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-word-active {
+    background: rgba(17, 180, 154, 0.3);
+    color: #7CC7A6;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-slider {
+    background: #475569;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-slider::-webkit-slider-thumb {
+    border-color: #1e293b;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-voice-select {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget .lh-resize-corner::after {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .skriv-leksihjelp #lexi-tts-widget::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown {
+    background: rgba(30, 32, 55, 0.92);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-item:hover,
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-item.selected {
+    background: rgba(17, 180, 154, 0.15);
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-word {
+    color: #e2e8f0;
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-translation {
+    color: #64748b;
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-footer {
+    border-top-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-vis-flere {
+    color: #94a3b8;
+    border-top-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-vis-flere:hover {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-hint {
+    color: #475569;
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-pause {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #64748b;
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-lang-option {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown .lh-pred-lang-option:hover {
+    background: rgba(17, 180, 154, 0.15);
+  }
+
+  .skriv-leksihjelp #lexi-prediction-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .skriv-leksihjelp #lexi-pause-badge {
+    background: #1e2035;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    color: #94a3b8;
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover {
+    background: rgba(30, 32, 53, 0.96);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-note {
+    color: #94a3b8;
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-orig {
+    color: #f87171;
+  }
+
+  /* Phase 05.1-05 inline UX gap-closure: dark-mode register-badge pill.
+     Softer slate on dark background; colour palette matches the existing
+     .lh-spell-note / .lh-spell-vis-flere dark variants above. */
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-register-badge {
+    background: rgba(148, 163, 184, 0.18);
+    color: #cbd5e1;
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-btn {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-accept {
+    background: rgba(17, 180, 154, 0.25);
+    color: #5eead4;
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-accept:hover {
+    background: rgba(17, 180, 154, 0.4);
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-decline:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* UX-01 + UX-02 dark-mode variants (Phase 5 Plan 05) — match palette of the
+     existing dark popover styles above. */
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-explain {
+    color: #e2e8f0;
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-explain em,
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-emph {
+    color: #5eead4;
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-sugg-row {
+    color: #e2e8f0;
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-sugg-row:hover,
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-sugg-row:focus-visible {
+    background: rgba(17, 180, 154, 0.18);
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-vis-flere {
+    color: #94a3b8;
+    border-top-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-vis-flere:hover {
+    color: #e2e8f0;
+  }
+}
+
+/* ── Spell-check overlay (per-word markers + popover) ── */
+
+.skriv-leksihjelp #lexi-spell-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 2147483645;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-dot {
+  position: fixed;
+  height: 3px;
+  border-radius: 2px;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: height 0.1s, opacity 0.1s;
+  opacity: 0.9;
+  z-index: 2147483645;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-dot::after {
+  /* Invisible hit target that extends above the thin line so the word
+     itself is clickable. */
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-dot:hover {
+  height: 3px;
+  opacity: 1;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-typo { background: #ef4444; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-aa_og { background: #dc2626; } /* red-600 — high-severity å/og grammar error */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-homophone { background: #f97316; } /* orange-500 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-context-typo { background: #f97316; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-gender { background: #f59e0b; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-agreement { background: #f59e0b; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-modal_form { background: #f59e0b; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-capitalization { background: #f59e0b; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-grammar { background: #a855f7; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-grammar { background: #a855f7; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-accent { background: #38bdf8; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-coordination { background: #a855f7; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-grammar { background: #a855f7; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-grammar { background: #a855f7; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-contraction { background: #38bdf8; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-preposition { background: #38bdf8; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-sarskriving { background: #8b5cf6; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-dialect-mix { background: #0ea5e9; }  /* sky-500 — Phase 05.1 Gap D */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nn-verb-leakage { background: #f59e0b; }  /* amber-500 — NB verb leakage in NN */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nn-plural-leakage { background: #f59e0b; }  /* amber-500 — NB plural leakage in NN */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-quotation-suppression { background: transparent; } /* pre-pass, never surfaces */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-register { background: #f59e0b; }  /* amber — P2 warn, Phase 6 REG-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-collocation { background: #f59e0b; }  /* amber — P2 warn, Phase 6 REG-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-redundancy { background: #f97316; }  /* P3 hint, Phase 6 REG-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-v2 { background: #f59e0b; }  /* amber — P2 warn, Phase 7 WO-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-v2 { background: #f59e0b; }  /* amber — P2 warn, Phase 7 WO-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-verb-final { background: #f59e0b; }  /* amber — P2 warn, Phase 7 WO-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-bags { background: #f97316; }  /* P3 hint, Phase 7 WO-04 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-perfekt-aux { background: #f59e0b; }  /* amber — P2 warn, Phase 8 DE-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-compound-gender { background: #f59e0b; }  /* amber — P2 warn, Phase 17 COMP-04 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-demonstrative-gender { background: #f59e0b; }  /* amber — P1 error, Phase 18 SPELL-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-double-definiteness { background: #f59e0b; }  /* amber — P1 error, double-definiteness gender */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-triple-letter { background: #ef4444; }  /* red — P1 error, Phase 18 SPELL-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-compound-gender { background: #f59e0b; }  /* amber — P2 warn, Phase 8 DE-04 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-prep-case { background: #f59e0b; }  /* amber — P2 warn, Phase 8 DE-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-separable-verb { background: #f59e0b; }  /* amber — P2 warn, Phase 8 DE-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-ser-estar { background: #f59e0b; }  /* amber — P2 warn, Phase 9 ES-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-por-para { background: #f59e0b; }  /* amber — P2 warn, Phase 9 ES-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-personal-a { background: #f59e0b; }  /* amber — P2 warn, Phase 9 ES-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-elision { background: #38bdf8; }  /* blue — P1 error, Phase 10 FR-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-etre-avoir { background: #f59e0b; }  /* amber — P2 warn, Phase 10 FR-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-pp-agreement { background: #f97316; }  /* P3 hint, Phase 10 FR-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-subjuntivo { background: #f59e0b; }  /* amber — P2 warn, Phase 11 MOOD-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-imperfecto-hint { background: #f97316; }  /* P3 hint, Phase 11 MOOD-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-subjonctif { background: #f59e0b; }  /* amber — P2 warn, Phase 11 MOOD-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-aspect-hint { background: #f97316; }  /* P3 hint, Phase 32-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-pro-drop { background: #f97316; }  /* P3 hint, Phase 12 PRON-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-gustar { background: #f59e0b; }  /* amber — P2 warn, Phase 12 PRON-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-clitic-order { background: #f59e0b; }  /* amber — P2 warn, Phase 12 PRON-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-doc-drift-de-address { background: #f59e0b; }  /* amber — P2 warn, Phase 13 DOC-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-doc-drift-fr-address { background: #f59e0b; }  /* amber — P2 warn, Phase 13 DOC-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-doc-drift-nb-register { background: #f59e0b; }  /* amber — P2 warn, Phase 13 DOC-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-riksmal-lexical { background: #f59e0b; }  /* amber — P2 warn, lexical riksmal */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-doc-drift-nn-infinitive { background: #f59e0b; }  /* amber — P2 warn, Phase 13 DOC-04 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-morphology { background: #e67e22 !important; }  /* warning tier — Phase 14 MORPH-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-word-family { background: #e67e22 !important; }  /* warning tier — Phase 14 MORPH-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-adj-gender { background: #e67e22 !important; }  /* warning tier — Phase 14 MORPH-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nn_passiv_s { background: #ef4444; }  /* red — P1 error, Phase 19 DEBT-04 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-doc-drift-nb-passiv-overuse { background: none; border-bottom: 2px dotted #94a3b8; }  /* P3 info, Phase 19 DEBT-04 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-anglicism { background: #0ea5e9; }  /* sky-500 — hint, anglicism loan-verb */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-possessive-definite { background: #f59e0b; }  /* amber — P2 warn, possessive + definite */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-a-an { background: #f59e0b; }  /* amber-500 — P2 warn, article agreement */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-subject-verb { background: #f59e0b; }  /* amber-500 — P2 warn, subject-verb agreement */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-confused-pair { background: #f97316; }  /* orange-500 — error, confused pairs */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-double-comparative { background: #f97316; }  /* orange-500 — error, double comparative */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-comma { background: #f59e0b; }  /* amber-500 — P2 warn, missing comma */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-sentence-boundary { background: #f59e0b; }  /* amber-500 — P2 warn, missing sentence-boundary punctuation */
+
+/* P2 warning — amber dot (same shape as P1, different colour) — Phase 6.
+   The ::after is the invisible click hit-target inherited from .lh-spell-dot
+   (top:-14px down to bottom:0). It must stay transparent — painting it amber
+   turned the warning marker into a 17px-tall block covering the word instead
+   of a 3px underline matching the P1 error tier. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-dot.lh-spell-warn {
+  background: #f59e0b !important;  /* amber-500 */
+}
+
+/* P3 hint — solid 3px orange bar, word-width — F38-4 fix
+   Phase 6 originally used border-bottom-only (height:auto, background:none)
+   but border-bottom didn't paint reliably. Switch to a solid 3px bar same
+   as P1/P2 markers, distinguished only by color (orange vs amber/red). */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-dot.lh-spell-hint {
+  height: 3px;
+  border-radius: 2px;
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-dot.lh-spell-hint::after {
+  display: none;  /* no hover-expand on hint markers */
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover {
+  position: fixed;
+  pointer-events: auto;
+  /* Stack above .lh-spell-dot (z-index 2147483645). Without an explicit
+     z-index here, dots paint through the popover background — visible as
+     amber bars cutting across the popover content. */
+  z-index: 2147483646;
+  min-width: 200px;
+  max-width: 280px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.2);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #1e293b;
+  animation: lexi-fadein 0.12s ease-out;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-orig {
+  color: #dc2626;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+/* Phase 05.1-05 inline UX gap-closure: register badge in the popover header.
+   Small pill that tells the student which Norwegian standard (Bokmål / Nynorsk)
+   the rule pipeline ran in. Kept visually quieter than .lh-spell-orig so the
+   word-and-fix pair still reads as the primary content; pushed to the far
+   right of the header via margin-left:auto so multi-suggest (orig only) and
+   single-suggest (orig → fix) both dock it on the same edge. 10px uppercase
+   typography twins the existing .lh-spell-note label for a consistent
+   secondary-chrome feel. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-register-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.12);
+  color: #475569;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-arrow {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fix-text {
+  color: #0d8a75;
+  font-weight: 600;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-note {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-report-confirm {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-report-confirm-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #475569;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-report-confirm-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-btn {
+  flex: 1;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.1s;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-accept {
+  background: rgba(17, 180, 154, 0.15);
+  color: #0d8a75;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-accept:hover {
+  background: rgba(17, 180, 154, 0.3);
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-decline {
+  background: rgba(0, 0, 0, 0.05);
+  color: #64748b;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-decline:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-report {
+  background: rgba(59, 130, 246, 0.08);
+  color: #3b82f6;
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-report:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+/* UX-01 (Phase 5 Plan 05): student-friendly explanation row. Larger than the
+   retired .lh-spell-note (which was a 10px uppercase label) — dyslexia-aware
+   body text at 13px with 1.4 line-height, wrapping naturally. Student's typed
+   word is wrapped in <em> + .lh-spell-emph accent by the rule.explain() template. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-explain {
+  padding: 6px 0 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #1e293b;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-explain em,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-emph {
+  font-style: italic;
+  color: #0d8a75;
+  background: transparent;
+}
+
+/* UX-02 (Phase 5 Plan 05): multi-suggest row list — shown only when the
+   popup Settings alternates toggle is ON AND finding carries >1 suggestion.
+   Rows are buttons styled flat so they read as "clickable words", not
+   "button bar". Dyslexia-friendly hit target (min-height 32px). */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0 0;
+  margin-bottom: 6px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-sugg-row {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 7px 10px;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  color: #1e293b;
+  cursor: pointer;
+  border-radius: 6px;
+  min-height: 32px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-sugg-row:hover,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-sugg-row:focus-visible {
+  background: rgba(17, 180, 154, 0.08);
+  outline: none;
+}
+
+/* Visual twin of .lh-pred-vis-flere in word-prediction (Plan 03) — same
+   dyslexia-friendly underlined text-link pattern, scoped to the spell-check
+   overlay so the two surfaces share affordance without style bleed. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-vis-flere {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #64748b;
+  text-decoration: underline;
+  cursor: pointer;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  text-align: center;
+  margin-top: 4px;
+  user-select: none;
+  font-family: inherit;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-vis-flere:hover {
+  color: #1e293b;
+}
+
+/* ── Manual spell-check button (Phase 18 Plan 02) ── */
+
+.skriv-leksihjelp .lh-spell-check-btn {
+  position: fixed;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #11B49A;
+  border: 1px solid #0ea388;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #fff;
+  cursor: grab;
+  z-index: 2147483640;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: opacity 0.2s, background 0.15s;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.skriv-leksihjelp .lh-spell-check-btn:active {
+  cursor: grabbing;
+}
+
+.skriv-leksihjelp .lh-spell-check-btn:hover {
+  background: #0ea388;
+}
+
+.skriv-leksihjelp .lh-spell-check-btn-lang {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 4px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  line-height: 1.2;
+}
+
+.skriv-leksihjelp .lh-spell-lang-flyout,
+.skriv-leksihjelp .lh-spell-chip-menu {
+  position: fixed;
+  z-index: 2147483641;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  padding: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+}
+
+.skriv-leksihjelp .lh-spell-chip-menu .lh-chip-menu-section {
+  padding: 6px 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.skriv-leksihjelp .lh-spell-chip-menu .lh-chip-menu-section:last-child { border-bottom: 0; }
+
+.skriv-leksihjelp .lh-chip-menu-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  padding: 0 4px 4px;
+}
+
+.skriv-leksihjelp .lh-chip-menu-langrow,
+.skriv-leksihjelp .lh-chip-menu-pauserow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.skriv-leksihjelp .lh-chip-menu-langrow .lh-spell-lang-item {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 4px 8px;
+}
+
+.skriv-leksihjelp .lh-chip-menu-pause-btn {
+  flex: 1 1 0;
+  min-width: 50px;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.skriv-leksihjelp .lh-chip-menu-pause-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+
+.skriv-leksihjelp .lh-chip-menu-paused-status {
+  padding: 4px 4px 8px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.skriv-leksihjelp .lh-chip-menu-resume {
+  width: 100%;
+  padding: 8px 10px;
+  background: #11B49A;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.skriv-leksihjelp .lh-chip-menu-resume:hover { background: #0f9d87; }
+
+.skriv-leksihjelp .lh-chip-menu-settings-link {
+  width: 100%;
+  padding: 6px 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  text-align: left;
+  color: #2563eb;
+  font-size: 13px;
+  cursor: pointer;
+}
+.skriv-leksihjelp .lh-chip-menu-settings-link:hover { background: #f1f5f9; }
+
+.skriv-leksihjelp .lh-spell-fl-submenu {
+  position: fixed;
+  z-index: 2147483642;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+}
+.skriv-leksihjelp .lh-spell-fl-submenu-item {
+  padding: 4px 6px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.skriv-leksihjelp .lh-spell-fl-submenu-item:hover { background: #f3f4f6; }
+.skriv-leksihjelp .lh-spell-fl-submenu-item.is-active { background: #ecfdf5; }
+
+/* ── Dictionary FL pill submenu (Plan 41-01) ──
+   The popup pill row's chevron-submenu over de/es/fr. Lives in popup.css
+   for the extension popup, but lockdown's bundled CSS doesn't sync popup
+   .css — without these rules the dropdown renders transparent and looks
+   missing. Inline z-index in JS already escapes any host overlay; these
+   rules supply the visual surface. */
+.skriv-leksihjelp .lang-fl-dropdown {
+  min-width: 140px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+}
+.skriv-leksihjelp .lang-fl-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3B3B3B;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+.skriv-leksihjelp .lang-fl-dropdown-item:hover {
+  background: rgba(17, 180, 154, 0.08);
+  border-color: rgba(17, 180, 154, 0.25);
+}
+.skriv-leksihjelp .lang-fl-dropdown-item.active {
+  background: #11B49A;
+  color: #ffffff;
+}
+.skriv-leksihjelp .lang-fl-dropdown-check {
+  margin-left: auto;
+  font-weight: 700;
+}
+
+/* Paused chip — greyed background + ⏸ countdown badge. */
+.skriv-leksihjelp .lh-spell-check-btn.is-paused {
+  background: #9ca3af;
+  border-color: #6b7280;
+  opacity: 0.95;
+}
+.skriv-leksihjelp .lh-spell-check-btn.is-paused:hover { background: #6b7280; }
+.skriv-leksihjelp .lh-spell-check-btn.is-paused .lh-spell-check-btn-lang {
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: 9px;
+  letter-spacing: 0;
+  padding: 1px 4px;
+}
+
+.skriv-leksihjelp .lh-spell-lang-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  color: #1f2937;
+}
+
+.skriv-leksihjelp .lh-spell-lang-item:hover {
+  background: #f3f4f6;
+}
+
+.skriv-leksihjelp .lh-spell-lang-item.is-active {
+  background: #ecfdf5;
+  color: #065f46;
+  font-weight: 600;
+}
+
+.skriv-leksihjelp .lh-spell-lang-item .lh-spell-lang-code {
+  display: inline-block;
+  min-width: 26px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #11B49A;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.skriv-leksihjelp .lh-spell-lang-item.is-active .lh-spell-lang-code {
+  background: #065f46;
+}
+
+.skriv-leksihjelp .lh-spell-lang-hint {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-top: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 11px;
+  font-style: italic;
+  text-align: center;
+}
+
+/* ── Spell-check toast (Phase 18 Plan 02) ── */
+
+@keyframes lh-toast-fade {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.skriv-leksihjelp .lh-spell-toast {
+  position: absolute;
+  background: #333;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  z-index: 2147483641;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  white-space: nowrap;
+  animation: lh-toast-fade 2.5s ease-in-out forwards;
+}
+
+/* Dark mode variants for button and toast */
+@media (prefers-color-scheme: dark) {
+  .skriv-leksihjelp .lh-spell-check-btn {
+    background: #0ea388;
+    border-color: #0d937a;
+    color: #fff;
+  }
+
+  .skriv-leksihjelp .lh-spell-check-btn:hover {
+    background: #11B49A;
+  }
+
+  .skriv-leksihjelp .lh-spell-toast {
+    background: #1e2035;
+    color: #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* ── False-friend + sense display (floating-widget inline lookup) ── */
+.skriv-leksihjelp #lexi-lookup-card .lh-ff-banner {
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid #f59e0b;
+  border-radius: 6px;
+}
+
+.skriv-leksihjelp #lexi-lookup-card .lh-ff-banner em { font-style: italic; }
+.skriv-leksihjelp #lexi-lookup-card .lh-ff-banner strong { font-weight: 700; }
+
+.skriv-leksihjelp #lexi-lookup-card .lh-sense-group {
+  margin-bottom: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* ── Lær mer pedagogy panel (Phase 26) ──
+   Inline teaching panel rendered below the spell-check popover's actions row
+   when a finding carries a `pedagogy` block (DE preposition rule, sourced via
+   plan 26-01). Stays inside the popover surface — no modal, no overlay — so
+   drag/Tab navigation continues to work. Colour + icon combo on correct/
+   incorrect rows preserves access for colour-blind users (Phase 05.1 lesson).
+   Note: this CSS file is sync'd into the lockdown webapp, so styles must
+   degrade gracefully outside the extension context. */
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-laer-mer-btn {
+  display: inline-block;
+  margin: 6px 8px 0 8px;
+  padding: 4px 10px;
+  background: #F4F1EE;
+  border: 1px solid #DCD5CC;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #3A3A3A;
+  cursor: pointer;
+  font-family: inherit;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-laer-mer-btn:hover {
+  background: #ECE6DC;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-laer-mer-btn[aria-expanded="true"] {
+  background: #E6E0D5;
+  border-color: #C9C0B2;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-panel {
+  margin: 8px 0 0 0;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-panel[hidden] {
+  display: none !important;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-case-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  background: #888;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-case-badge--akkusativ { background: #E08828; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-case-badge--dativ     { background: #2E74B5; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-case-badge--wechsel   { background: #8E5BCC; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-case-badge--genitiv   { background: #11B49A; }
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-contraction {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-summary,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-explanation {
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+  color: #2A2A2A;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-explanation {
+  color: #4A4A4A;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-example {
+  margin: 6px 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-example-correct {
+  color: #1F7A3A;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-example-correct strong {
+  font-weight: 700;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-example-incorrect {
+  color: #C0392B;
+  text-decoration: line-through;
+  text-decoration-color: rgba(192, 57, 43, 0.4);
+  margin-bottom: 4px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-example-translation {
+  font-style: italic;
+  font-size: 0.92em;
+  color: #555;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-example-note {
+  margin-top: 2px;
+  font-size: 0.88em;
+  color: #777;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-example-note em {
+  font-style: italic;
+}
+
+/* Wechselpräposition motion vs location pair — stacked layout for narrow
+   popovers (the spell-check popover is ~320px wide; flex-column avoids the
+   awkward container-query / media-query dance). */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-visual {
+  margin: 12px 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-svg-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-svg-wrapper svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-visual-caption {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #64748b;
+  text-align: center;
+  font-style: italic;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-extra {
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: rgba(17, 180, 154, 0.08);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-wechsel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-wechsel-motion,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-wechsel-location {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid transparent;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-wechsel-motion {
+  background: #FFF4E6;
+  border-left-color: #E08828;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-wechsel-location {
+  background: #E6F0FA;
+  border-left-color: #2E74B5;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-wechsel-label {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+  color: #2A2A2A;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-wechsel-sentence {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-colloquial {
+  display: block;
+  margin: 8px 0 0 0;
+  padding: 8px 10px;
+  background: #F4F1EE;
+  border-radius: 6px;
+  font-size: 0.92em;
+  font-style: italic;
+  color: #4A4A4A;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-colloquial em {
+  font-style: italic;
+}

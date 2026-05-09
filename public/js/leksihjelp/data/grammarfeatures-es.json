@@ -1,0 +1,329 @@
+{
+  "features": [
+    {
+      "id": "grammar_es_presente",
+      "name": "Presente",
+      "nameEn": "Present Tense",
+      "description": "Nåtid — bøyning av verb i presens",
+      "descriptionEn": "Present tense verb conjugations",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.presens"
+    },
+    {
+      "id": "grammar_es_preterito",
+      "name": "Pretérito indefinido",
+      "nameEn": "Simple Past",
+      "description": "Enkel fortid — fullførte handlingar (hablé, comí)",
+      "descriptionEn": "Simple past tense for completed actions",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.preteritum"
+    },
+    {
+      "id": "grammar_es_perfecto",
+      "name": "Pretérito perfecto",
+      "nameEn": "Present Perfect",
+      "description": "Samansett fortid med haber + partisipp (he hablado)",
+      "descriptionEn": "Present perfect with haber + past participle",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.perfektum"
+    },
+    {
+      "id": "grammar_es_imperfecto",
+      "name": "Imperfecto",
+      "nameEn": "Imperfect",
+      "description": "Fortid — vedvarande eller gjentatte handlingar (hablaba, comía)",
+      "descriptionEn": "Imperfect tense for ongoing or habitual past actions",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.imperfecto"
+    },
+    {
+      "id": "grammar_es_futuro",
+      "name": "Futuro simple",
+      "nameEn": "Simple Future",
+      "description": "Framtid (hablaré, comeré)",
+      "descriptionEn": "Simple future tense",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.futuro",
+      "future": true
+    },
+    {
+      "id": "grammar_es_imperativo",
+      "name": "Imperativo",
+      "nameEn": "Imperative",
+      "description": "Bydeform (¡Habla!, ¡Come!)",
+      "descriptionEn": "Imperative/command forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.imperativo",
+      "future": true
+    },
+    {
+      "id": "grammar_es_subjuntivo",
+      "name": "Subjuntivo presente",
+      "nameEn": "Present Subjunctive",
+      "description": "Konjunktiv — ønske, tvil, følelse (que hable, que coma)",
+      "descriptionEn": "Present subjunctive for wishes, doubt, emotions",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.subjuntivo"
+    },
+    {
+      "id": "grammar_es_gerundio",
+      "name": "Gerundio",
+      "nameEn": "Gerund",
+      "description": "Pågåande form (hablando, comiendo)",
+      "descriptionEn": "Gerund / present participle form",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.gerundio",
+      "future": true
+    },
+    {
+      "id": "grammar_es_condicional",
+      "name": "Condicional",
+      "nameEn": "Conditional",
+      "description": "Vilkårsform (hablaría, comería)",
+      "descriptionEn": "Conditional tense",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.condicional",
+      "future": true
+    },
+    {
+      "id": "grammar_es_verb_class",
+      "name": "Grupo verbal",
+      "nameEn": "Verb Group",
+      "description": "Verbgruppe: -ar, -er, -ir eller uregelmessig",
+      "descriptionEn": "Verb group: -ar, -er, -ir, or irregular",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "verbClass"
+    },
+    {
+      "id": "grammar_es_pronouns_all",
+      "name": "Alle pronomen",
+      "nameEn": "All Pronouns",
+      "description": "Vis alle personlege pronomen (yo, tú, él/ella, nosotros, vosotros, ellos)",
+      "descriptionEn": "Show all personal pronouns",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.pronouns"
+    },
+    {
+      "id": "grammar_es_pronouns_singular_nosotros",
+      "name": "Pronomen ent. + nosotros",
+      "nameEn": "Singular + nosotros",
+      "description": "Berre eintal + nosotros (yo, tú, él/ella, nosotros)",
+      "descriptionEn": "Only singular pronouns + nosotros",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.pronouns"
+    },
+    {
+      "id": "grammar_es_pronouns_yo_tu",
+      "name": "Bare yo/tú",
+      "nameEn": "Only yo/tú",
+      "description": "Berre førsteperson og andreperson eintal",
+      "descriptionEn": "Only first and second person singular",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.pronouns"
+    },
+    {
+      "id": "grammar_es_genus",
+      "name": "Artículos",
+      "nameEn": "Articles/Gender",
+      "description": "Grammatisk kjønn med bestemte (el/la/los/las) og ubestemte (un/una) artikler",
+      "descriptionEn": "Grammatical gender with definite and indefinite articles",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "genus"
+    },
+    {
+      "id": "grammar_es_plural",
+      "name": "Plural",
+      "nameEn": "Plural",
+      "description": "Flertallsformer",
+      "descriptionEn": "Plural forms",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "plural"
+    },
+    {
+      "id": "grammar_es_komparativ",
+      "name": "Comparativo",
+      "nameEn": "Comparative",
+      "description": "Gradbøyning komparativ (más grande, mejor)",
+      "descriptionEn": "Comparative adjective forms",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.komparativ"
+    },
+    {
+      "id": "grammar_es_superlativ",
+      "name": "Superlativo",
+      "nameEn": "Superlative",
+      "description": "Gradbøyning superlativ (el más grande, el mejor)",
+      "descriptionEn": "Superlative adjective forms",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.superlativ"
+    },
+    {
+      "id": "grammar_es_adj_placement",
+      "name": "Adjektivplassering",
+      "nameEn": "Adjective Placement",
+      "description": "Plassering av adjektiv (før eller etter substantiv)",
+      "descriptionEn": "Adjective placement (before or after noun)",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "placement",
+      "future": true
+    },
+    {
+      "id": "grammar_es_adj_agreement",
+      "name": "Adjektivsamsvar",
+      "nameEn": "Adjective Agreement",
+      "description": "Samsvar i kjønn og tall (alto/alta/altos/altas)",
+      "descriptionEn": "Gender and number agreement",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "agreement",
+      "future": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "verbs",
+      "name": "Verbos",
+      "nameEn": "Verbs"
+    },
+    {
+      "id": "nouns",
+      "name": "Sustantivos",
+      "nameEn": "Nouns"
+    },
+    {
+      "id": "adjectives",
+      "name": "Adjetivos",
+      "nameEn": "Adjectives"
+    }
+  ],
+  "presets": [
+    {
+      "id": "basic",
+      "name": "Lite",
+      "nameEn": "Basic",
+      "description": "Grunnleggende — presente, artikler, flertall",
+      "features": [
+        "grammar_es_presente",
+        "grammar_es_pronouns_yo_tu",
+        "grammar_es_genus",
+        "grammar_es_plural"
+      ]
+    },
+    {
+      "id": "intermediate",
+      "name": "Middels",
+      "nameEn": "Intermediate",
+      "description": "Pretérito, flere pronomen, gradbøyning",
+      "features": [
+        "grammar_es_presente",
+        "grammar_es_preterito",
+        "grammar_es_pronouns_singular_nosotros",
+        "grammar_es_genus",
+        "grammar_es_plural",
+        "grammar_es_komparativ",
+        "grammar_es_superlativ"
+      ]
+    },
+    {
+      "id": "advanced",
+      "name": "Mye",
+      "nameEn": "Advanced",
+      "description": "Perfecto, imperfecto, imperativo, alle pronomen",
+      "features": [
+        "grammar_es_presente",
+        "grammar_es_preterito",
+        "grammar_es_perfecto",
+        "grammar_es_imperfecto",
+        "grammar_es_imperativo",
+        "grammar_es_gerundio",
+        "grammar_es_pronouns_all",
+        "grammar_es_genus",
+        "grammar_es_plural",
+        "grammar_es_komparativ",
+        "grammar_es_superlativ",
+        "grammar_es_adj_agreement"
+      ]
+    },
+    {
+      "id": "all",
+      "name": "Alt",
+      "nameEn": "All",
+      "description": "All grammatikk — subjuntivo, condicional, futuro",
+      "features": [
+        "grammar_es_presente",
+        "grammar_es_preterito",
+        "grammar_es_perfecto",
+        "grammar_es_imperfecto",
+        "grammar_es_futuro",
+        "grammar_es_imperativo",
+        "grammar_es_subjuntivo",
+        "grammar_es_gerundio",
+        "grammar_es_condicional",
+        "grammar_es_verb_class",
+        "grammar_es_pronouns_all",
+        "grammar_es_genus",
+        "grammar_es_plural",
+        "grammar_es_komparativ",
+        "grammar_es_superlativ",
+        "grammar_es_adj_placement",
+        "grammar_es_adj_agreement"
+      ]
+    }
+  ]
+}

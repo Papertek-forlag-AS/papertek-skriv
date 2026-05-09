@@ -1,0 +1,262 @@
+{
+  "features": [
+    {
+      "id": "grammar_en_present",
+      "name": "Present Tense",
+      "nameEn": "Present Tense",
+      "description": "Nåtid — bøyning av verb i presens (I eat, he eats)",
+      "descriptionEn": "Present tense verb conjugations",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.present"
+    },
+    {
+      "id": "grammar_en_past",
+      "name": "Past Tense",
+      "nameEn": "Past Tense",
+      "description": "Fortid — enkel fortid (I ate, he went)",
+      "descriptionEn": "Simple past tense forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.past"
+    },
+    {
+      "id": "grammar_en_perfect",
+      "name": "Perfect Tense",
+      "nameEn": "Perfect Tense",
+      "description": "Perfektum — partisippformer (eaten, gone, written)",
+      "descriptionEn": "Past participle and present participle forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.perfect"
+    },
+    {
+      "id": "grammar_en_continuous",
+      "name": "Continuous",
+      "nameEn": "Continuous (-ing)",
+      "description": "Pågåande form (eating, going, writing)",
+      "descriptionEn": "Continuous / progressive tense forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.continuous",
+      "future": true
+    },
+    {
+      "id": "grammar_en_future",
+      "name": "Future",
+      "nameEn": "Future (will/going to)",
+      "description": "Framtid (will eat, is going to eat)",
+      "descriptionEn": "Future tense with will / going to",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.future",
+      "future": true
+    },
+    {
+      "id": "grammar_en_passive",
+      "name": "Passive",
+      "nameEn": "Passive Voice",
+      "description": "Passiv form (is eaten, was written)",
+      "descriptionEn": "Passive voice forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.passive",
+      "future": true
+    },
+    {
+      "id": "grammar_en_conditional",
+      "name": "Conditional",
+      "nameEn": "Conditional (would)",
+      "description": "Vilkårsform (would eat, would go)",
+      "descriptionEn": "Conditional mood forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.conditional",
+      "future": true
+    },
+    {
+      "id": "grammar_en_irregular",
+      "name": "Irregular Verbs",
+      "nameEn": "Irregular Verb Forms",
+      "description": "Uregelrette verbformer (go-went-gone, eat-ate-eaten)",
+      "descriptionEn": "Irregular verb principal parts",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "irregular",
+      "future": true
+    },
+    {
+      "id": "grammar_en_verb_class",
+      "name": "Verb Class",
+      "nameEn": "Verb Class",
+      "description": "Regelrett eller uregelrett verb",
+      "descriptionEn": "Regular or irregular verb",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "verbClass"
+    },
+    {
+      "id": "grammar_en_plural",
+      "name": "Plural",
+      "nameEn": "Plural",
+      "description": "Flertallsformer (cats, children, mice)",
+      "descriptionEn": "Plural forms of nouns",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "plural"
+    },
+    {
+      "id": "grammar_en_genitive",
+      "name": "Genitive",
+      "nameEn": "Genitive (-'s)",
+      "description": "Eigeform (the cat's, the children's)",
+      "descriptionEn": "Possessive / genitive forms",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "genitive",
+      "future": true
+    },
+    {
+      "id": "grammar_en_countable",
+      "name": "Countable/Uncountable",
+      "nameEn": "Countable/Uncountable",
+      "description": "Teljelege og uteljelege substantiv (water vs. bottles)",
+      "descriptionEn": "Whether a noun is countable or uncountable",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "countable",
+      "future": true
+    },
+    {
+      "id": "grammar_en_comparative",
+      "name": "Comparative",
+      "nameEn": "Comparative",
+      "description": "Komparativ form (bigger, more beautiful)",
+      "descriptionEn": "Comparative adjective forms",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.comparative"
+    },
+    {
+      "id": "grammar_en_superlative",
+      "name": "Superlative",
+      "nameEn": "Superlative",
+      "description": "Superlativ form (biggest, most beautiful)",
+      "descriptionEn": "Superlative adjective forms",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.superlative"
+    }
+  ],
+  "categories": [
+    {
+      "id": "verbs",
+      "name": "Verbs",
+      "nameEn": "Verbs"
+    },
+    {
+      "id": "nouns",
+      "name": "Nouns",
+      "nameEn": "Nouns"
+    },
+    {
+      "id": "adjectives",
+      "name": "Adjectives",
+      "nameEn": "Adjectives"
+    }
+  ],
+  "presets": [
+    {
+      "id": "basic",
+      "name": "Lite",
+      "nameEn": "Basic",
+      "description": "Grunnleggende — present, flertall",
+      "features": [
+        "grammar_en_present",
+        "grammar_en_plural"
+      ]
+    },
+    {
+      "id": "intermediate",
+      "name": "Middels",
+      "nameEn": "Intermediate",
+      "description": "Past, perfect, gradbøyning",
+      "features": [
+        "grammar_en_present",
+        "grammar_en_past",
+        "grammar_en_perfect",
+        "grammar_en_plural",
+        "grammar_en_comparative",
+        "grammar_en_superlative"
+      ]
+    },
+    {
+      "id": "advanced",
+      "name": "Mye",
+      "nameEn": "Advanced",
+      "description": "Continuous, future, passiv, genitiv",
+      "features": [
+        "grammar_en_present",
+        "grammar_en_past",
+        "grammar_en_perfect",
+        "grammar_en_continuous",
+        "grammar_en_future",
+        "grammar_en_passive",
+        "grammar_en_irregular",
+        "grammar_en_plural",
+        "grammar_en_genitive",
+        "grammar_en_comparative",
+        "grammar_en_superlative"
+      ]
+    },
+    {
+      "id": "all",
+      "name": "Alt",
+      "nameEn": "All",
+      "description": "All grammatikk — conditional, countable/uncountable",
+      "features": [
+        "grammar_en_present",
+        "grammar_en_past",
+        "grammar_en_perfect",
+        "grammar_en_continuous",
+        "grammar_en_future",
+        "grammar_en_passive",
+        "grammar_en_conditional",
+        "grammar_en_irregular",
+        "grammar_en_plural",
+        "grammar_en_genitive",
+        "grammar_en_countable",
+        "grammar_en_comparative",
+        "grammar_en_superlative"
+      ]
+    }
+  ]
+}

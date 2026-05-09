@@ -1,0 +1,245 @@
+{
+  "features": [
+    {
+      "id": "grammar_nn_genus",
+      "name": "Kjønn",
+      "nameEn": "Gender",
+      "description": "Substantivets grammatiske kjønn (maskulin, feminin, nøytrum)",
+      "descriptionEn": "Grammatical gender of nouns (masculine, feminine, neuter)",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "genus"
+    },
+    {
+      "id": "grammar_nn_bestemt_form",
+      "name": "Bestemt form",
+      "nameEn": "Definite Form",
+      "description": "Bestemt form eintal og fleirtal (hagen, hagane)",
+      "descriptionEn": "Definite singular and plural forms",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "forms.bestemt"
+    },
+    {
+      "id": "grammar_nn_fleirtal",
+      "name": "Fleirtal",
+      "nameEn": "Plural",
+      "description": "Fleirtalsformer av substantiv",
+      "descriptionEn": "Plural forms of nouns",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "forms.ubestemt.flertall"
+    },
+    {
+      "id": "grammar_nn_noun_forms",
+      "name": "Alle bøyingsformer",
+      "nameEn": "All Declension Forms",
+      "description": "Alle fire former: ubestemt/bestemt × eintal/fleirtal",
+      "descriptionEn": "All four forms: indefinite/definite × singular/plural",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "forms"
+    },
+    {
+      "id": "grammar_nn_presens",
+      "name": "Presens",
+      "nameEn": "Present Tense",
+      "description": "Bøying av verb i presens",
+      "descriptionEn": "Present tense verb forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.presens"
+    },
+    {
+      "id": "grammar_nn_preteritum",
+      "name": "Preteritum",
+      "nameEn": "Past Tense",
+      "description": "Bøying av verb i preteritum",
+      "descriptionEn": "Past tense verb forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.presens.former.preteritum"
+    },
+    {
+      "id": "grammar_nn_perfektum",
+      "name": "Perfektum",
+      "nameEn": "Present Perfect",
+      "description": "Perfektum partisipp (har/er + partisipp)",
+      "descriptionEn": "Perfect participle form",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.presens.former.perfektum_partisipp"
+    },
+    {
+      "id": "grammar_nn_imperativ",
+      "name": "Imperativ",
+      "nameEn": "Imperative",
+      "description": "Bydeform (hent!, skriv!)",
+      "descriptionEn": "Imperative/command form",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.presens.former.imperativ"
+    },
+    {
+      "id": "grammar_nn_passiv",
+      "name": "Passiv",
+      "nameEn": "Passive Voice",
+      "description": "Passiv form (bli + partisipp, -st-passiv)",
+      "descriptionEn": "Passive voice forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.passiv",
+      "future": true
+    },
+    {
+      "id": "grammar_nn_verb_class",
+      "name": "Verbklasse",
+      "nameEn": "Verb Class",
+      "description": "Svak, sterk eller uregelmessig",
+      "descriptionEn": "Weak, strong, or irregular",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "verbClass"
+    },
+    {
+      "id": "grammar_nn_komparativ",
+      "name": "Komparativ",
+      "nameEn": "Comparative",
+      "description": "Gradbøying komparativ (større, betre)",
+      "descriptionEn": "Comparative adjective forms",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.komparativ"
+    },
+    {
+      "id": "grammar_nn_superlativ",
+      "name": "Superlativ",
+      "nameEn": "Superlative",
+      "description": "Gradbøying superlativ (størst, best)",
+      "descriptionEn": "Superlative adjective forms",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.superlativ"
+    },
+    {
+      "id": "grammar_nn_adj_declension",
+      "name": "Adjektivbøying",
+      "nameEn": "Adjective Declension",
+      "description": "Bøying etter kjønn, tal og bestemtheit",
+      "descriptionEn": "Inflection by gender, number, and definiteness",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "declension",
+      "future": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "verbs",
+      "name": "Verb",
+      "nameEn": "Verbs"
+    },
+    {
+      "id": "nouns",
+      "name": "Substantiv",
+      "nameEn": "Nouns"
+    },
+    {
+      "id": "adjectives",
+      "name": "Adjektiv",
+      "nameEn": "Adjectives"
+    }
+  ],
+  "presets": [
+    {
+      "id": "basic",
+      "name": "Lite",
+      "nameEn": "Basic",
+      "description": "Grunnleggende — presens, kjønn, fleirtal",
+      "features": [
+        "grammar_nn_presens",
+        "grammar_nn_genus",
+        "grammar_nn_fleirtal"
+      ]
+    },
+    {
+      "id": "intermediate",
+      "name": "Middels",
+      "nameEn": "Intermediate",
+      "description": "Preteritum, bestemt form, gradbøying",
+      "features": [
+        "grammar_nn_presens",
+        "grammar_nn_preteritum",
+        "grammar_nn_genus",
+        "grammar_nn_fleirtal",
+        "grammar_nn_bestemt_form",
+        "grammar_nn_komparativ",
+        "grammar_nn_superlativ"
+      ]
+    },
+    {
+      "id": "advanced",
+      "name": "Mye",
+      "nameEn": "Advanced",
+      "description": "Perfektum, bøyingstabell, imperativ",
+      "features": [
+        "grammar_nn_presens",
+        "grammar_nn_preteritum",
+        "grammar_nn_perfektum",
+        "grammar_nn_imperativ",
+        "grammar_nn_genus",
+        "grammar_nn_fleirtal",
+        "grammar_nn_bestemt_form",
+        "grammar_nn_noun_forms",
+        "grammar_nn_komparativ",
+        "grammar_nn_superlativ"
+      ]
+    },
+    {
+      "id": "all",
+      "name": "Alt",
+      "nameEn": "All",
+      "description": "All grammatikk — passiv, adjektivbøying",
+      "features": [
+        "grammar_nn_presens",
+        "grammar_nn_preteritum",
+        "grammar_nn_perfektum",
+        "grammar_nn_imperativ",
+        "grammar_nn_passiv",
+        "grammar_nn_genus",
+        "grammar_nn_fleirtal",
+        "grammar_nn_bestemt_form",
+        "grammar_nn_noun_forms",
+        "grammar_nn_komparativ",
+        "grammar_nn_superlativ",
+        "grammar_nn_adj_declension"
+      ]
+    }
+  ]
+}

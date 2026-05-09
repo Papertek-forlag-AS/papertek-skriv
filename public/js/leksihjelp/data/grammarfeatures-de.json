@@ -1,0 +1,322 @@
+{
+  "features": [
+    {
+      "id": "grammar_de_presens",
+      "name": "Presens",
+      "nameEn": "Present Tense",
+      "description": "Nåtid — bøyning av verb i presens",
+      "descriptionEn": "Present tense verb conjugations",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.presens"
+    },
+    {
+      "id": "grammar_de_preteritum",
+      "name": "Preteritum",
+      "nameEn": "Simple Past",
+      "description": "Fortid — bøyning av verb i preteritum",
+      "descriptionEn": "Simple past tense verb conjugations",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.preteritum"
+    },
+    {
+      "id": "grammar_de_perfektum",
+      "name": "Perfektum",
+      "nameEn": "Present Perfect",
+      "description": "Sammensatt fortid med haben/sein + partisipp",
+      "descriptionEn": "Present perfect tense with haben/sein + past participle",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.perfektum"
+    },
+    {
+      "id": "grammar_de_futurum",
+      "name": "Futurum",
+      "nameEn": "Future Tense",
+      "description": "Framtid med werden + infinitiv",
+      "descriptionEn": "Future tense with werden + infinitive",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.futurum",
+      "future": true
+    },
+    {
+      "id": "grammar_de_imperativ",
+      "name": "Imperativ",
+      "nameEn": "Imperative",
+      "description": "Bydeform (Komm!, Gehen Sie!)",
+      "descriptionEn": "Imperative/command forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.imperativ",
+      "future": true
+    },
+    {
+      "id": "grammar_de_konjunktiv",
+      "name": "Konjunktiv II",
+      "nameEn": "Subjunctive II",
+      "description": "Konjunktiv II for hypotetiske situasjonar (hätte, wäre, würde)",
+      "descriptionEn": "Subjunctive II for hypothetical situations",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.konjunktiv",
+      "future": true
+    },
+    {
+      "id": "grammar_de_passiv",
+      "name": "Passiv",
+      "nameEn": "Passive Voice",
+      "description": "Passiv med werden + partisipp",
+      "descriptionEn": "Passive voice with werden + past participle",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.passiv",
+      "future": true
+    },
+    {
+      "id": "grammar_de_verb_class",
+      "name": "Verbklasse",
+      "nameEn": "Verb Class",
+      "description": "Svak, sterk eller uregelmessig",
+      "descriptionEn": "Weak, strong, or irregular",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "verbClass"
+    },
+    {
+      "id": "grammar_de_genus",
+      "name": "Artikler",
+      "nameEn": "Articles/Gender",
+      "description": "Grammatisk kjønn med bestemte (der/die/das) og ubestemte (ein/eine) artikler",
+      "descriptionEn": "Grammatical gender with definite (der/die/das) and indefinite (ein/eine) articles",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "genus"
+    },
+    {
+      "id": "grammar_de_plural",
+      "name": "Flertall",
+      "nameEn": "Plural",
+      "description": "Flertallsformer av substantiv",
+      "descriptionEn": "Plural forms of nouns",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "plural"
+    },
+    {
+      "id": "grammar_de_cases",
+      "name": "Kasusbøyning",
+      "nameEn": "Noun Declension",
+      "description": "Kasusbøyning av substantiv (nominativ, akkusativ, dativ, genitiv)",
+      "descriptionEn": "Noun case declension (nominative, accusative, dative, genitive)",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "cases"
+    },
+    {
+      "id": "grammar_de_akkusativ",
+      "name": "Akkusativ",
+      "nameEn": "Accusative Case",
+      "description": "Akkusativ kasus (den/die/das, einen/eine/ein)",
+      "descriptionEn": "Accusative case forms",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "cases.akkusativ"
+    },
+    {
+      "id": "grammar_de_dativ",
+      "name": "Dativ",
+      "nameEn": "Dative Case",
+      "description": "Dativ kasus (dem/der/dem, einem/einer/einem)",
+      "descriptionEn": "Dative case forms",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "cases.dativ"
+    },
+    {
+      "id": "grammar_de_genitiv",
+      "name": "Genitiv",
+      "nameEn": "Genitive Case",
+      "description": "Genitiv kasus (des/der/des)",
+      "descriptionEn": "Genitive case forms",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "cases.genitiv"
+    },
+    {
+      "id": "grammar_de_komparativ",
+      "name": "Komparativ",
+      "nameEn": "Comparative",
+      "description": "Gradbøyning komparativ (größer, besser)",
+      "descriptionEn": "Comparative adjective forms (bigger, better)",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.komparativ"
+    },
+    {
+      "id": "grammar_de_superlativ",
+      "name": "Superlativ",
+      "nameEn": "Superlative",
+      "description": "Gradbøyning superlativ (am größten, am besten)",
+      "descriptionEn": "Superlative adjective forms (biggest, best)",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.superlativ"
+    },
+    {
+      "id": "grammar_de_adj_declension",
+      "name": "Adjektivbøyning",
+      "nameEn": "Adjective Declension",
+      "description": "Adjektivendelser etter artikkel og kasus",
+      "descriptionEn": "Adjective endings based on article and case",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "declension"
+    },
+    {
+      "id": "grammar_de_pronoun_cases",
+      "name": "Pronomen i kasus",
+      "nameEn": "Pronoun Cases",
+      "description": "Pronomen i nominativ, akkusativ og dativ (ich/mich/mir)",
+      "descriptionEn": "Pronouns in nominative, accusative, and dative cases",
+      "category": "pronouns",
+      "appliesTo": [
+        "pronoun"
+      ],
+      "dataPath": "cases",
+      "future": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "verbs",
+      "name": "Verb",
+      "nameEn": "Verbs"
+    },
+    {
+      "id": "nouns",
+      "name": "Substantiv",
+      "nameEn": "Nouns"
+    },
+    {
+      "id": "adjectives",
+      "name": "Adjektiv",
+      "nameEn": "Adjectives"
+    },
+    {
+      "id": "pronouns",
+      "name": "Pronomen",
+      "nameEn": "Pronouns"
+    }
+  ],
+  "presets": [
+    {
+      "id": "basic",
+      "name": "Lite",
+      "nameEn": "Basic",
+      "description": "Grunnleggende — presens, artikler, flertall",
+      "features": [
+        "grammar_de_presens",
+        "grammar_de_genus",
+        "grammar_de_plural"
+      ]
+    },
+    {
+      "id": "intermediate",
+      "name": "Middels",
+      "nameEn": "Intermediate",
+      "description": "Flere tider, akkusativ, gradbøyning",
+      "features": [
+        "grammar_de_presens",
+        "grammar_de_preteritum",
+        "grammar_de_verb_class",
+        "grammar_de_genus",
+        "grammar_de_plural",
+        "grammar_de_akkusativ",
+        "grammar_de_komparativ",
+        "grammar_de_superlativ"
+      ]
+    },
+    {
+      "id": "advanced",
+      "name": "Mye",
+      "nameEn": "Advanced",
+      "description": "Perfektum, dativ, adjektivbøyning, imperativ",
+      "features": [
+        "grammar_de_presens",
+        "grammar_de_preteritum",
+        "grammar_de_perfektum",
+        "grammar_de_imperativ",
+        "grammar_de_verb_class",
+        "grammar_de_genus",
+        "grammar_de_plural",
+        "grammar_de_akkusativ",
+        "grammar_de_dativ",
+        "grammar_de_komparativ",
+        "grammar_de_superlativ",
+        "grammar_de_adj_declension"
+      ]
+    },
+    {
+      "id": "all",
+      "name": "Alt",
+      "nameEn": "All",
+      "description": "All grammatikk — genitiv, konjunktiv, passiv, pronomen",
+      "features": [
+        "grammar_de_presens",
+        "grammar_de_preteritum",
+        "grammar_de_perfektum",
+        "grammar_de_futurum",
+        "grammar_de_imperativ",
+        "grammar_de_konjunktiv",
+        "grammar_de_passiv",
+        "grammar_de_verb_class",
+        "grammar_de_genus",
+        "grammar_de_plural",
+        "grammar_de_cases",
+        "grammar_de_akkusativ",
+        "grammar_de_dativ",
+        "grammar_de_genitiv",
+        "grammar_de_komparativ",
+        "grammar_de_superlativ",
+        "grammar_de_adj_declension",
+        "grammar_de_pronoun_cases"
+      ]
+    }
+  ]
+}

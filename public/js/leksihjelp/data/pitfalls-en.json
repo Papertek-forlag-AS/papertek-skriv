@@ -1,0 +1,13 @@
+{
+  "there": { "fix": "there", "next": ["is", "are", "was", "were", "has", "have", "will"], "note": "location/existence" },
+  "their": { "fix": "their", "next": ["own", "house", "car", "parents", "friends", "books", "ideas"], "note": "possessive" },
+  "they're": { "fix": "they're", "note": "they are" },
+  "it's": { "fix": "it's", "note": "it is" },
+  "its": { "fix": "its", "note": "possessive" },
+  "your": { "fix": "your", "note": "possessive" },
+  "you're": { "fix": "you're", "note": "you are" },
+  "whose": { "fix": "whose", "note": "possessive" },
+  "who's": { "fix": "who's", "note": "who is" },
+  "than": { "fix": "than", "note": "comparison (bigger than)" },
+  "then": { "fix": "then", "note": "time (and then)" }
+}

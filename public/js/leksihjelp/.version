@@ -1,0 +1,17 @@
+{
+  "upstream_version": "3.0.7",
+  "upstream_commit": "ddeaf33fc604c61c3e45e4d23c779842fcece0d6",
+  "synced_at": "2026-05-09T21:23:41.654Z",
+  "inventory": [
+    "i18n/strings.js",
+    "content/vocab-seam-core.js",
+    "content/vocab-seam.js",
+    "content/lang-detect.js",
+    "content/spell-check-core.js",
+    "content/spell-check-engine.js",
+    "content/spell-check-renderer.js",
+    "exam-registry.js",
+    "popup/dict-state-builder.js",
+    "popup/grammar-features-section.js"
+  ]
+}

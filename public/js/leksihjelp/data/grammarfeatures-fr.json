@@ -1,0 +1,330 @@
+{
+  "features": [
+    {
+      "id": "grammar_fr_present",
+      "name": "Présent",
+      "nameEn": "Present Tense",
+      "description": "Nåtid — bøyning av verb i presens",
+      "descriptionEn": "Present tense verb conjugations",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.presens"
+    },
+    {
+      "id": "grammar_fr_passe_compose",
+      "name": "Passé composé",
+      "nameEn": "Present Perfect",
+      "description": "Samansett fortid med avoir/être + partisipp (j'ai parlé)",
+      "descriptionEn": "Present perfect with avoir/être + past participle",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.passe_compose"
+    },
+    {
+      "id": "grammar_fr_imparfait",
+      "name": "Imparfait",
+      "nameEn": "Imperfect",
+      "description": "Fortid — vedvarande eller gjentekne handlingar (je parlais)",
+      "descriptionEn": "Imperfect tense for ongoing or habitual past actions",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.imparfait"
+    },
+    {
+      "id": "grammar_fr_futur_simple",
+      "name": "Futur simple",
+      "nameEn": "Simple Future",
+      "description": "Enkel framtid (je parlerai)",
+      "descriptionEn": "Simple future tense",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.futur_simple",
+      "future": true
+    },
+    {
+      "id": "grammar_fr_imperatif",
+      "name": "Impératif",
+      "nameEn": "Imperative",
+      "description": "Bydeform (Parle!, Mangez!)",
+      "descriptionEn": "Imperative/command forms",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.imperatif",
+      "future": true
+    },
+    {
+      "id": "grammar_fr_subjonctif",
+      "name": "Subjonctif présent",
+      "nameEn": "Present Subjunctive",
+      "description": "Konjunktiv — ønske, tvil, følelse (que je parle)",
+      "descriptionEn": "Present subjunctive for wishes, doubt, emotions",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.subjonctif"
+    },
+    {
+      "id": "grammar_fr_conditionnel",
+      "name": "Conditionnel présent",
+      "nameEn": "Present Conditional",
+      "description": "Vilkårsform (je parlerais)",
+      "descriptionEn": "Present conditional tense",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.conditionnel",
+      "future": true
+    },
+    {
+      "id": "grammar_fr_plus_que_parfait",
+      "name": "Plus-que-parfait",
+      "nameEn": "Pluperfect",
+      "description": "Førfortid (j'avais parlé)",
+      "descriptionEn": "Pluperfect / past perfect tense",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.plus_que_parfait",
+      "future": true
+    },
+    {
+      "id": "grammar_fr_verb_group",
+      "name": "Groupe verbal",
+      "nameEn": "Verb Group",
+      "description": "Verbgruppe: 1. (-er), 2. (-ir), 3. (resten)",
+      "descriptionEn": "Verb group: 1st (-er), 2nd (-ir), 3rd (others)",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "verbClass",
+      "future": true
+    },
+    {
+      "id": "grammar_fr_pronouns_all",
+      "name": "Alle pronomen",
+      "nameEn": "All Pronouns",
+      "description": "Vis alle personlege pronomen (je, tu, il/elle, nous, vous, ils/elles)",
+      "descriptionEn": "Show all personal pronouns",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.pronouns"
+    },
+    {
+      "id": "grammar_fr_pronouns_singular_nous",
+      "name": "Pronomen ent. + nous",
+      "nameEn": "Singular + nous",
+      "description": "Berre eintal + nous (je, tu, il/elle, nous)",
+      "descriptionEn": "Only singular pronouns + nous",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.pronouns"
+    },
+    {
+      "id": "grammar_fr_pronouns_je_tu",
+      "name": "Bare je/tu",
+      "nameEn": "Only je/tu",
+      "description": "Berre førsteperson og andreperson eintal",
+      "descriptionEn": "Only first and second person singular",
+      "category": "verbs",
+      "appliesTo": [
+        "verb"
+      ],
+      "dataPath": "conjugations.pronouns"
+    },
+    {
+      "id": "grammar_fr_genus",
+      "name": "Articles",
+      "nameEn": "Articles/Gender",
+      "description": "Grammatisk kjønn med bestemte (le/la/les) og ubestemte (un/une) artikler",
+      "descriptionEn": "Grammatical gender with definite and indefinite articles",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "genus"
+    },
+    {
+      "id": "grammar_fr_plural",
+      "name": "Pluriel",
+      "nameEn": "Plural",
+      "description": "Flertallsformer",
+      "descriptionEn": "Plural forms",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "plural"
+    },
+    {
+      "id": "grammar_fr_partitif",
+      "name": "Partitiv",
+      "nameEn": "Partitive Articles",
+      "description": "Delingsartiklar (du, de la, de l', des)",
+      "descriptionEn": "Partitive articles (du, de la, de l', des)",
+      "category": "nouns",
+      "appliesTo": [
+        "noun"
+      ],
+      "dataPath": "partitif",
+      "future": true
+    },
+    {
+      "id": "grammar_fr_komparativ",
+      "name": "Comparatif",
+      "nameEn": "Comparative",
+      "description": "Gradbøyning komparativ (plus grand, meilleur)",
+      "descriptionEn": "Comparative adjective forms",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.komparativ"
+    },
+    {
+      "id": "grammar_fr_superlativ",
+      "name": "Superlatif",
+      "nameEn": "Superlative",
+      "description": "Gradbøyning superlativ (le plus grand, le meilleur)",
+      "descriptionEn": "Superlative adjective forms",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "comparison.superlativ"
+    },
+    {
+      "id": "grammar_fr_adj_placement",
+      "name": "Adjektivplassering",
+      "nameEn": "Adjective Placement",
+      "description": "Plassering av adjektiv (før eller etter substantiv)",
+      "descriptionEn": "Adjective placement (before or after noun)",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "placement",
+      "future": true
+    },
+    {
+      "id": "grammar_fr_adj_agreement",
+      "name": "Adjektivsamsvar",
+      "nameEn": "Adjective Agreement",
+      "description": "Samsvar i kjønn og tall (grand/grande/grands/grandes)",
+      "descriptionEn": "Gender and number agreement",
+      "category": "adjectives",
+      "appliesTo": [
+        "adj"
+      ],
+      "dataPath": "agreement",
+      "future": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "verbs",
+      "name": "Verbes",
+      "nameEn": "Verbs"
+    },
+    {
+      "id": "nouns",
+      "name": "Noms",
+      "nameEn": "Nouns"
+    },
+    {
+      "id": "adjectives",
+      "name": "Adjectifs",
+      "nameEn": "Adjectives"
+    }
+  ],
+  "presets": [
+    {
+      "id": "basic",
+      "name": "Lite",
+      "nameEn": "Basic",
+      "description": "Grunnleggende — présent, artikler, flertall",
+      "features": [
+        "grammar_fr_present",
+        "grammar_fr_pronouns_je_tu",
+        "grammar_fr_genus",
+        "grammar_fr_plural"
+      ]
+    },
+    {
+      "id": "intermediate",
+      "name": "Middels",
+      "nameEn": "Intermediate",
+      "description": "Passé composé, flere pronomen, gradbøyning",
+      "features": [
+        "grammar_fr_present",
+        "grammar_fr_passe_compose",
+        "grammar_fr_pronouns_singular_nous",
+        "grammar_fr_genus",
+        "grammar_fr_plural",
+        "grammar_fr_komparativ",
+        "grammar_fr_superlativ"
+      ]
+    },
+    {
+      "id": "advanced",
+      "name": "Mye",
+      "nameEn": "Advanced",
+      "description": "Imparfait, impératif, partitiv, alle pronomen",
+      "features": [
+        "grammar_fr_present",
+        "grammar_fr_passe_compose",
+        "grammar_fr_imparfait",
+        "grammar_fr_imperatif",
+        "grammar_fr_pronouns_all",
+        "grammar_fr_genus",
+        "grammar_fr_plural",
+        "grammar_fr_partitif",
+        "grammar_fr_komparativ",
+        "grammar_fr_superlativ",
+        "grammar_fr_adj_agreement"
+      ]
+    },
+    {
+      "id": "all",
+      "name": "Alt",
+      "nameEn": "All",
+      "description": "All grammatikk — subjonctif, conditionnel, futur",
+      "features": [
+        "grammar_fr_present",
+        "grammar_fr_passe_compose",
+        "grammar_fr_imparfait",
+        "grammar_fr_futur_simple",
+        "grammar_fr_imperatif",
+        "grammar_fr_subjonctif",
+        "grammar_fr_conditionnel",
+        "grammar_fr_plus_que_parfait",
+        "grammar_fr_verb_group",
+        "grammar_fr_pronouns_all",
+        "grammar_fr_genus",
+        "grammar_fr_plural",
+        "grammar_fr_partitif",
+        "grammar_fr_komparativ",
+        "grammar_fr_superlativ",
+        "grammar_fr_adj_placement",
+        "grammar_fr_adj_agreement"
+      ]
+    }
+  ]
+}
