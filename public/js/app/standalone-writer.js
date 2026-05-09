@@ -37,6 +37,7 @@ import { initArgumentFlow } from '../editor-core/student/argument-flow.js';
 import { initGermanHintDrawer } from '../editor-core/student/german-hint-drawer.js';
 import { initLeksihjelpBridge } from './leksihjelp-bridge.js';
 import { initLeksihjelpSettings } from './leksihjelp-settings.js';
+import { initLeksihjelpDictionary } from './leksihjelp-dictionary.js';
 import { initSpecialCharsPanel } from '../editor-core/student/special-chars-panel.js';
 import { SPECIAL_CHAR_GROUPS } from '../editor-core/config.js';
 // import { initMatte } from '../editor-core/student/matte.js'; // Deactivated — re-enable when subject choice is added
@@ -528,6 +529,34 @@ export async function launchEditor(container, docId, onBack) {
     specialCharsApi.setActiveLanguage(leksihjelpBridge.getWritingLang());
     leksihjelpBridge.onWritingLangChange((lang) => specialCharsApi.setActiveLanguage(lang));
 
+    // --- Leksihjelp dictionary popup (click any word) ---
+    // Yields to the extension when bridge.status === 'extension' (the
+    // extension renders its own dictionary surface on every page).
+    const leksihjelpDictApi = initLeksihjelpDictionary(editor, leksihjelpBridge);
+
+    // --- Per-document language seeding (S-9) ---
+    // Soft seed: the writing language flows from the document's intent
+    // when we have a strong signal. Student changes in the settings
+    // drawer always win (the bridge persists their pick in localStorage,
+    // and we only seed when the persisted value still equals the default).
+    //
+    // Signals (priority order — first match wins):
+    //   1. doc.germanHint  → writing + lookup lang = 'de' (German exam tasks)
+    //   2. (future)        → frame language for skriverammer
+    if (doc.germanHint && (doc.germanHint.simple || doc.germanHint.rich)) {
+        // Only seed if the user hasn't explicitly chosen a non-default
+        // writingLang — looking at the raw localStorage entry rather than
+        // the bridge's getter to detect "never set" vs "set to nb".
+        const storedWriting = localStorage.getItem('skriv.leksihjelp.writingLang');
+        if (!storedWriting || storedWriting === 'nb') {
+            leksihjelpBridge.setWritingLang('de');
+        }
+        const storedLookup = localStorage.getItem('skriv.leksihjelp.lookupLang');
+        if (!storedLookup || storedLookup === 'nb') {
+            leksihjelpBridge.setLookupLang('de');
+        }
+    }
+
     // --- Onboarding Tour ---
     const tourApi = initOnboardingTour();
 
@@ -639,6 +668,7 @@ export async function launchEditor(container, docId, onBack) {
         argumentApi.destroy();
         if (germanHintApi) germanHintApi.destroy();
         leksihjelpSettingsApi.destroy();
+        leksihjelpDictApi.destroy();
         specialCharsApi.destroy();
         leksihjelpBridge.destroy();
         counterCleanup();

@@ -103,6 +103,15 @@ App init
 - Ordered list, Unordered list (when advanced mode is on)
 - Special characters panel
 
+**Editor surfaces driven by leksihjelp (when integrated):**
+- Spell-check dots — inline under flagged words; click → popover with rule
+  explanation + suggestions (`#lexi-spell-overlay`, owned by vendored
+  spell-check-renderer.js).
+- Dictionary popup — single-click any word → floating popup with
+  translation + grammar (`leksihjelp-dictionary.js`). Yields when the
+  Chrome extension is detected.
+- Special-chars panel — driven by Skrivespråk (`special-chars-panel.js`).
+
 ## PWA behavior
 
 - Installable via `manifest.json`

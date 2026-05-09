@@ -352,16 +352,38 @@ to `de` and typing "Ich habe ein hund" produces 4 German dots
 `window.__lexiPresent = 'extension'` flips `spellCheckEnabled` to
 `false` so the renderer stops marking.
 
-### S-8. ⏳ Dictionary popup (next phase)
+### S-8. ✅ Dictionary popup
 
-- Skriv-styled popup component using vendored `dict-state-builder.js`.
-- Single-click handler on words in the editor → popup at click point.
+- New module `public/js/app/leksihjelp-dictionary.js`. Single-click any
+  word in the editor → floating popup with translation, part-of-speech,
+  gender (for nouns), and base-form pointer (e.g. clicking *kommer*
+  surfaces *komme*).
+- Word-boundary detection via `caretRangeFromPoint` with a Unicode
+  `\p{L}` regex so Norwegian/German/Spanish/French diacritics match.
+- Entry resolution: `window.__lexiVocab.getWordList()` for the loaded
+  language; falls back to `getVerbInfinitive()` for inflected forms.
+- Skriv-styled popup with its own scoped CSS (not inside the vendored
+  `.skriv-leksihjelp` block) — sits at z-index 2147483646 above the
+  spell-check overlay so popovers stack correctly.
+- Yields entirely when `bridge.status === 'extension'` (early-return in
+  the click handler) — the extension's own dictionary takes over.
+- Closes on Esc, on outside-click (capture-phase), and via the × Lukk
+  button in the popup footer.
 
-### S-9. ⏳ Per-document language seeding
+### S-9. ✅ Per-document language seeding
 
-- German exam docs (have `germanHint`) → seed `bridge.setWritingLang('de')` + `setLookupLang('de')` on first open.
-- Other docs default to `nb` / `nn` based on the active document language.
-- Soft seed only; user changes persist per-document.
+Implemented as a soft seed in `standalone-writer.js`'s `launchEditor`:
+
+- German exam docs (have `germanHint`) → seed `bridge.setWritingLang('de')`
+  + `setLookupLang('de')` on first open.
+- Seeding only fires when the persisted localStorage value is unset OR
+  still equals the default `nb`. If the student has explicitly chosen
+  another language in the settings drawer, that choice always wins.
+- Frame-language seeding for skriverammer is not yet wired (Norwegian
+  frames imply nb already; nynorsk is detected by `getCurrentLanguage()`
+  elsewhere). Adding it would be a small follow-up if students start
+  writing nb texts inside an nn frame and the auto-detect proves
+  insufficient.
 
 ## 7. Storage keys
 
@@ -446,8 +468,8 @@ Quick checklist either side can scan:
 - [x] **S-5** — Special-chars panel refactor
 - [x] **S-6** — Loader + chrome shim + bundle wired into index.html + SW bump
 - [x] **S-7** — Spell-check wire-up (renderer auto-attaches; extension yields via spellCheckEnabled)
-- [ ] **S-8** — Dictionary popup (depends on S-6)
-- [ ] **S-9** — Per-document language seeding (depends on S-2..S-5; can ship after S-2)
+- [x] **S-8** — Dictionary popup (`leksihjelp-dictionary.js`; click any word → popup)
+- [x] **S-9** — Per-document language seeding (German exam docs → de)
 
 ## 12. References
 
