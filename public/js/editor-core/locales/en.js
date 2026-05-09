@@ -251,6 +251,10 @@ export default {
         grammarLevel: 'Grammar level',
         grammarLevelHint: 'Choose which grammatical forms (tenses, cases, comparatives) the dictionary shows.',
         grammarLevelPlaceholder: 'Available once Leksihjelp is fully integrated.',
+        searchTitle: 'Search the dictionary',
+        searchHint: 'Search in {{lang}} or in Norwegian — you can type a word in either language.',
+        searchPlaceholder: 'Type a word...',
+        searchNoResults: 'No matches in the dictionary.',
     },
 
     radar: {

@@ -60,6 +60,19 @@ export function initLeksihjelpSettings(host, bridge) {
 
         <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5 text-sm text-stone-700 dark:text-stone-200">
 
+            <!-- Search dictionary (bidirectional: typing matches word OR translation) -->
+            <section>
+                <label class="block">
+                    <span class="font-medium block mb-0.5">${escapeHtml(t('leksihjelp.searchTitle'))}</span>
+                    <span class="text-xs text-stone-500 dark:text-stone-400 block mb-1.5" data-search-hint></span>
+                    <input type="search" data-search-input
+                        autocomplete="off" autocapitalize="none" spellcheck="false"
+                        class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 outline-none focus:border-emerald-400"
+                        placeholder="${escapeHtml(t('leksihjelp.searchPlaceholder'))}">
+                </label>
+                <div class="mt-2 space-y-1.5" data-search-results></div>
+            </section>
+
             <p class="text-xs text-stone-500 dark:text-stone-400" data-status-hint></p>
 
             <!-- Eksamensmodus -->
@@ -116,8 +129,87 @@ export function initLeksihjelpSettings(host, bridge) {
     const writingLangSelect = drawer.querySelector('[data-writing-lang]');
     const lookupLangSelect = drawer.querySelector('[data-lookup-lang]');
     const statusHintEl = drawer.querySelector('[data-status-hint]');
+    const searchInputEl = drawer.querySelector('[data-search-input]');
+    const searchResultsEl = drawer.querySelector('[data-search-results]');
+    const searchHintEl = drawer.querySelector('[data-search-hint]');
 
     examModeCheckbox.checked = bridge.getExamMode();
+
+    // ── Dictionary search ──
+    // Bidirectional: a query matches against either the loaded language's
+    // word list (entry.word) OR the translation field, so typing "hund"
+    // surfaces the German "Hund" entry when Oppslagsspråk = de, and typing
+    // "Hund" surfaces it equally. Lookup target follows bridge.lookupLang.
+    function refreshSearchHint() {
+        if (!searchHintEl) return;
+        const lang = bridge.getLookupLang();
+        const langName = (LANGS.find(l => l.id === lang) || {}).label || lang;
+        searchHintEl.textContent = t('leksihjelp.searchHint', { lang: langName });
+    }
+    refreshSearchHint();
+
+    function searchEntries(query) {
+        const vocab = window.__lexiVocab;
+        if (!vocab || typeof vocab.getWordList !== 'function') return [];
+        const list = vocab.getWordList();
+        if (!Array.isArray(list)) return [];
+        const lower = query.toLowerCase().trim();
+        if (lower.length < 2) return [];
+
+        const exactWord = [];
+        const exactTrans = [];
+        const startsWord = [];
+        const startsTrans = [];
+        for (const e of list) {
+            if (!e) continue;
+            const w = (e.display || e.word || '').toLowerCase();
+            const tr = (e.translation || '').toLowerCase();
+            if (w === lower) { exactWord.push(e); continue; }
+            if (tr && tr === lower) { exactTrans.push(e); continue; }
+            if (w.startsWith(lower)) { startsWord.push(e); continue; }
+            if (tr.startsWith(lower)) { startsTrans.push(e); continue; }
+        }
+        return [...exactWord, ...exactTrans, ...startsWord, ...startsTrans].slice(0, 8);
+    }
+
+    function renderResultRow(entry) {
+        const display = escapeHtml(entry.display || entry.word || '');
+        const translation = escapeHtml(entry.translation || '');
+        const pos = escapeHtml(entry.partOfSpeech || entry.type || '');
+        const genus = entry.genus ? escapeHtml(entry.genus) : '';
+        return `
+            <div class="rounded-md border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/40 px-3 py-2">
+                <div class="flex items-baseline justify-between gap-2">
+                    <span class="font-semibold text-stone-800 dark:text-stone-100">${display}</span>
+                    <span class="text-[10px] uppercase tracking-wider text-stone-500 dark:text-stone-400">${pos}${genus ? ' · ' + genus : ''}</span>
+                </div>
+                ${translation ? `<div class="text-xs text-stone-600 dark:text-stone-300 mt-0.5">${translation}</div>` : ''}
+            </div>
+        `;
+    }
+
+    let searchDebounceTimer = null;
+    function runSearch() {
+        if (!searchResultsEl) return;
+        const query = (searchInputEl.value || '').trim();
+        if (query.length < 2) {
+            searchResultsEl.innerHTML = '';
+            return;
+        }
+        const results = searchEntries(query);
+        if (results.length === 0) {
+            searchResultsEl.innerHTML = `<div class="text-xs italic text-stone-500 dark:text-stone-400">${escapeHtml(t('leksihjelp.searchNoResults'))}</div>`;
+            return;
+        }
+        searchResultsEl.innerHTML = results.map(renderResultRow).join('');
+    }
+
+    if (searchInputEl) {
+        searchInputEl.addEventListener('input', () => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(runSearch, 120);
+        });
+    }
 
     let isOpen = false;
 
@@ -195,6 +287,9 @@ export function initLeksihjelpSettings(host, bridge) {
     });
     const offLookup = bridge.onLookupLangChange((lang) => {
         if (lookupLangSelect.value !== lang) lookupLangSelect.value = lang;
+        refreshSearchHint();
+        // Re-run the active search against the new vocab so results stay coherent.
+        if (searchInputEl && searchInputEl.value) runSearch();
     });
     const offExam = bridge.onExamModeChange((on) => {
         if (examModeCheckbox.checked !== on) examModeCheckbox.checked = on;
