@@ -225,6 +225,25 @@ export default {
         hintRichHint: 'Bruker rikare strukturar (perfektum, leddsetningar med fordi/at).',
     },
 
+    leksihjelp: {
+        button: 'Leksihjelp',
+        buttonTitle: 'Innstillingar for ordbok og stavekontroll',
+        settingsTitle: 'Leksihjelp-innstillingar',
+        close: 'Lukk',
+        statusHintAbsent: 'Leksihjelp er ikkje tilgjengeleg enno. Innstillingane lagrast lokalt og blir brukt når Leksihjelp er på plass.',
+        statusHintEmbedded: 'Leksihjelp køyrer innebygd i Skriv. Du kan òg installere utvidinga for full funksjonalitet på alle nettsider.',
+        statusHintExtension: 'Leksihjelp-utvidinga er aktiv — bruk innstillingane i utvidinga sin popup.',
+        examMode: 'Eksamensmodus',
+        examModeHint: 'Skjuler funksjonar som ikkje er tillatne under eksamen (t.d. ordforslag og pedagogiske forklaringar).',
+        writingLang: 'Skrivespråk',
+        writingLangHint: 'Avgjer stavekontroll og kva spesialteikn som blir vist.',
+        lookupLang: 'Oppslagsspråk',
+        lookupLangHint: 'Avgjer kva språk ordboka slår opp ord på.',
+        grammarLevel: 'Grammatikknivå',
+        grammarLevelHint: 'Vel kva grammatiske former (tider, kasus, samanlikning) som blir vist i ordboka.',
+        grammarLevelPlaceholder: 'Tilgjengeleg når Leksihjelp er fullt integrert.',
+    },
+
     radar: {
         button: 'Gjentaking',
         tooltip: '«{{word}}» vert brukt {{count}} gonger',

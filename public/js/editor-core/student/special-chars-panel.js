@@ -1,90 +1,46 @@
 /**
  * Special Characters Panel.
- * A self-contained module that provides a language picker + character
- * insertion panel. Appears as a prompt at the bottom of the editor
- * ("Annet språk?"), expands to show language options, then displays
- * a floating character panel following the cursor.
  *
- * Portable: this module can be copied into another project that
- * has a contenteditable editor and the SPECIAL_CHAR_GROUPS config.
+ * Floating column of special-character buttons (ä ö ü ß / é è ê / ñ ¿ ¡ etc.)
+ * that follows the caret in the editor. Driven entirely from outside via
+ * `setActiveLanguage(lang)` — the panel renders the matching group when the
+ * lang matches one in `charGroups`, and hides itself otherwise.
+ *
+ * History: the module used to render its own "Annet språk?" pill and a
+ * language picker. Both were removed when the leksihjelp integration
+ * landed — Skrivespråk now flows from the leksihjelp bridge (which is
+ * the single source of truth, whether settings come from Skriv's
+ * settings drawer, the leksihjelp extension popup, or a per-document
+ * seed). See docs/leksihjelp-integration.md.
  *
  * Usage:
  *   import { initSpecialCharsPanel } from './special-chars-panel.js';
- *   const cleanup = initSpecialCharsPanel(editor, container, SPECIAL_CHAR_GROUPS);
- *   // later:
- *   cleanup();
+ *   const api = initSpecialCharsPanel(editor, container, SPECIAL_CHAR_GROUPS);
+ *   api.setActiveLanguage('de'); // shows the German chars
+ *   api.setActiveLanguage('nb'); // hides the panel (no chars for that lang)
+ *   api.destroy();
  */
-
-import { t } from '../shared/i18n.js';
 
 /**
- * Initialize the special characters panel.
- * @param {HTMLElement} editor - The contenteditable editor element
- * @param {HTMLElement} container - Parent container wrapping the editor
- * @param {Array<{ id: string, label: string, chars: string[] }>} charGroups - Character groups to show
- * @returns {Function} Cleanup function
+ * Initialise the special-characters panel.
+ * @param {HTMLElement} editor       contenteditable editor element
+ * @param {HTMLElement} _container   parent container (kept for API parity)
+ * @param {Array<{ id: string, label: string, chars: string[] }>} charGroups
+ * @returns {{ setActiveLanguage(lang: string): void, getActiveLanguage(): string|null, destroy(): void }}
  */
-export function initSpecialCharsPanel(editor, container, charGroups) {
+export function initSpecialCharsPanel(editor, _container, charGroups) {
     const scrollParent = editor.closest('.overflow-y-auto') || editor.parentElement;
     let activeGroupId = null;
     let panelVisible = false;
 
+    // The panel is positioned absolutely against `scrollParent`, so wrap
+    // scrollParent in a relative-positioned host the panel can latch onto.
     const writingWrapper = document.createElement('div');
     writingWrapper.className = 'flex-1 relative overflow-hidden';
     scrollParent.parentNode.insertBefore(writingWrapper, scrollParent);
     writingWrapper.appendChild(scrollParent);
     scrollParent.classList.remove('flex-1');
     scrollParent.style.height = '100%';
-
-    const prompt = document.createElement('button');
-    prompt.type = 'button';
-    prompt.tabIndex = -1;
-    prompt.innerHTML = `<span class="mr-1">Aa</span> ${t('specialChars.prompt')}`;
-    prompt.className = [
-        'sticky', 'bottom-2', 'z-[100]', 'ml-auto', 'mr-2',
-        'flex', 'items-center', 'gap-1',
-        'px-3', 'py-1.5', 'rounded-full',
-        'text-xs', 'text-stone-400', 'hover:text-stone-600',
-        'bg-white/80', 'hover:bg-white',
-        'border', 'border-stone-200', 'hover:border-stone-300',
-        'shadow-sm', 'transition-all', 'duration-150',
-        'select-none', 'cursor-pointer',
-        'w-fit'
-    ].join(' ');
-    prompt.addEventListener('mousedown', (e) => e.preventDefault());
-
-    const picker = document.createElement('div');
-    picker.className = [
-        'sticky', 'bottom-2', 'z-[100]', 'ml-auto', 'mr-2',
-        'bg-white', 'border', 'border-stone-200', 'rounded-lg',
-        'shadow-lg', 'p-2',
-        'hidden', 'w-fit'
-    ].join(' ');
-
-    const pickerTitle = document.createElement('div');
-    pickerTitle.className = 'text-xs text-stone-500 font-medium mb-1.5 px-1';
-    pickerTitle.textContent = t('specialChars.pickerTitle');
-    picker.appendChild(pickerTitle);
-
-    charGroups.forEach(group => {
-        const langBtn = document.createElement('button');
-        langBtn.type = 'button';
-        langBtn.tabIndex = -1;
-        langBtn.textContent = group.label;
-        langBtn.className = [
-            'block', 'w-full', 'text-left',
-            'px-3', 'py-1.5', 'rounded-md',
-            'text-sm', 'text-stone-700',
-            'hover:bg-stone-100', 'active:bg-stone-200',
-            'transition-colors', 'select-none'
-        ].join(' ');
-        langBtn.addEventListener('mousedown', (e) => e.preventDefault());
-        langBtn.addEventListener('click', () => selectLanguage(group.id));
-        picker.appendChild(langBtn);
-    });
-
-    scrollParent.appendChild(prompt);
-    scrollParent.appendChild(picker);
 
     const panel = document.createElement('div');
     panel.id = 'special-chars-panel';
@@ -94,63 +50,13 @@ export function initSpecialCharsPanel(editor, container, charGroups) {
         'bg-white', 'border', 'border-stone-200', 'rounded-lg',
         'shadow-sm', 'p-1',
         'transition-opacity', 'duration-150',
-        'opacity-0', 'pointer-events-none'
+        'opacity-0', 'pointer-events-none',
     ].join(' ');
     panel.style.width = '36px';
     scrollParent.appendChild(panel);
 
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.tabIndex = -1;
-    closeBtn.textContent = '×';
-    closeBtn.className = [
-        'w-7', 'h-7', 'rounded',
-        'text-base', 'text-stone-400', 'hover:text-stone-700', 'hover:bg-stone-100',
-        'flex', 'items-center', 'justify-center',
-        'select-none', 'transition-colors', 'mb-0.5'
-    ].join(' ');
-    closeBtn.addEventListener('mousedown', (e) => e.preventDefault());
-    closeBtn.addEventListener('click', () => deactivatePanel());
-
-    function showPrompt() {
-        prompt.classList.remove('hidden');
-        picker.classList.add('hidden');
-    }
-
-    function showPicker() {
-        prompt.classList.add('hidden');
-        picker.classList.remove('hidden');
-    }
-
-    function selectLanguage(groupId) {
-        activeGroupId = groupId;
-        picker.classList.add('hidden');
-        prompt.classList.add('hidden');
-        buildCharButtons(groupId);
-        updatePanelPosition();
-    }
-
-    function deactivatePanel() {
-        activeGroupId = null;
-        hidePanelChars();
-        showPrompt();
-        editor.focus();
-    }
-
-    prompt.addEventListener('click', () => showPicker());
-
-    function onDocMousedown(e) {
-        if (!picker.classList.contains('hidden') &&
-            !picker.contains(e.target) && e.target !== prompt) {
-            picker.classList.add('hidden');
-            showPrompt();
-        }
-    }
-    document.addEventListener('mousedown', onDocMousedown);
-
     function buildCharButtons(groupId) {
         panel.innerHTML = '';
-        panel.appendChild(closeBtn);
 
         const group = charGroups.find(g => g.id === groupId);
         if (!group) return;
@@ -171,7 +77,7 @@ export function initSpecialCharsPanel(editor, container, charGroups) {
                 'text-sm', 'font-serif',
                 'flex', 'items-center', 'justify-center',
                 'text-stone-700', 'hover:bg-stone-100', 'active:bg-stone-200',
-                'select-none', 'transition-colors'
+                'select-none', 'transition-colors',
             ].join(' ');
             btn.addEventListener('mousedown', (e) => e.preventDefault());
             btn.addEventListener('click', () => {
@@ -238,44 +144,45 @@ export function initSpecialCharsPanel(editor, container, charGroups) {
 
     function onBlur(e) {
         if (panel.contains(e.relatedTarget)) return;
-        if (picker.contains(e.relatedTarget)) return;
-        if (e.relatedTarget === prompt) return;
         hidePanelChars();
     }
-
-    // Escape key closes the panel or picker
-    function onKeydown(e) {
-        if (e.key === 'Escape') {
-            if (activeGroupId) {
-                deactivatePanel();
-            } else if (!picker.classList.contains('hidden')) {
-                picker.classList.add('hidden');
-                showPrompt();
-            }
-        }
-    }
-    document.addEventListener('keydown', onKeydown);
 
     document.addEventListener('selectionchange', onSelectionChangeChars);
     scrollParent.addEventListener('scroll', onScroll);
     editor.addEventListener('focus', onFocus);
     editor.addEventListener('blur', onBlur);
 
-    return function cleanup() {
-        document.removeEventListener('keydown', onKeydown);
-        document.removeEventListener('selectionchange', onSelectionChangeChars);
-        document.removeEventListener('mousedown', onDocMousedown);
-        scrollParent.removeEventListener('scroll', onScroll);
-        editor.removeEventListener('focus', onFocus);
-        editor.removeEventListener('blur', onBlur);
-        if (panel.parentNode) panel.parentNode.removeChild(panel);
-        if (prompt.parentNode) prompt.parentNode.removeChild(prompt);
-        if (picker.parentNode) picker.parentNode.removeChild(picker);
-        if (writingWrapper.parentNode) {
-            writingWrapper.parentNode.insertBefore(scrollParent, writingWrapper);
-            scrollParent.classList.add('flex-1');
-            scrollParent.style.height = '';
-            writingWrapper.parentNode.removeChild(writingWrapper);
+    function setActiveLanguage(lang) {
+        const groupExists = !!charGroups.find(g => g.id === lang);
+        if (!groupExists) {
+            // Lang has no special chars worth showing (e.g. nb / nn / en).
+            // Hide the panel and clear active state.
+            activeGroupId = null;
+            hidePanelChars();
+            panel.innerHTML = '';
+            return;
         }
+        if (lang === activeGroupId) return;
+        activeGroupId = lang;
+        buildCharButtons(lang);
+        updatePanelPosition();
+    }
+
+    return {
+        setActiveLanguage,
+        getActiveLanguage: () => activeGroupId,
+        destroy() {
+            document.removeEventListener('selectionchange', onSelectionChangeChars);
+            scrollParent.removeEventListener('scroll', onScroll);
+            editor.removeEventListener('focus', onFocus);
+            editor.removeEventListener('blur', onBlur);
+            if (panel.parentNode) panel.parentNode.removeChild(panel);
+            if (writingWrapper.parentNode) {
+                writingWrapper.parentNode.insertBefore(scrollParent, writingWrapper);
+                scrollParent.classList.add('flex-1');
+                scrollParent.style.height = '';
+                writingWrapper.parentNode.removeChild(writingWrapper);
+            }
+        },
     };
 }

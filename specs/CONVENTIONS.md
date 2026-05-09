@@ -50,10 +50,17 @@ export function initMyFeature(editor, options = {}) {
 ## Import rules
 
 1. **shared/ never imports from student/ or app/.** This is a hard boundary.
-2. **student/ may import from shared/ and from other student/ modules** (e.g., editor-toolbar imports special-chars-panel).
+2. **student/ may import from shared/ and from other student/ modules.**
 3. **app/ may import from anywhere** below it.
 4. **No circular imports.** The dependency graph must remain a DAG.
 5. **CDN globals** (jsPDF, FloatingUI) are accessed via `window` — never imported.
+6. **Vendored leksihjelp code** (`public/js/leksihjelp/`) is loaded as classic
+   `<script>` tags in `index.html`, not via ES module imports. It publishes
+   to `window.__lexi*` and Skriv's modules read those globals through
+   `app/leksihjelp-bridge.js` — never directly. **Do not hand-edit anything
+   under `public/js/leksihjelp/`** — changes happen upstream in
+   `Papertek-forlag-AS/leksihjelp` and are pulled in via a sync script
+   (see `docs/leksihjelp-integration.md`).
 
 ## i18n
 

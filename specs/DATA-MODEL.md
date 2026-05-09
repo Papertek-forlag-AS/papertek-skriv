@@ -98,8 +98,12 @@ Key path: `id`
 | `papertek.skriv.germanExam.activeLevel` | string | `'tysk-1'` or `'tysk-2'`; persists last selected level on the spinner screen |
 | `germanExam.writeExplainSeen`           | string | `'1'` once the user has seen the explain dialog before "Skriv svar" creates a doc |
 | `germanHintDrawer.variant.<docId>`      | string | `'simple'` or `'rich'`; per-document tab selection in the editor hint drawer |
+| `skriv.leksihjelp.writingLang`          | string | Skrivespråk — drives spell-check + special-chars panel. One of `nb`/`nn`/`en`/`de`/`es`/`fr` |
+| `skriv.leksihjelp.lookupLang`           | string | Oppslagsspråk — drives dictionary popup language |
+| `skriv.leksihjelp.examMode`             | string | `'1'` when eksamensmodus is on, `''` otherwise |
+| `skriv.leksihjelp.grammarFeatures.{lang}` | string | JSON. Per-language grammar feature checkbox state for the dictionary view |
 
 ## Other storage
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]`. Current version: `skriv-v53`.
+- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]`. Current version: `skriv-v54`.
 - **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.

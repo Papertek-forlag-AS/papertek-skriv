@@ -35,6 +35,10 @@ import { initOnboardingTour } from '../editor-core/student/onboarding-tour.js';
 import { initLixScore } from '../editor-core/student/lix-score.js';
 import { initArgumentFlow } from '../editor-core/student/argument-flow.js';
 import { initGermanHintDrawer } from '../editor-core/student/german-hint-drawer.js';
+import { initLeksihjelpBridge } from './leksihjelp-bridge.js';
+import { initLeksihjelpSettings } from './leksihjelp-settings.js';
+import { initSpecialCharsPanel } from '../editor-core/student/special-chars-panel.js';
+import { SPECIAL_CHAR_GROUPS } from '../editor-core/config.js';
 // import { initMatte } from '../editor-core/student/matte.js'; // Deactivated — re-enable when subject choice is added
 import { showSubmissionChecklist } from '../editor-core/student/submission-checklist.js';
 import { downloadText, downloadPDF, downloadDocx } from '../editor-core/student/text-export.js';
@@ -104,6 +108,11 @@ export async function launchEditor(container, docId, onBack) {
                 title="${t('germanExam.hintButtonTitle')}">
                 💡
                 ${t('germanExam.hintButton')}
+            </button>
+            <button id="btn-leksihjelp" class="hidden text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
+                title="${t('leksihjelp.buttonTitle')}">
+                📚
+                ${t('leksihjelp.button')}
             </button>
             <div id="tools-wrapper" class="relative hidden flex-shrink-0">
                 <button id="btn-tools" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
@@ -494,6 +503,31 @@ export async function launchEditor(container, docId, onBack) {
         }
     }
 
+    // --- Leksihjelp bridge + settings drawer ---
+    // The bridge is the single source of truth for "who owns dictionary +
+    // spell-check on this page" and the active Skrivespråk / Oppslagsspråk.
+    // Other modules (special-chars panel, future spell-check) read it.
+    const leksihjelpBridge = initLeksihjelpBridge();
+    const leksihjelpSettingsApi = initLeksihjelpSettings(writingEnv, leksihjelpBridge);
+    const leksihjelpBtn = topBar.querySelector('#btn-leksihjelp');
+    function refreshLeksihjelpBtn() {
+        if (!leksihjelpBtn) return;
+        // Hide the button when the extension owns settings (single source of
+        // truth — extension popup edits the same options).
+        const hide = leksihjelpBridge.getStatus() === 'extension';
+        leksihjelpBtn.classList.toggle('hidden', hide);
+    }
+    refreshLeksihjelpBtn();
+    leksihjelpBridge.onStatusChange(refreshLeksihjelpBtn);
+    if (leksihjelpBtn) {
+        leksihjelpBtn.addEventListener('click', () => leksihjelpSettingsApi.toggle());
+    }
+
+    // --- Special-chars panel — driven by the bridge's writingLang ---
+    const specialCharsApi = initSpecialCharsPanel(editor, writingEnv, SPECIAL_CHAR_GROUPS);
+    specialCharsApi.setActiveLanguage(leksihjelpBridge.getWritingLang());
+    leksihjelpBridge.onWritingLangChange((lang) => specialCharsApi.setActiveLanguage(lang));
+
     // --- Onboarding Tour ---
     const tourApi = initOnboardingTour();
 
@@ -604,6 +638,9 @@ export async function launchEditor(container, docId, onBack) {
         lixApi.destroy();
         argumentApi.destroy();
         if (germanHintApi) germanHintApi.destroy();
+        leksihjelpSettingsApi.destroy();
+        specialCharsApi.destroy();
+        leksihjelpBridge.destroy();
         counterCleanup();
         onBack();
     });

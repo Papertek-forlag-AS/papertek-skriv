@@ -10,6 +10,8 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 |----------------------- |------------------------------------------------- |------------------------------------ |--------------------------------------- |
 | `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store, sw-manager, school-level, onboarding-modal, german-exam-route | Hash router, app init, onboarding gate |
 | `german-exam-route.js` | `renderGermanExamScreen`                         | editor-core/student/german-exam-spinner, document-store, folder-store, i18n, html-escape, in-page-modal | Route + screen wiring for `#/tysk`; ensures "Tysk" folder, creates document on pick; attaches `germanHint: { simple, rich }` metadata to the document instead of seeding draft content into the HTML |
+| `leksihjelp-bridge.js` | `initLeksihjelpBridge`                           | (none)                              | Detects whether the leksihjelp Chrome extension is active on the page (via `window.__lexiPresent` / `window.__lexiVocab`). Brokers Skrivespråk + Oppslagsspråk + Eksamensmodus. Single source of truth for special-chars panel and future spell-check / dictionary modules |
+| `leksihjelp-settings.js`| `initLeksihjelpSettings`                         | i18n, html-escape                   | Slide-in right panel with Eksamensmodus toggle, Skrivespråk picker, Oppslagsspråk picker, Grammatikknivå placeholder. Hidden when bridge.status === 'extension' |
 | `document-store.js`    | `createDocument`, `getDocument`, `saveDocument`, `listDocuments`, `deleteDocument` | folder-store | IndexedDB CRUD for documents           |
 | `trash-store.js`       | `trashDocument`, `restoreDocument`, `listTrashedDocuments`, `permanentlyDelete`, `emptyTrash`, `getTrashCount`, `purgeExpired`, `getRetentionDays` | (none) | Soft-delete with 30-day retention |
 | `document-list.js`     | `renderDocumentList`                             | document-store, trash-store, word-count-stats, document-search, sidebar, folder-picker, folder-store, i18n, html-escape, in-page-modal, toast-notification, theme | Dashboard/home screen UI with sidebar   |
@@ -44,7 +46,7 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 
 | Module                    | Init function           | Depends on (shared)            | Purpose                              |
 |-------------------------- |------------------------ |------------------------------- |------------------------------------- |
-| `editor-toolbar.js`       | `initEditorToolbar`     | i18n, config, frame-elements, special-chars-panel, Floating UI (CDN) | Floating formatting bar (B/I/U/lists/H1/H2). Accepts `{ skipAutoDetectAdvanced }` to opt out of auto-enabling advanced mode from existing headings/lists |
+| `editor-toolbar.js`       | `initEditorToolbar`     | i18n, frame-elements, Floating UI (CDN) | Floating formatting bar (B/I/U/lists/H1/H2). Accepts `{ skipAutoDetectAdvanced }` to opt out of auto-enabling advanced mode from existing headings/lists. The special-chars panel was moved out into standalone-writer.js so it can be driven by the leksihjelp bridge directly |
 | `matte.js`                | `initMatte`             | i18n                           | Superscript/subscript math formatting |
 | `frame-parser.js`         | `parseFrameMarkdown`    | (none)                         | Markdown → structured frame object (incl. spinner-bucket per section/subsection) |
 | `frame-guide.js`          | `initFrameGuide`        | i18n, toast-notification, spinner-data-nb/nn (dynamic) | Eager-scaffolding sidebar guide: section/paragraph markers in editor, "Mark as done" toggle, "+ New paragraph", "🎲 More suggestions" spinner integration |
@@ -59,7 +61,7 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `image-manager.js`        | `initImageManager`      | frame-elements, i18n           | Image upload, resize, captions       |
 | `submission-checklist.js` | `showSubmissionChecklist`| in-page-modal, i18n            | Pre-export checklist dialog          |
 | `text-export.js`          | `downloadText`, `downloadPDF` | frame-elements, word-counter, i18n, jsPDF (CDN) | TXT/PDF export        |
-| `special-chars-panel.js`  | `initSpecialCharsPanel` | config, i18n                   | Language-specific character picker    |
+| `special-chars-panel.js`  | `initSpecialCharsPanel` | (none)                         | Floating column of special chars (ä ö ü ß / é è ê / ñ ¿ ¡ …) anchored to the caret. Driven externally via `setActiveLanguage(lang)` — the embedded leksihjelp bridge in `standalone-writer.js` calls it. The previous self-rendered "Annet språk?" picker was removed (Skrivespråk is now owned by the bridge) |
 | `spinner-data-nb.js`      | `SPINNER_DATA_NB`       | (none)                         | Bokmål word suggestion data          |
 | `spinner-data-nn.js`      | `SPINNER_DATA_NN`       | (none)                         | Nynorsk word suggestion data         |
 | `german-exam-data.js`     | `writingTasks`, `examTasks`, `tasks`, `LEVELS`, `MODES` | (none)                         | Static task corpus for German exam spinner; each task ships `modelAnswers: { simple, rich }` (no glossary) |

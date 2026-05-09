@@ -88,6 +88,8 @@ App init
 | Avansert        | editor-toolbar.js       | Toggles H1/H2/lists in toolbar   |
 | Kilder          | reference-manager.js    | Opens citation dialog             |
 | Bilde           | image-manager.js        | Opens file picker for images      |
+| 💡 Hjelpetekst  | german-hint-drawer.js   | (German exam docs only) Opens simple/rich Norwegian draft drawer |
+| 📚 Leksihjelp   | leksihjelp-settings.js  | Opens settings drawer (Eksamensmodus, Skrivespråk, Oppslagsspråk, Grammatikknivå). Hidden when the Leksihjelp Chrome extension is detected on the page |
 | Ordspinner      | writing-spinner.js      | Shows random word suggestion      |
 | Ordradar        | word-frequency.js       | Toggles repetition highlighting   |
 | Setningslengde  | sentence-length.js      | Toggles rhythm bar visualization  |

@@ -234,6 +234,25 @@ export default {
         hintRichHint: 'Uses richer structures (Perfekt, subordinate clauses with weil/dass).',
     },
 
+    leksihjelp: {
+        button: 'Leksihjelp',
+        buttonTitle: 'Dictionary and spell-check settings',
+        settingsTitle: 'Leksihjelp settings',
+        close: 'Close',
+        statusHintAbsent: 'Leksihjelp is not available yet. Your choices are saved locally and applied when Leksihjelp arrives.',
+        statusHintEmbedded: 'Leksihjelp is running inside Skriv. You can also install the browser extension for full features on every site.',
+        statusHintExtension: 'The Leksihjelp extension is active — change settings in its popup.',
+        examMode: 'Exam mode',
+        examModeHint: 'Hides features that are not allowed in exams (e.g. word predictions and pedagogical explanations).',
+        writingLang: 'Writing language',
+        writingLangHint: 'Drives spell-check and which special characters appear.',
+        lookupLang: 'Lookup language',
+        lookupLangHint: 'Drives which language the dictionary looks up.',
+        grammarLevel: 'Grammar level',
+        grammarLevelHint: 'Choose which grammatical forms (tenses, cases, comparatives) the dictionary shows.',
+        grammarLevelPlaceholder: 'Available once Leksihjelp is fully integrated.',
+    },
+
     radar: {
         button: 'Repetition',
         tooltip: '"{{word}}" is used {{count}} times',

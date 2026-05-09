@@ -16,11 +16,9 @@
  */
 
 import { computePosition, flip, shift, offset } from 'https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.5/+esm';
-import { SPECIAL_CHAR_GROUPS } from '../config.js';
 import { t } from '../shared/i18n.js';
 import { showInPageConfirm } from '../shared/in-page-modal.js';
 import { isInsideNonEditableBlock, FRAME_SELECTORS } from '../shared/frame-elements.js';
-import { initSpecialCharsPanel } from './special-chars-panel.js';
 
 /**
  * Initialize the floating editor toolbar.
@@ -543,14 +541,13 @@ export function initEditorToolbar(editor, options = {}) {
 
     editor.addEventListener('keydown', onEditorKeydown);
 
-    // --- Special characters panel (separate module) ---
-    const charsCleanup = initSpecialCharsPanel(editor, container, SPECIAL_CHAR_GROUPS);
+    // Special-chars panel is mounted by standalone-writer.js so it can be
+    // driven directly from the leksihjelp bridge's writingLang.
 
     // --- Destroy ---
     function destroy() {
         document.removeEventListener('selectionchange', onSelectionChange);
         editor.removeEventListener('keydown', onEditorKeydown);
-        charsCleanup();
         if (toolbarWrapper.parentNode) {
             toolbarWrapper.parentNode.removeChild(toolbarWrapper);
         }

@@ -27,7 +27,7 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v53)
+├── sw.js                   ← Service Worker (cache v54)
 ├── icons/                  ← PWA icons (192, 512)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md          (legacy)
@@ -50,13 +50,16 @@ public/
     │   ├── folder-picker.js      ← Multi-select folder assignment dropdown
     │   ├── school-level.js       ← School level data + persistence
     │   ├── onboarding-modal.js   ← First-time level selection modal
-    │   └── german-exam-route.js  ← Route + screen wiring for #/tysk
-    └── editor-core/
-        ├── config.js       ← Constants (special chars)
-        ├── shared/         ← Cross-product utilities (8 modules)
-        ├── student/        ← Student editor features
-        │   └── german-exam-svg/  ← Hand-written SVG modules for image-based German tasks (one file per image)
-        └── locales/        ← Translation files (nb, nn, en)
+    │   ├── german-exam-route.js  ← Route + screen wiring for #/tysk
+    │   ├── leksihjelp-bridge.js  ← Brokers leksihjelp status + Skrivespråk/Oppslagsspråk
+    │   └── leksihjelp-settings.js ← Slide-in drawer with the four leksihjelp controls
+    ├── editor-core/
+    │   ├── config.js       ← Constants (special chars)
+    │   ├── shared/         ← Cross-product utilities (8 modules)
+    │   ├── student/        ← Student editor features
+    │   │   └── german-exam-svg/  ← Hand-written SVG modules for image-based German tasks (one file per image)
+    │   └── locales/        ← Translation files (nb, nn, en)
+    └── leksihjelp/         ← Vendored from Papertek-forlag-AS/leksihjelp (managed by sync script; do not hand-edit)
 ```
 
 ## Module layers
