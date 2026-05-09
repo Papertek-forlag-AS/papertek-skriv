@@ -102,8 +102,9 @@ Key path: `id`
 | `skriv.leksihjelp.lookupLang`           | string | Oppslagsspråk — drives dictionary popup language |
 | `skriv.leksihjelp.examMode`             | string | `'1'` when eksamensmodus is on, `''` otherwise |
 | `skriv.leksihjelp.grammarFeatures.{lang}` | string | JSON. Per-language grammar feature checkbox state for the dictionary view |
+| `skriv.leksihjelp.activeTab`              | string | `'dictionary'` or `'settings'`; persists last active tab in the Leksihjelp drawer |
 
 ## Other storage
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v58`.
+- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v59`.
 - **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.

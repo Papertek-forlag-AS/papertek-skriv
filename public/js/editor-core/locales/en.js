@@ -236,8 +236,12 @@ export default {
 
     leksihjelp: {
         button: 'Leksihjelp',
-        buttonTitle: 'Dictionary and spell-check settings',
+        buttonTitle: 'Dictionary and spell-check',
+        title: 'Leksihjelp',
         settingsTitle: 'Leksihjelp settings',
+        tabsLabel: 'Choose tab',
+        tabDictionary: 'Dictionary',
+        tabSettings: 'Settings',
         close: 'Close',
         statusHintAbsent: 'Leksihjelp is not available yet. Your choices are saved locally and applied when Leksihjelp arrives.',
         statusHintEmbedded: 'Leksihjelp is running inside Skriv. You can also install the browser extension for full features on every site.',

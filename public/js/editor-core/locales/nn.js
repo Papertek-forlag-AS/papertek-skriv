@@ -227,8 +227,12 @@ export default {
 
     leksihjelp: {
         button: 'Leksihjelp',
-        buttonTitle: 'Innstillingar for ordbok og stavekontroll',
+        buttonTitle: 'Ordbok og stavekontroll',
+        title: 'Leksihjelp',
         settingsTitle: 'Leksihjelp-innstillingar',
+        tabsLabel: 'Vel fane',
+        tabDictionary: 'Ordbok',
+        tabSettings: 'Innstillingar',
         close: 'Lukk',
         statusHintAbsent: 'Leksihjelp er ikkje tilgjengeleg enno. Innstillingane lagrast lokalt og blir brukt når Leksihjelp er på plass.',
         statusHintEmbedded: 'Leksihjelp køyrer innebygd i Skriv. Du kan òg installere utvidinga for full funksjonalitet på alle nettsider.',

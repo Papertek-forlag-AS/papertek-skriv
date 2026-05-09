@@ -42,10 +42,22 @@ export function initLeksihjelpSettings(host, bridge) {
     drawer.setAttribute('aria-labelledby', 'leksihjelp-settings-title');
     drawer.setAttribute('aria-hidden', 'true');
 
+    // Active tab persists per-session so opening the drawer twice in a
+    // row keeps the student where they were. Default to 'dictionary'
+    // since that's the more frequent action — checking a word, not
+    // tweaking settings.
+    const ACTIVE_TAB_KEY = 'skriv.leksihjelp.activeTab';
+    const initialTab = (() => {
+        try {
+            const v = localStorage.getItem(ACTIVE_TAB_KEY);
+            return v === 'settings' ? 'settings' : 'dictionary';
+        } catch (_) { return 'dictionary'; }
+    })();
+
     drawer.innerHTML = `
         <header class="flex items-center justify-between gap-2 px-3 py-2 border-b border-stone-200 dark:border-stone-700">
             <h2 id="leksihjelp-settings-title" class="text-base font-semibold text-stone-800 dark:text-stone-100">
-                ${escapeHtml(t('leksihjelp.settingsTitle'))}
+                ${escapeHtml(t('leksihjelp.title'))}
             </h2>
             <button type="button" data-close
                 class="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 active:bg-stone-300 transition-colors flex-shrink-0"
@@ -58,67 +70,83 @@ export function initLeksihjelpSettings(host, bridge) {
             </button>
         </header>
 
-        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5 text-sm text-stone-700 dark:text-stone-200">
+        <!-- Tab bar -->
+        <div role="tablist" aria-label="${escapeHtml(t('leksihjelp.tabsLabel'))}"
+            class="flex items-stretch border-b border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/50">
+            <button type="button" role="tab" data-tab="dictionary"
+                class="flex-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors focus:outline-none">
+                📖 ${escapeHtml(t('leksihjelp.tabDictionary'))}
+            </button>
+            <button type="button" role="tab" data-tab="settings"
+                class="flex-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors focus:outline-none">
+                ⚙️ ${escapeHtml(t('leksihjelp.tabSettings'))}
+            </button>
+        </div>
 
-            <!-- Search dictionary (bidirectional: typing matches word OR translation) -->
-            <section>
-                <label class="block">
-                    <span class="font-medium block mb-0.5">${escapeHtml(t('leksihjelp.searchTitle'))}</span>
-                    <span class="text-xs text-stone-500 dark:text-stone-400 block mb-1.5" data-search-hint></span>
-                    <input type="search" data-search-input
-                        autocomplete="off" autocapitalize="none" spellcheck="false"
-                        class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 outline-none focus:border-emerald-400"
-                        placeholder="${escapeHtml(t('leksihjelp.searchPlaceholder'))}">
-                </label>
-                <div class="mt-2 space-y-1.5" data-search-results></div>
-            </section>
+        <div class="flex-1 overflow-y-auto text-sm text-stone-700 dark:text-stone-200">
 
-            <p class="text-xs text-stone-500 dark:text-stone-400" data-status-hint></p>
+            <!-- Dictionary tab panel -->
+            <div role="tabpanel" data-panel="dictionary"
+                class="px-4 py-4 space-y-3">
+                <p class="text-xs text-stone-500 dark:text-stone-400" data-search-hint></p>
+                <input type="search" data-search-input
+                    autocomplete="off" autocapitalize="none" spellcheck="false"
+                    class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 outline-none focus:border-emerald-400"
+                    placeholder="${escapeHtml(t('leksihjelp.searchPlaceholder'))}">
+                <div class="space-y-1.5" data-search-results></div>
+            </div>
 
-            <!-- Eksamensmodus -->
-            <section>
-                <label class="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" data-exam-mode
-                        class="mt-0.5 rounded border-stone-300 dark:border-stone-600 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0 w-4 h-4">
-                    <span>
-                        <span class="font-medium block">${escapeHtml(t('leksihjelp.examMode'))}</span>
-                        <span class="text-xs text-stone-500 dark:text-stone-400 block mt-0.5">${escapeHtml(t('leksihjelp.examModeHint'))}</span>
-                    </span>
-                </label>
-            </section>
+            <!-- Settings tab panel -->
+            <div role="tabpanel" data-panel="settings"
+                class="px-4 py-4 space-y-5">
 
-            <!-- Skrivespråk -->
-            <section>
-                <label class="block">
-                    <span class="font-medium block mb-0.5">${escapeHtml(t('leksihjelp.writingLang'))}</span>
-                    <span class="text-xs text-stone-500 dark:text-stone-400 block mb-1.5">${escapeHtml(t('leksihjelp.writingLangHint'))}</span>
-                    <select data-writing-lang
-                        class="w-full text-sm px-2 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 outline-none focus:border-emerald-400">
-                        ${langOptions(bridge.getWritingLang())}
-                    </select>
-                </label>
-            </section>
+                <p class="text-xs text-stone-500 dark:text-stone-400" data-status-hint></p>
 
-            <!-- Oppslagsspråk -->
-            <section>
-                <label class="block">
-                    <span class="font-medium block mb-0.5">${escapeHtml(t('leksihjelp.lookupLang'))}</span>
-                    <span class="text-xs text-stone-500 dark:text-stone-400 block mb-1.5">${escapeHtml(t('leksihjelp.lookupLangHint'))}</span>
-                    <select data-lookup-lang
-                        class="w-full text-sm px-2 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 outline-none focus:border-emerald-400">
-                        ${langOptions(bridge.getLookupLang())}
-                    </select>
-                </label>
-            </section>
+                <!-- Eksamensmodus -->
+                <section>
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" data-exam-mode
+                            class="mt-0.5 rounded border-stone-300 dark:border-stone-600 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0 w-4 h-4">
+                        <span>
+                            <span class="font-medium block">${escapeHtml(t('leksihjelp.examMode'))}</span>
+                            <span class="text-xs text-stone-500 dark:text-stone-400 block mt-0.5">${escapeHtml(t('leksihjelp.examModeHint'))}</span>
+                        </span>
+                    </label>
+                </section>
 
-            <!-- Grammatikknivå (placeholder) -->
-            <section>
-                <h3 class="font-medium mb-0.5">${escapeHtml(t('leksihjelp.grammarLevel'))}</h3>
-                <p class="text-xs text-stone-500 dark:text-stone-400 mb-2">${escapeHtml(t('leksihjelp.grammarLevelHint'))}</p>
-                <p class="text-xs text-stone-500 dark:text-stone-400 italic" data-grammar-placeholder>
-                    ${escapeHtml(t('leksihjelp.grammarLevelPlaceholder'))}
-                </p>
-            </section>
+                <!-- Skrivespråk -->
+                <section>
+                    <label class="block">
+                        <span class="font-medium block mb-0.5">${escapeHtml(t('leksihjelp.writingLang'))}</span>
+                        <span class="text-xs text-stone-500 dark:text-stone-400 block mb-1.5">${escapeHtml(t('leksihjelp.writingLangHint'))}</span>
+                        <select data-writing-lang
+                            class="w-full text-sm px-2 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 outline-none focus:border-emerald-400">
+                            ${langOptions(bridge.getWritingLang())}
+                        </select>
+                    </label>
+                </section>
+
+                <!-- Oppslagsspråk -->
+                <section>
+                    <label class="block">
+                        <span class="font-medium block mb-0.5">${escapeHtml(t('leksihjelp.lookupLang'))}</span>
+                        <span class="text-xs text-stone-500 dark:text-stone-400 block mb-1.5">${escapeHtml(t('leksihjelp.lookupLangHint'))}</span>
+                        <select data-lookup-lang
+                            class="w-full text-sm px-2 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 outline-none focus:border-emerald-400">
+                            ${langOptions(bridge.getLookupLang())}
+                        </select>
+                    </label>
+                </section>
+
+                <!-- Grammatikknivå (placeholder) -->
+                <section>
+                    <h3 class="font-medium mb-0.5">${escapeHtml(t('leksihjelp.grammarLevel'))}</h3>
+                    <p class="text-xs text-stone-500 dark:text-stone-400 mb-2">${escapeHtml(t('leksihjelp.grammarLevelHint'))}</p>
+                    <p class="text-xs text-stone-500 dark:text-stone-400 italic" data-grammar-placeholder>
+                        ${escapeHtml(t('leksihjelp.grammarLevelPlaceholder'))}
+                    </p>
+                </section>
+            </div>
         </div>
     `;
 
@@ -132,6 +160,35 @@ export function initLeksihjelpSettings(host, bridge) {
     const searchInputEl = drawer.querySelector('[data-search-input]');
     const searchResultsEl = drawer.querySelector('[data-search-results]');
     const searchHintEl = drawer.querySelector('[data-search-hint]');
+    const tabBtns = drawer.querySelectorAll('[role="tab"][data-tab]');
+    const panelDictionary = drawer.querySelector('[data-panel="dictionary"]');
+    const panelSettings = drawer.querySelector('[data-panel="settings"]');
+
+    // ── Tab switching ──────────────────────────────────────────────
+    function setActiveTab(tab) {
+        const which = tab === 'settings' ? 'settings' : 'dictionary';
+        try { localStorage.setItem(ACTIVE_TAB_KEY, which); } catch (_) {}
+        tabBtns.forEach(btn => {
+            const selected = btn.dataset.tab === which;
+            btn.setAttribute('aria-selected', selected);
+            btn.className = 'flex-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors focus:outline-none '
+                + (selected
+                    ? 'border-emerald-500 text-emerald-700 dark:text-emerald-300 bg-white dark:bg-stone-800'
+                    : 'border-transparent text-stone-500 dark:text-stone-400 hover:text-stone-800 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800/60');
+        });
+        panelDictionary.classList.toggle('hidden', which !== 'dictionary');
+        panelSettings.classList.toggle('hidden', which !== 'settings');
+        // Auto-focus the search input when switching to the dictionary tab
+        // so the student can start typing immediately.
+        if (which === 'dictionary' && searchInputEl) {
+            // microtask delay so the panel is visible first
+            queueMicrotask(() => searchInputEl.focus());
+        }
+    }
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+    });
+    setActiveTab(initialTab);
 
     examModeCheckbox.checked = bridge.getExamMode();
 
