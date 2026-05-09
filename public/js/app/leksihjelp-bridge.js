@@ -145,7 +145,7 @@ export function initLeksihjelpBridge(options = {}) {
         window.addEventListener('focus', onFocus);
     }
 
-    return {
+    const api = {
         getStatus: () => status,
         onStatusChange(fn) {
             statusListeners.add(fn);
@@ -215,4 +215,19 @@ export function initLeksihjelpBridge(options = {}) {
 
         SUPPORTED_LANGS: [...SUPPORTED_LANGS],
     };
+
+    // Wire two-way sync with the chrome.* shim (leksihjelp-loader.js) so the
+    // vendored renderer reads `lang.spellcheck` / `lang.dictionary` /
+    // `examMode` consistent with the bridge, and renderer-side language
+    // auto-detect updates flow back into bridge.localStorage. The shim is
+    // a no-op in test environments where window.__skrivLeksihjelpShim isn't
+    // set up.
+    if (typeof window !== 'undefined'
+        && window.__skrivLeksihjelpShim
+        && typeof window.__skrivLeksihjelpShim.bindBridge === 'function') {
+        try { window.__skrivLeksihjelpShim.bindBridge(api); }
+        catch (e) { console.warn('[leksihjelp-bridge] shim bindBridge failed:', e); }
+    }
+
+    return api;
 }

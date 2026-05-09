@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v54';
+const CACHE_NAME = 'skriv-v55';
 const ASSETS = [
     '/',
     '/index.html',
@@ -90,6 +90,119 @@ const ASSETS = [
     '/frames/droefting.md',
     '/frames/analyse.md',
     '/frames/kronikk.md',
+    // Leksihjelp loader (chrome.* shim — must precache so it survives offline)
+    '/js/leksihjelp-loader.js',
+];
+
+// Vendored leksihjelp bundle. Precached best-effort (see install handler).
+// Generated via scripts/sync-leksihjelp.js — keep in sync with the file
+// listing in public/js/leksihjelp/. Failures here do NOT block install:
+// the fetch handler will lazy-cache any path missed at install time.
+const LEKSIHJELP_ASSETS = [
+    '/js/leksihjelp/.version',
+    '/js/leksihjelp/i18n/strings.js',
+    '/js/leksihjelp/exam-registry.js',
+    '/js/leksihjelp/styles/leksihjelp.css',
+    '/js/leksihjelp/content/vocab-seam-core.js',
+    '/js/leksihjelp/content/vocab-seam.js',
+    '/js/leksihjelp/content/lang-detect.js',
+    '/js/leksihjelp/content/spell-check-core.js',
+    '/js/leksihjelp/content/spell-check-engine.js',
+    '/js/leksihjelp/content/spell-check-renderer.js',
+    '/js/leksihjelp/content/spell-rules/collocation.js',
+    '/js/leksihjelp/content/spell-rules/de-capitalization.js',
+    '/js/leksihjelp/content/spell-rules/de-compound-gender.js',
+    '/js/leksihjelp/content/spell-rules/de-gender.js',
+    '/js/leksihjelp/content/spell-rules/de-grammar.js',
+    '/js/leksihjelp/content/spell-rules/de-modal-verb.js',
+    '/js/leksihjelp/content/spell-rules/de-perfekt-aux.js',
+    '/js/leksihjelp/content/spell-rules/de-prep-case.js',
+    '/js/leksihjelp/content/spell-rules/de-separable-verb.js',
+    '/js/leksihjelp/content/spell-rules/de-v2.js',
+    '/js/leksihjelp/content/spell-rules/de-verb-final.js',
+    '/js/leksihjelp/content/spell-rules/doc-drift-de-address.js',
+    '/js/leksihjelp/content/spell-rules/doc-drift-fr-address.js',
+    '/js/leksihjelp/content/spell-rules/doc-drift-nb-passiv-overuse.js',
+    '/js/leksihjelp/content/spell-rules/doc-drift-nb-register.js',
+    '/js/leksihjelp/content/spell-rules/doc-drift-nn-infinitive.js',
+    '/js/leksihjelp/content/spell-rules/en-a-an.js',
+    '/js/leksihjelp/content/spell-rules/en-confused-pairs.js',
+    '/js/leksihjelp/content/spell-rules/en-double-comparative.js',
+    '/js/leksihjelp/content/spell-rules/en-grammar.js',
+    '/js/leksihjelp/content/spell-rules/en-grammar-advanced.js',
+    '/js/leksihjelp/content/spell-rules/en-homophones.js',
+    '/js/leksihjelp/content/spell-rules/en-morphology.js',
+    '/js/leksihjelp/content/spell-rules/en-subject-verb.js',
+    '/js/leksihjelp/content/spell-rules/en-word-family.js',
+    '/js/leksihjelp/content/spell-rules/es-accent-guard.js',
+    '/js/leksihjelp/content/spell-rules/es-coordination.js',
+    '/js/leksihjelp/content/spell-rules/es-fr-gender.js',
+    '/js/leksihjelp/content/spell-rules/es-fr-modal-verb.js',
+    '/js/leksihjelp/content/spell-rules/es-grammar.js',
+    '/js/leksihjelp/content/spell-rules/es-gustar.js',
+    '/js/leksihjelp/content/spell-rules/es-imperfecto-hint.js',
+    '/js/leksihjelp/content/spell-rules/es-personal-a.js',
+    '/js/leksihjelp/content/spell-rules/es-por-para.js',
+    '/js/leksihjelp/content/spell-rules/es-pro-drop.js',
+    '/js/leksihjelp/content/spell-rules/es-ser-estar.js',
+    '/js/leksihjelp/content/spell-rules/es-subjuntivo.js',
+    '/js/leksihjelp/content/spell-rules/fr-adj-gender.js',
+    '/js/leksihjelp/content/spell-rules/fr-aspect-hint.js',
+    '/js/leksihjelp/content/spell-rules/fr-bags.js',
+    '/js/leksihjelp/content/spell-rules/fr-clitic-order.js',
+    '/js/leksihjelp/content/spell-rules/fr-contraction.js',
+    '/js/leksihjelp/content/spell-rules/fr-elision.js',
+    '/js/leksihjelp/content/spell-rules/fr-etre-avoir.js',
+    '/js/leksihjelp/content/spell-rules/fr-grammar.js',
+    '/js/leksihjelp/content/spell-rules/fr-pp-agreement.js',
+    '/js/leksihjelp/content/spell-rules/fr-preposition.js',
+    '/js/leksihjelp/content/spell-rules/fr-subjonctif.js',
+    '/js/leksihjelp/content/spell-rules/grammar-tables.js',
+    '/js/leksihjelp/content/spell-rules/nb-aa-og.js',
+    '/js/leksihjelp/content/spell-rules/nb-anglicism.js',
+    '/js/leksihjelp/content/spell-rules/nb-apostrophe-genitive.js',
+    '/js/leksihjelp/content/spell-rules/nb-codeswitch.js',
+    '/js/leksihjelp/content/spell-rules/nb-comma.js',
+    '/js/leksihjelp/content/spell-rules/nb-compound-gender.js',
+    '/js/leksihjelp/content/spell-rules/nb-demonstrative-gender.js',
+    '/js/leksihjelp/content/spell-rules/nb-dialect-mix.js',
+    '/js/leksihjelp/content/spell-rules/nb-double-definiteness.js',
+    '/js/leksihjelp/content/spell-rules/nb-gender.js',
+    '/js/leksihjelp/content/spell-rules/nb-homophones.js',
+    '/js/leksihjelp/content/spell-rules/nb-modal-verb.js',
+    '/js/leksihjelp/content/spell-rules/nb-nn-passiv-s.js',
+    '/js/leksihjelp/content/spell-rules/nb-possessive-definite.js',
+    '/js/leksihjelp/content/spell-rules/nb-propernoun-guard.js',
+    '/js/leksihjelp/content/spell-rules/nb-riksmal-lexical.js',
+    '/js/leksihjelp/content/spell-rules/nb-sarskriving.js',
+    '/js/leksihjelp/content/spell-rules/nb-sentence-boundary.js',
+    '/js/leksihjelp/content/spell-rules/nb-triple-letter.js',
+    '/js/leksihjelp/content/spell-rules/nb-typo-curated.js',
+    '/js/leksihjelp/content/spell-rules/nb-typo-fuzzy.js',
+    '/js/leksihjelp/content/spell-rules/nb-v2.js',
+    '/js/leksihjelp/content/spell-rules/nn-plural-leakage.js',
+    '/js/leksihjelp/content/spell-rules/nn-verb-leakage.js',
+    '/js/leksihjelp/content/spell-rules/quotation-suppression.js',
+    '/js/leksihjelp/content/spell-rules/redundancy.js',
+    '/js/leksihjelp/content/spell-rules/register.js',
+    '/js/leksihjelp/content/spell-rules/universal-agreement.js',
+    '/js/leksihjelp/content/spell-rules/universal-context-typo.js',
+    '/js/leksihjelp/popup/dict-state-builder.js',
+    '/js/leksihjelp/popup/grammar-features-section.js',
+    '/js/leksihjelp/data/de.json',
+    '/js/leksihjelp/data/en.json',
+    '/js/leksihjelp/data/es.json',
+    '/js/leksihjelp/data/fr.json',
+    '/js/leksihjelp/data/nb.json',
+    '/js/leksihjelp/data/nn.json',
+    '/js/leksihjelp/data/nb-baseline.json',
+    '/js/leksihjelp/data/grammarfeatures-de.json',
+    '/js/leksihjelp/data/grammarfeatures-en.json',
+    '/js/leksihjelp/data/grammarfeatures-es.json',
+    '/js/leksihjelp/data/grammarfeatures-fr.json',
+    '/js/leksihjelp/data/grammarfeatures-nb.json',
+    '/js/leksihjelp/data/grammarfeatures-nn.json',
+    '/js/leksihjelp/data/pitfalls-en.json',
 ];
 
 // Listen for SKIP_WAITING message from sw-manager.js
@@ -100,10 +213,28 @@ self.addEventListener('message', (event) => {
 });
 
 // Install: cache static assets
+//
+// Two-stage install:
+//   1. Atomic precache of the critical Skriv ASSETS — if any of these fail,
+//      the SW does not activate and the previous cache stays live (safe).
+//   2. Best-effort precache of the vendored leksihjelp bundle. We allow
+//      individual fetches to fail (a 404 from a sync-script bug shouldn't
+//      brick Skriv); whatever fails gets lazy-cached on first hit by the
+//      fetch handler below. This keeps Skriv resilient to leksihjelp
+//      vendoring drift without giving up offline-first for the bundle.
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS);
+        caches.open(CACHE_NAME).then(async (cache) => {
+            await cache.addAll(ASSETS);
+            // Settle each leksihjelp asset independently — Promise.all on
+            // .catch'd inner promises is the standard "wait, don't fail" idiom.
+            await Promise.all(
+                LEKSIHJELP_ASSETS.map((path) =>
+                    cache.add(path).catch((err) => {
+                        console.warn('[sw] leksihjelp precache miss:', path, err && err.message);
+                    })
+                )
+            );
         })
     );
     self.skipWaiting();

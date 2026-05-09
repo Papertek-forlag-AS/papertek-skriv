@@ -304,16 +304,26 @@ and Verktøy. Visibility tracks `bridge.getStatus()`.
 - Initial language comes from `bridge.getWritingLang()`.
 - Updates whenever `bridge.onWritingLangChange` fires.
 
-### S-6. ⏳ Wait for L-1 + L-2 to enable real vocab fetch
+### S-6. ✅ Vendored bundle wired into Skriv
 
-Once the leksihjelp claude completes L-1 and L-2:
+Once the leksihjelp claude completed L-2 (sync script + initial vendor)
+and L-3 (`__lexiPresent` sentinel guarded on `chrome.runtime.id`):
 
-- `index.html` adds the necessary `<script>` tags to load the vendored
-  modules in dependency order BEFORE Skriv's `main.js`.
-- `sw.js` adds the vendored file paths to `ASSETS[]`. Cache version
-  bump.
-- The bridge starts emitting `embedded` status when the seam loads on a
-  page where the extension isn't present.
+- `public/js/leksihjelp-loader.js` provides a minimal `chrome.runtime` /
+  `chrome.storage` shim so the vendored content scripts run in Skriv's
+  plain-page context. `bindBridge(api)` keeps `lang.spellcheck` /
+  `lang.dictionary` / `examMode` in lockstep with the bridge.
+- `index.html` loads the bundle in dependency order: loader → i18n →
+  exam-registry → vocab seam → spell-check core → 78 rules → lang-detect
+  → engines → renderer → popup helpers. Loader runs BEFORE every
+  vendored module so the shim is already in place. `<main id="app">`
+  is wrapped with `class="skriv-leksihjelp"` so the scoped CSS applies.
+- `sw.js` cache bumped to `skriv-v55`. Vendored paths live in a separate
+  `LEKSIHJELP_ASSETS[]` precached **best-effort** (individual misses don't
+  block install — the existing fetch handler lazy-caches anything missed
+  on first hit). Keeps Skriv resilient to vendoring drift.
+- L-1 was dropped (Phase 40.2 made vocab bundle-only — no Vocab API
+  fetch at runtime). See `docs/leksihjelp-integration-handoff.md`.
 
 ### S-7. ⏳ Spell-check inline marks (next phase)
 
@@ -405,17 +415,17 @@ Once vendored files exist:
 
 Quick checklist either side can scan:
 
-- [ ] **L-1** — Vocab API CORS allowlist update (`papertek-vocabulary` repo)
-- [ ] **L-2** — Sync script + initial vendor pass (writes into Skriv)
-- [ ] **L-3** — `__lexiPresent` sentinel in leksihjelp's `vocab-seam.js`
+- [x] ~~**L-1**~~ — *Dropped* (Phase 40.2 made vocab bundle-only — no online dep)
+- [x] **L-2** — Sync script + initial vendor pass (`scripts/sync-leksihjelp.js`)
+- [x] **L-3** — `__lexiPresent` sentinel guarded on `chrome.runtime.id`
 - [ ] **L-4** — `externally_connectable` for Skriv (deferred)
-- [ ] **L-5** — Pointer doc in leksihjelp planning (optional)
+- [x] **L-5** — Pointer doc in leksihjelp planning
 - [x] **S-1** — Plan + restore point
 - [x] **S-2** — Bridge module (`leksihjelp-bridge.js`)
 - [x] **S-3** — Settings panel (`leksihjelp-settings.js`)
 - [x] **S-4** — Top-bar button in editor
 - [x] **S-5** — Special-chars panel refactor
-- [ ] **S-6** — Load vendored modules + SW bump (depends on L-1, L-2)
+- [x] **S-6** — Loader + chrome shim + bundle wired into index.html + SW bump
 - [ ] **S-7** — Spell-check wire-up (depends on S-6)
 - [ ] **S-8** — Dictionary popup (depends on S-6)
 - [ ] **S-9** — Per-document language seeding (depends on S-2..S-5; can ship after S-2)

@@ -18,6 +18,9 @@
     <!-- jsPDF for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+    <!-- Leksihjelp scoped CSS (must come before any leksihjelp DOM renders) -->
+    <link rel="stylesheet" href="/js/leksihjelp/styles/leksihjelp.css">
+
     <style>
         /* Smooth page transitions */
         #app {
@@ -1403,8 +1406,143 @@
 </head>
 <body class="bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-200 antialiased">
     <a href="#app" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold" id="skip-to-content">Hopp til innhold</a>
-    <main id="app" role="main"></main>
+    <!-- skriv-leksihjelp wrapper: scopes the vendored content.css selectors -->
+    <!-- (see scripts/sync-leksihjelp.js — every selector is prefixed -->
+    <!-- with .skriv-leksihjelp on sync). -->
+    <main id="app" role="main" class="skriv-leksihjelp"></main>
 
+    <!--
+      Leksihjelp vendored bundle. Loaded as classic <script> tags BEFORE Skriv's
+      ES module entry so that:
+        1. The chrome.* shim (leksihjelp-loader.js) is in place before any
+           vendored module touches chrome.runtime / chrome.storage.
+        2. Each rule file's IIFE pushes its rule object onto __lexiSpellRules
+           by the time spell-check-engine.js initialises (engine reads the
+           array at construction time).
+        3. window.__lexiVocab / __lexiSpellCore / __lexiI18n are published
+           before the bridge in main.js calls bindBridge().
+      Order below mirrors lockdown/public/js/leksihjelp-loader.js LEKSI_BUNDLE,
+      with new rule files added in alphabetical order within each section.
+      Re-sync regenerates this section if the file inventory changes.
+    -->
+
+    <script src="/js/leksihjelp-loader.js"></script>
+
+    <!-- Foundation -->
+    <script src="/js/leksihjelp/i18n/strings.js"></script>
+    <script src="/js/leksihjelp/exam-registry.js"></script>
+    <script src="/js/leksihjelp/content/vocab-seam-core.js"></script>
+    <script src="/js/leksihjelp/content/vocab-seam.js"></script>
+    <script src="/js/leksihjelp/content/spell-check-core.js"></script>
+
+    <!-- Pre-pass infrastructure (priority 1-9) -->
+    <script src="/js/leksihjelp/content/spell-rules/grammar-tables.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/quotation-suppression.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/redundancy.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/register.js"></script>
+
+    <!-- nb rules -->
+    <script src="/js/leksihjelp/content/spell-rules/nb-propernoun-guard.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-codeswitch.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-dialect-mix.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-aa-og.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-anglicism.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-apostrophe-genitive.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-comma.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-compound-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-demonstrative-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-double-definiteness.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-homophones.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-modal-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-possessive-definite.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-riksmal-lexical.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-sarskriving.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-sentence-boundary.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-triple-letter.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-typo-curated.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-typo-fuzzy.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-v2.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-nn-passiv-s.js"></script>
+
+    <!-- nn rules -->
+    <script src="/js/leksihjelp/content/spell-rules/nn-plural-leakage.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nn-verb-leakage.js"></script>
+
+    <!-- de rules -->
+    <script src="/js/leksihjelp/content/spell-rules/de-capitalization.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-compound-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-grammar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-modal-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-perfekt-aux.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-prep-case.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-separable-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-v2.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-verb-final.js"></script>
+
+    <!-- en rules -->
+    <script src="/js/leksihjelp/content/spell-rules/en-a-an.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-confused-pairs.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-double-comparative.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-grammar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-grammar-advanced.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-homophones.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-morphology.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-subject-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-word-family.js"></script>
+
+    <!-- es rules -->
+    <script src="/js/leksihjelp/content/spell-rules/es-accent-guard.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-coordination.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-grammar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-gustar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-imperfecto-hint.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-personal-a.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-por-para.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-pro-drop.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-ser-estar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-subjuntivo.js"></script>
+
+    <!-- fr rules -->
+    <script src="/js/leksihjelp/content/spell-rules/fr-adj-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-aspect-hint.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-bags.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-clitic-order.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-contraction.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-elision.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-etre-avoir.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-grammar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-pp-agreement.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-preposition.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-subjonctif.js"></script>
+
+    <!-- shared rules -->
+    <script src="/js/leksihjelp/content/spell-rules/es-fr-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-fr-modal-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/collocation.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/universal-agreement.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/universal-context-typo.js"></script>
+
+    <!-- doc-drift post-pass (priority 80+) -->
+    <script src="/js/leksihjelp/content/spell-rules/doc-drift-de-address.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/doc-drift-fr-address.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/doc-drift-nb-passiv-overuse.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/doc-drift-nb-register.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/doc-drift-nn-infinitive.js"></script>
+
+    <!-- Lang detect must load before engines/renderers -->
+    <script src="/js/leksihjelp/content/lang-detect.js"></script>
+
+    <!-- Engines + renderers (engines BEFORE renderers — Phase 43 split) -->
+    <script src="/js/leksihjelp/content/spell-check-engine.js"></script>
+    <script src="/js/leksihjelp/content/spell-check-renderer.js"></script>
+
+    <!-- Dictionary popup helpers -->
+    <script src="/js/leksihjelp/popup/dict-state-builder.js"></script>
+    <script src="/js/leksihjelp/popup/grammar-features-section.js"></script>
+
+    <!-- Skriv app entry (must run AFTER leksihjelp bundle so the bridge can bindBridge) -->
     <script type="module" src="/js/app/main.js"></script>
 </body>
 </html>
