@@ -246,6 +246,7 @@ export default {
         grammarLevel: 'Grammatikknivå',
         grammarLevelHint: 'Velg hvilke grammatiske former (tider, kasus, sammenligning) som vises i ordboken.',
         grammarLevelPlaceholder: 'Tilgjengelig når Leksihjelp er fullt integrert.',
+        grammarLevelTip: 'Når ingen er valgt, vises alt. Velg det du vil se for å rydde i resultatene.',
         searchTitle: 'Slå opp i ordboken',
         searchHint: 'Søk på {{lang}} eller på norsk — du kan skrive ord på begge språk.',
         searchPlaceholder: 'Skriv et ord...',

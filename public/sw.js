@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v59';
+const CACHE_NAME = 'skriv-v60';
 const ASSETS = [
     '/',
     '/index.html',
