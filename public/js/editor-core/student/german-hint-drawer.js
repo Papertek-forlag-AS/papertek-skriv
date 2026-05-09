@@ -73,23 +73,28 @@ export function initGermanHintDrawer(host, hint, options = {}) {
 
     const drawer = document.createElement('aside');
     // Non-modal: no backdrop, editor stays interactive while the drawer is open.
-    drawer.className = 'german-hint-drawer fixed top-0 right-0 h-full w-full max-w-md bg-white dark:bg-stone-800 shadow-2xl border-l border-stone-200 dark:border-stone-700 z-40 flex flex-col transform translate-x-full transition-transform duration-200 ease-out pointer-events-none';
+    // pointer-events is set via inline style (not Tailwind class) — Tailwind
+    // CDN sometimes misses utilities that are added at runtime via classList,
+    // and we never want the close button to be unclickable due to a missed JIT.
+    drawer.className = 'german-hint-drawer fixed top-0 right-0 h-full w-full max-w-md bg-white dark:bg-stone-800 shadow-2xl border-l border-stone-200 dark:border-stone-700 z-40 flex flex-col transform translate-x-full transition-transform duration-200 ease-out';
+    drawer.style.pointerEvents = 'none';
     drawer.setAttribute('role', 'complementary');
     drawer.setAttribute('aria-labelledby', 'german-hint-title');
     drawer.setAttribute('aria-hidden', 'true');
 
     drawer.innerHTML = `
-        <header class="flex items-center justify-between px-4 py-3 border-b border-stone-200 dark:border-stone-700">
-            <h2 id="german-hint-title" class="text-base font-semibold text-stone-800 dark:text-stone-100">
+        <header class="flex items-center justify-between gap-2 px-3 py-2 border-b border-stone-200 dark:border-stone-700">
+            <h2 id="german-hint-title" class="text-base font-semibold text-stone-800 dark:text-stone-100 truncate">
                 ${escapeHtml(t('germanExam.hintTitle'))}
             </h2>
             <button type="button" data-close
-                class="flex items-center justify-center w-8 h-8 rounded-md text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+                class="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 active:bg-stone-300 transition-colors flex-shrink-0"
                 aria-label="${escapeHtml(t('germanExam.hintClose'))}"
-                title="${escapeHtml(t('germanExam.hintClose'))}">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                title="${escapeHtml(t('germanExam.hintClose'))} (Esc)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
+                <span>${escapeHtml(t('germanExam.hintClose'))}</span>
             </button>
         </header>
         <div class="px-4 pt-3" role="tablist" aria-label="${escapeHtml(t('germanExam.hintTabsLabel'))}">
@@ -154,10 +159,8 @@ export function initGermanHintDrawer(host, hint, options = {}) {
     function open() {
         if (isOpen) return;
         isOpen = true;
-        // pointer-events-auto only while open so the drawer doesn't block
-        // the editor when it's slid off-screen.
-        drawer.classList.remove('pointer-events-none');
-        drawer.classList.add('pointer-events-auto');
+        // Inline style (not Tailwind class) so it can never miss a JIT pass.
+        drawer.style.pointerEvents = 'auto';
         drawer.setAttribute('aria-hidden', 'false');
         // Force reflow so the slide-in transition runs.
         // eslint-disable-next-line no-unused-expressions
@@ -175,10 +178,7 @@ export function initGermanHintDrawer(host, hint, options = {}) {
         drawer.setAttribute('aria-hidden', 'true');
         // Stop catching pointer events once the slide-out finishes.
         setTimeout(() => {
-            if (!isOpen) {
-                drawer.classList.remove('pointer-events-auto');
-                drawer.classList.add('pointer-events-none');
-            }
+            if (!isOpen) drawer.style.pointerEvents = 'none';
         }, 220);
         document.removeEventListener('keydown', onKey);
     }

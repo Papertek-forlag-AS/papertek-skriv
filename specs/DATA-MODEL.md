@@ -101,5 +101,5 @@ Key path: `id`
 
 ## Other storage
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]`. Current version: `skriv-v51`.
+- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]`. Current version: `skriv-v52`.
 - **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.
