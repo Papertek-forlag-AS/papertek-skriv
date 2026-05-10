@@ -395,14 +395,13 @@ export function initLeksihjelpSettings(host, bridge) {
         const lower = query.toLowerCase().trim();
         if (lower.length < 2) return [];
 
-        // Within each match category, base/accepted entries float to the top so
-        // typing "kommen" surfaces the base verb (with its full conjugation
-        // table available) rather than a 'wir kommen' conjugation row first.
-        // Typo entries get a slight push down — they're noise in search.
+        // Within each match category, base/accepted entries float to the
+        // top so typing "kommen" surfaces the base verb (with its full
+        // conjugation table available) rather than a 'wir kommen'
+        // conjugation row first.
         function typeRank(e) {
             const t = e && e.type;
             if (t === 'base' || t === 'accepted') return 0;
-            if (t === 'typo') return 9;
             return 1;
         }
 
@@ -412,6 +411,13 @@ export function initLeksihjelpSettings(host, bridge) {
         const startsTrans = [];
         for (const e of list) {
             if (!e) continue;
+            // Skip typo entries entirely from dictionary search. Their
+            // role is to feed the spell-checker (so it knows "schwiimen"
+            // → "schwimmen"); in a search list they show up as duplicate
+            // rows of the canonical word with a confusing TYPO badge.
+            // Misspelled queries can still get help from the inline
+            // spell-check dots in the editor.
+            if (e.type === 'typo') continue;
             const w = (e.display || e.word || '').toLowerCase();
             const tr = (e.translation || '').toLowerCase();
             if (w === lower) { exactWord.push(e); continue; }
@@ -419,17 +425,30 @@ export function initLeksihjelpSettings(host, bridge) {
             if (w.startsWith(lower)) { startsWord.push(e); continue; }
             if (tr.startsWith(lower)) { startsTrans.push(e); continue; }
         }
-        // Stable sort within each bucket by typeRank.
         const sortByType = (arr) => arr
             .map((e, i) => ({ e, i, r: typeRank(e) }))
             .sort((a, b) => a.r - b.r || a.i - b.i)
             .map(x => x.e);
-        return [
+
+        // Dedupe by canonical key so we don't render multiple rows for
+        // the same lemma (e.g. a base entry plus a translation entry
+        // pointing back to the same word).
+        const seen = new Set();
+        const out = [];
+        const buckets = [
             ...sortByType(exactWord),
             ...sortByType(exactTrans),
             ...sortByType(startsWord),
             ...sortByType(startsTrans),
-        ].slice(0, 8);
+        ];
+        for (const e of buckets) {
+            const key = e.baseWord || e.display || e.word;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push(e);
+            if (out.length >= 8) break;
+        }
+        return out;
     }
 
     // ── Result enrichment ──
