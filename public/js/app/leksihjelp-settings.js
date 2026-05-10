@@ -160,6 +160,57 @@ function ensureGrammarFeaturesStyles() {
         html.dark .dict-case-grid tbody tr + tr td {
             border-top-color: #44403c;
         }
+
+        /* CEFR level badge */
+        .dict-cefr-badge {
+            display: inline-block;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.25rem;
+            background: #fef3c7;
+            color: #92400e;
+            letter-spacing: 0.05em;
+        }
+        html.dark .dict-cefr-badge { background: #422006; color: #fbbf24; }
+
+        /* Grammatikk paragraph */
+        .dict-grammar-text {
+            font-size: 0.75rem;
+            line-height: 1.5;
+            color: #44403c;
+            margin: 0;
+        }
+        html.dark .dict-grammar-text { color: #d6d3d1; }
+
+        /* Examples list */
+        .dict-examples-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .dict-examples-list li {
+            display: flex;
+            flex-direction: column;
+            gap: 0.125rem;
+            padding-left: 0.625rem;
+            border-left: 2px solid #d6d3d1;
+        }
+        html.dark .dict-examples-list li { border-left-color: #57534e; }
+        .dict-example-target {
+            font-size: 0.75rem;
+            color: #1c1917;
+            font-style: italic;
+        }
+        html.dark .dict-example-target { color: #fafaf9; }
+        .dict-example-translation {
+            font-size: 0.7rem;
+            color: #78716c;
+        }
+        html.dark .dict-example-translation { color: #a8a29e; }
     `;
     document.head.appendChild(style);
 }
@@ -407,6 +458,83 @@ export function initLeksihjelpSettings(host, bridge) {
         return list.filter(e => e && e.baseWord === base && e !== entry);
     }
 
+    // ── Rich entry details (examples + grammar paragraph + CEFR) ──────
+    // The lightweight wordList strips entry.explanation, entry.examples,
+    // and entry.cefr to keep the index small. We can recover them by
+    // re-fetching the raw bundle JSON (already SW-cached after first
+    // load) and matching on bank + word. Cached per language.
+    const _rawDictCache = new Map(); // lang → Promise<dict>
+    function loadRawDict(lang) {
+        if (!_rawDictCache.has(lang)) {
+            _rawDictCache.set(lang, fetch(`/js/leksihjelp/data/${lang}.json`)
+                .then(r => r.ok ? r.json() : null)
+                .catch(() => null));
+        }
+        return _rawDictCache.get(lang);
+    }
+
+    async function findRawEntry(baseEntry, lang) {
+        if (!baseEntry || baseEntry.type !== 'base') return null;
+        const dict = await loadRawDict(lang);
+        if (!dict) return null;
+        const bankName = baseEntry.bank;
+        if (!bankName) return null;
+        const bank = dict[bankName];
+        if (!bank || typeof bank !== 'object') return null;
+        const targetWord = String(baseEntry.display || baseEntry.word || '').toLowerCase();
+        for (const id in bank) {
+            if (!Object.prototype.hasOwnProperty.call(bank, id)) continue;
+            if (id.startsWith('_')) continue;
+            const e = bank[id];
+            if (!e || typeof e !== 'object') continue;
+            if (String(e.word || '').toLowerCase() === targetWord) return { id, entry: e };
+        }
+        return null;
+    }
+
+    function renderRichDetailsHTML(rich) {
+        if (!rich || !rich.entry) return '';
+        const e = rich.entry;
+        const out = [];
+        if (e.cefr) {
+            out.push(`<div class="dict-cefr-badge">${escapeHtml(e.cefr)}</div>`);
+        }
+        const description = e.explanation && e.explanation._description;
+        if (description) {
+            out.push(`<div class="dict-tense-block">
+                <div class="dict-tense-name">Grammatikk</div>
+                <p class="dict-grammar-text">${escapeHtml(description)}</p>
+            </div>`);
+        }
+        if (Array.isArray(e.examples) && e.examples.length > 0) {
+            const items = e.examples.slice(0, 4).map(ex => `
+                <li>
+                    <span class="dict-example-target">${escapeHtml(ex.sentence || '')}</span>
+                    ${ex.translation ? `<span class="dict-example-translation">${escapeHtml(ex.translation)}</span>` : ''}
+                </li>
+            `).join('');
+            out.push(`<div class="dict-tense-block">
+                <div class="dict-tense-name">Eksempler</div>
+                <ul class="dict-examples-list">${items}</ul>
+            </div>`);
+        }
+        return out.join('');
+    }
+
+    async function injectRichDetails(card, baseEntry) {
+        const lang = bridge.getLookupLang();
+        const rich = await findRawEntry(baseEntry, lang);
+        const richHTML = renderRichDetailsHTML(rich);
+        if (!richHTML) return;
+        // Re-check that the card still exists (search might have changed
+        // while we were awaiting the fetch).
+        if (!card.isConnected) return;
+        const enrichment = card.querySelector('.dict-enrichment');
+        if (!enrichment) return;
+        // Append after the case/conjugation/comparative tables.
+        enrichment.insertAdjacentHTML('beforeend', richHTML);
+    }
+
     function renderConjugationsHTML(forms) {
         const conj = forms.filter(f => f.type === 'conjugation');
         if (conj.length === 0) return '';
@@ -576,19 +704,39 @@ export function initLeksihjelpSettings(host, bridge) {
         `;
     }
 
+    // Track which result cards already have rich details rendered so
+    // expanding/collapsing doesn't re-fetch.
+    const _resultEntriesByIdx = [];
+
+    function loadRichForCard(card) {
+        if (!card || card.dataset.richLoaded === '1') return;
+        const idx = parseInt(card.dataset.resultIdx || '-1', 10);
+        const entry = _resultEntriesByIdx[idx];
+        if (!entry) return;
+        card.dataset.richLoaded = '1';
+        injectRichDetails(card, entry).catch(err => {
+            console.warn('[leksihjelp-settings] rich detail load failed:', err);
+            card.dataset.richLoaded = '';
+        });
+    }
+
     let searchDebounceTimer = null;
     function runSearch() {
         if (!searchResultsEl) return;
         const query = (searchInputEl.value || '').trim();
         if (query.length < 2) {
             searchResultsEl.innerHTML = '';
+            _resultEntriesByIdx.length = 0;
             return;
         }
         const results = searchEntries(query);
         if (results.length === 0) {
             searchResultsEl.innerHTML = `<div class="text-xs italic text-stone-500 dark:text-stone-400">${escapeHtml(t('leksihjelp.searchNoResults'))}</div>`;
+            _resultEntriesByIdx.length = 0;
             return;
         }
+        _resultEntriesByIdx.length = 0;
+        results.forEach((e, i) => { _resultEntriesByIdx[i] = e; });
         searchResultsEl.innerHTML = results.map((e, i) => renderResultRow(e, i)).join('');
         // Expand the first base-type result by default so the most likely
         // hit shows its conjugation/case table without an extra click.
@@ -597,6 +745,9 @@ export function initLeksihjelpSettings(host, bridge) {
             firstExpandable.querySelector('.dict-enrichment-host')?.classList.remove('hidden');
             const arrow = firstExpandable.querySelector('[data-arrow]');
             if (arrow) arrow.textContent = '▾';
+            // Lazy-fetch the GRAMMATIKK paragraph + EKSEMPLER + CEFR badge
+            // for the auto-expanded card.
+            loadRichForCard(firstExpandable);
         }
     }
 
@@ -619,6 +770,8 @@ export function initLeksihjelpSettings(host, bridge) {
             const willOpen = host.classList.contains('hidden');
             host.classList.toggle('hidden', !willOpen);
             if (arrow) arrow.textContent = willOpen ? '▾' : '▸';
+            // Lazy-load rich details on first open of any card.
+            if (willOpen) loadRichForCard(card);
         });
     }
 
