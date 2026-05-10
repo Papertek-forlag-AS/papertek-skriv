@@ -280,6 +280,20 @@ export const examTasks = {
             attribution: 'Udir, Tysk II (FSP6242 / PSP5840 / FSP6246), eksamen hausten 2025',
         },
         {
+            id: 'tysk2-exam-2025-7-nn',
+            year: 2025,
+            term: 'eksempel',
+            part: 'Del 2 – Skriftleg produksjon',
+            title: 'Oppgåve 7: Nærmiljøet mitt (nynorsk)',
+            prompt: 'I denne oppgåva skal du skrive ein tekst på 170–200 ord om nærmiljøet ditt.\n\n- Korleis ser nærmiljøet ditt ut? Ligg det i ein by, på landet eller midt imellom?\n- Er det noko spesielt som gjer inntrykk på deg? Det kan til dømes vere noko du luktar, høyrer eller ser, eller det kan vere ein person du ofte møter.\n- Korleis føler du deg når du går gjennom nærmiljøet ditt?\n- Kva ønskjer du deg i nærmiljøet? Kvifor?',
+            image: null,
+            modelAnswers: {
+                simple: 'Eg bur i ein liten by i Noreg. Byen ligg ved ein fjord. Fjorden er stor og blå. Det er fjell rundt byen. På sommaren er det grønt. På vinteren er det kvitt og kaldt. Det bur omtrent ti tusen menneske her. Eg har gått på skule her heile livet. Det er mange ting eg likar. Eg luktar ofte sjø og bakeri. Det er ein gamal mann som eg møter kvar morgon. Han heiter Ole. Han har ein liten hund. Han helsar alltid på meg. Eg likar det vesle bakeriet ved torget. Brødet luktar godt. Når eg går gjennom byen, er eg roleg og glad. Eg kjenner mange folk. Eg veit kor alt er. Det gjer meg trygg. Eg ønskjer meg ein ny park med leikeplass. Det bur mange born her, men det finst lite for dei å gjere ute. Difor bør kommunen byggje noko nytt for ungar.',
+                rich: 'Nærmiljøet mitt er ein liten kystby ein stad mellom by og land. Eg har vakse opp her, så alle gater og smug kjenner eg ut og inn. Byen ligg klemt mellom høge fjell og ein djup fjord, og særleg om hausten ligg ofte tåka over vatnet om morgonen — det er noko av det vakraste eg veit. Lukta av salt, tang og nybakt brød frå bakeriet ved torget følgjer meg på vegen til skulen. Ein person eg ofte møter, er Ole, ein eldre mann med ein liten hund som alltid stoppar for å slå av ein prat. Slike små møte gjer at staden kjennest trygg og levande. Når eg går gjennom byen, blir eg roleg og litt nostalgisk på same tid. Eg veit kvar alt er, og det er kjekt — men det er òg det same som gjer at eg innimellom drøymer meg vekk. Det eg saknar mest, er ein større park med skikkeleg leikeplass for borna i nabolaget, fordi mange ungar manglar ein trygg stad å samlast på. Då hadde nærmiljøet blitt endå betre.',
+            },
+            attribution: 'Udir, Tysk II (FSP6242 / PSP5840 / FSP6246), eksamen hausten 2025',
+        },
+        {
             id: 'tysk2-exam-2025-6-nn',
             year: 2025,
             term: 'eksempel',
