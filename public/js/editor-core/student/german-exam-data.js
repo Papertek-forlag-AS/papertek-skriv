@@ -194,6 +194,48 @@ export const writingTasks = {
 export const examTasks = {
     'tysk-1': [
         {
+            id: 'tysk1-exam-2025-5',
+            year: 2025,
+            term: 'vår',
+            part: 'Del 2 – Skriftlig produksjon',
+            title: 'Oppgave 5: To personer du er mest sammen med',
+            prompt: 'I denne oppgaven skal du skrive en tekst på 60–80 ord der du svarer på spørsmålene nedenfor.\n\n- Hvilke to personer er du mest sammen med?\n- Hvorfor er du sammen med dem?\n- Hva pleier dere å gjøre når dere er sammen?',
+            image: null,
+            modelAnswers: {
+                simple: 'De to personene jeg er mest sammen med, er bestevennen min Mia og lillebroren min Jonas. Mia er hyggelig og morsom. Jeg kjenner henne fra barneskolen. Jonas er bare ti år. Jeg passer på ham etter skolen. Mia og jeg gjør lekser sammen. Vi går også på kafé. Med Jonas spiller jeg fotball i hagen. Av og til ser vi en film hjemme. Jeg er glad i begge to.',
+                rich: 'De to personene jeg er mest sammen med, er bestevennen min Mia og lillebroren min Jonas. Mia kjenner jeg fra barneskolen, og hun er både morsom og snill. Jonas er bare ti år, men jeg har mye ansvar for ham etter skolen. Med Mia gjør jeg lekser, og vi går ofte på en kafé i sentrum. Med Jonas spiller jeg fotball i hagen eller ser en film hjemme. Jeg setter pris på dem fordi de er en stor del av hverdagen min.',
+            },
+            attribution: 'Udir, Tysk I (FSP6239 / PSP5838), eksamen våren 2025',
+        },
+        {
+            id: 'tysk1-exam-2025-6',
+            year: 2025,
+            term: 'vår',
+            part: 'Del 2 – Skriftlig produksjon',
+            title: 'Oppgave 6: Melding til forelder med oppgaveliste',
+            prompt: 'I denne oppgaven skal du skrive en melding på 100–120 ord.\n\nEn av foreldrene dine har en veldig stressende uke og ber deg om å hjelpe til med noen oppgaver. Du har fått en liste over ting du må gjøre innen dagen er over. Se på listen og skriv en melding der du forteller\n- hva du har gjort\n- hva du ikke har gjort, og hvorfor\n\nListe:\n- Vaske klær\n- Vaske hele kjøkkenet\n- Gå og handle melk, brød, kjøtt og kokosyoghurt\n- Hjelpe lillebror med leksene\n- Kjøpe en gave til onkel',
+            image: null,
+                modelAnswers: {
+                simple: 'Hei mamma! Jeg vil fortelle hva jeg har gjort i dag. Først vasker jeg klær. Klærne henger nå til tørk. Etterpå handler jeg i butikken. Jeg kjøper melk, brød og kjøtt. Dessverre har de ikke kokosyoghurt. Jeg kjøper vanlig yoghurt i stedet. Senere kjøper jeg en gave til onkel. Jeg velger en bok om fotball. Det blir mer tid igjen. Kjøkkenet er ikke ferdig vasket. Lillebroren min er sulten. Han trenger mat først. Han vil ha hjelp med leksene senere i kveld. Hilsen meg.',
+                rich: 'Hei mamma! Her er en kort oppdatering på dagen. Jeg har vasket klær, og de henger nå til tørk. Jeg har også vært i butikken og kjøpt melk, brød og kjøtt. Dessverre hadde de ikke kokosyoghurt i dag, så jeg kjøpte en vanlig yoghurt i stedet. Jeg fant også en fin gave til onkel — en bok om fotball som jeg tror han vil like. Kjøkkenet er jeg ikke helt ferdig med. Jeg har tørket benkene, men gulvet står igjen. Lillebroren min ble sulten da han kom hjem, så jeg lagde mat til ham først. Vi tar leksene sammen etter middag. Klem fra meg.',
+            },
+            attribution: 'Udir, Tysk I (FSP6239 / PSP5838), eksamen våren 2025',
+        },
+        {
+            id: 'tysk1-exam-2025-7',
+            year: 2025,
+            term: 'vår',
+            part: 'Del 2 – Skriftlig produksjon',
+            title: 'Oppgave 7: Veska på bildet',
+            prompt: 'I denne oppgaven skal du skrive en tekst på 160–180 ord.\n\nDu finner ei veske på bildet. Den inneholder flere forskjellige ting, blant annet noe som virkelig overrasker deg.\n\nSkriv en tekst der du har med de følgende punktene:\n- hvor du finner veska\n- hva den inneholder som overrasker deg, og hva denne tingen forteller deg om eieren\n- hva du gjør med veska',
+            image: null,
+            modelAnswers: {
+                simple: 'En lørdag i mai går jeg en tur med hunden min. Vi går gjennom et stort jorde utenfor byen. Vinden er kald. Jeg ser plutselig noe brunt i graset. Det er ei gammel lærveske. Veska er stengt. Jeg åpner den forsiktig. Først ser jeg vanlige ting. Det er en bok og en penn. Det er også en gammel mobiltelefon. På bunnen finner jeg et helt spesielt brev. Brevet er skrevet på fransk. Det er fra 1955. Brevet er fra en mann som heter Pierre. Han skriver om kjærligheten sin. Det overrasker meg. Det betyr at eieren er glad i historie. Eieren er kanskje en eldre person. Jeg tar med veska hjem. Jeg viser den til foreldrene mine. De ringer politiet sammen med meg. Politiet kommer raskt. De skal finne eieren. Jeg er glad jeg hjelper noen i dag. Veska er ikke verdt mye penger. Men brevet er nok veldig viktig for eieren.',
+                rich: 'En lørdag i mai går jeg en lang tur med hunden min utenfor byen. Stien går gjennom et stort jorde, og vinden er kald. Plutselig får hunden min øye på noe brunt mellom grasstråene. Det er ei gammel lærveske med en sliten skinnreim. Jeg åpner den forsiktig og blir både nysgjerrig og litt nervøs. Inni veska ligger ganske vanlige ting: en notatbok, en penn, et lommetørkle og en gammel mobiltelefon uten lader. Helt på bunnen finner jeg noe som overrasker meg veldig — et håndskrevet brev på fransk fra 1955. Det er underskrevet av en mann som heter Pierre, og han skriver om kjærligheten sin. Det forteller meg at eieren sannsynligvis er en eldre person som er glad i historie og minner. Jeg tar med veska hjem og viser den til foreldrene mine. Sammen ringer vi politiet, slik at de kan finne eieren. Selv om veska ikke er verdt mye penger, betyr nok brevet uendelig mye for noen.',
+            },
+            attribution: 'Udir, Tysk I (FSP6239 / PSP5838), eksamen våren 2025',
+        },
+        {
             id: 'tysk1-exam-2026-12',
             year: 2026,
             term: 'eksempel',
