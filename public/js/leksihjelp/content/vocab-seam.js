@@ -114,6 +114,15 @@
       'grammar_imperativ': [`${langPrefix}imperativ`],
       'grammar_comparative': [`${langPrefix}komparativ`],
       'grammar_superlative': [`${langPrefix}superlativ`],
+      // Noun-case keys — vocab-seam-core.js:517-519 calls isFeatureEnabled
+      // with the generic ids below; storage holds the lang-prefixed forms
+      // (`grammar_de_akkusativ` etc.) written by popup preset pills. Without
+      // this mapping the case grid silently drops to nominativ-only any
+      // time the user enables a case feature. Reported by Skriv-side agent
+      // in docs/leksihjelp-upstream-fixes.md (Issue 1).
+      'grammar_accusative_nouns': [`${langPrefix}akkusativ`],
+      'grammar_dative':           [`${langPrefix}dativ`],
+      'grammar_genitiv':          [`${langPrefix}genitiv`],
     };
     return function isFeatureEnabled(featureId) {
       if (enabledFeatures.has(featureId)) return true;
@@ -490,10 +499,20 @@
     getFrAuxPresensForms: () => (state && state.frAuxPresensForms) ? state.frAuxPresensForms : new Set(),
     getNbToNnVerbs: () => (state && state.nbToNnVerbs) ? state.nbToNnVerbs : new Map(),
     getNbToNnNouns: () => (state && state.nbToNnNouns) ? state.nbToNnNouns : new Map(),
-    isFeatureEnabled: (featureId) => {
-      if (enabledFeatures.size === 0) return true;
-      return enabledFeatures.has(featureId);
-    },
+    // Delegate to buildFeaturePredicate so external callers see exactly the
+    // same logic the wordList filter uses. Pre-fix this wrapper did direct
+    // membership only (`enabledFeatures.has(featureId)`), which gave
+    // different answers than buildFeaturePredicate for any generic feature
+    // id mapped through genericToLangMap (`grammar_present` → `grammar_de_presens`,
+    // `grammar_accusative_nouns` → `grammar_de_akkusativ`, etc.). Embedders
+    // querying with the generic form got false while the wordList correctly
+    // resolved to true. Reported in docs/leksihjelp-upstream-fixes.md (Issue 3).
+    //
+    // currentLang is captured by closure and refreshed on every hydrateTarget,
+    // so the predicate constructed here always reflects the active language's
+    // genericToLangMap. Re-built per call (cheap — small object literal) so
+    // we don't need a separate refresh hook.
+    isFeatureEnabled: (featureId) => buildFeaturePredicate(currentLang)(featureId),
   };
 
   init();

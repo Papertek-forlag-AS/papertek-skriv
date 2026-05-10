@@ -37,19 +37,56 @@
     }[c]));
   }
 
-  async function readEnabledFeatures(storage) {
+  // The canonical storage shape (also written by popup.js:815-818 and read
+  // by vocab-seam.js:251-253) is per-language:
+  //   { enabledGrammarFeatures: { de: ['grammar_de_akkusativ', ...], en: [...] } }
+  //
+  // Pre-fix this module wrote a flat shape `{ feature_id: true, ... }` that
+  // the seam couldn't read — embedders mounting this section saw all
+  // checkbox toggles silently no-op against the wordList filter. Reported
+  // by Skriv-side agent in docs/leksihjelp-upstream-fixes.md (Issue 2).
+  //
+  // The reader accepts the canonical per-lang shape and three legacy shapes
+  // for backward compatibility (a flat user's session shouldn't lose their
+  // settings on first load post-fix; the next write upgrades them to per-lang).
+
+  async function readEnabledFeatures(storage, lang) {
     const stored = await storage.get('enabledGrammarFeatures');
     if (!stored || typeof stored !== 'object') return new Set();
-    // popup.js stores either a Set-shaped object (with keys as feature ids → true)
-    // or an array. Accept both.
+    // Canonical: per-language array.
+    if (Array.isArray(stored[lang])) return new Set(stored[lang]);
+    // Legacy 1: top-level array (very old build).
     if (Array.isArray(stored)) return new Set(stored);
-    return new Set(Object.keys(stored).filter(k => stored[k] === true || stored[k] === 1));
+    // Legacy 2: per-language object with truthy values.
+    if (stored[lang] && typeof stored[lang] === 'object') {
+      return new Set(Object.keys(stored[lang]).filter(k => stored[lang][k] === true || stored[lang][k] === 1));
+    }
+    // Legacy 3: flat top-level object `{ feature_id: true, ... }` (the buggy
+    // shape this module wrote pre-fix). Treat as belonging to the current
+    // lang — caller's first write will migrate it to the per-lang shape.
+    if (Object.values(stored).some(v => v === true || v === 1)) {
+      return new Set(Object.keys(stored).filter(k => stored[k] === true || stored[k] === 1));
+    }
+    return new Set();
   }
 
-  async function writeEnabledFeatures(storage, enabled) {
-    const obj = {};
-    for (const id of enabled) obj[id] = true;
-    await storage.set({ enabledGrammarFeatures: obj });
+  async function writeEnabledFeatures(storage, enabled, lang) {
+    const stored = await storage.get('enabledGrammarFeatures');
+    // Start from the existing per-lang object if present; otherwise build
+    // a fresh one. Strip any legacy flat-shape keys that aren't lang codes
+    // so the storage shape converges on the canonical form.
+    const next = {};
+    if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+      for (const k of Object.keys(stored)) {
+        // Heuristic: lang codes are 2-3 chars and lowercase; everything else
+        // is legacy flat-shape feature-id pollution we drop.
+        if (/^[a-z]{2,3}$/.test(k) && Array.isArray(stored[k])) {
+          next[k] = stored[k];
+        }
+      }
+    }
+    next[lang] = Array.from(enabled);
+    await storage.set({ enabledGrammarFeatures: next });
   }
 
   function mountGrammarFeaturesSection(container, deps) {
@@ -72,7 +109,7 @@
         container.innerHTML = '<div style="opacity:0.6; font-size:12px;">Ingen grammatikkfunksjoner for dette språket.</div>';
         return;
       }
-      const enabled = await readEnabledFeatures(storage);
+      const enabled = await readEnabledFeatures(storage, lang);
 
       const byCategory = {};
       for (const feat of (features.features || [])) {
@@ -104,7 +141,7 @@
         const onChange = async () => {
           const id = cb.dataset.featureId;
           if (cb.checked) enabled.add(id); else enabled.delete(id);
-          await writeEnabledFeatures(storage, enabled);
+          await writeEnabledFeatures(storage, enabled, lang);
           try { runtime.sendMessage({ type: 'GRAMMAR_FEATURES_CHANGED' }); } catch {}
         };
         cb.addEventListener('change', onChange);

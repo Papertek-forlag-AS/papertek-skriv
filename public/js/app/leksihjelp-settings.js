@@ -449,36 +449,37 @@ export function initLeksihjelpSettings(host, bridge) {
         imperative: 'Imperativ',
     };
 
-    // Map a tenseKey from a wordList conjugation entry to the leksihjelp
-    // grammar feature name (lang-prefixed at runtime, e.g.
-    // grammar_de_presens). Tenses without a known feature mapping are
-    // always shown — the wordList filter inside the seam already drops
-    // them when the corresponding feature is off, so this is just a
-    // belt-and-braces second check for the case grid + comparatives
-    // which read from the RAW JSON rather than the filtered wordList.
+    // Map a wordList tense / case to the canonical leksihjelp feature id.
+    // After upstream fixes (leksihjelp v3.0.9, commits c4ac7d3 + 62719ec),
+    // generic ids like `grammar_accusative_nouns` resolve through
+    // genericToLangMap to the per-language entry, AND the
+    // __lexiVocab.isFeatureEnabled wrapper delegates to the same
+    // predicate. So we can pass either form and get the right answer.
+    // Generic ids are preferred where available because they match the
+    // names the wordList builder + spell-rules use.
     const TENSE_TO_FEATURE = {
-        present:    'presens',
-        past:       'preteritum',
-        perfect:    'perfektum',
-        pluperfect: 'preteritum_perfekt',
-        future:     'futurum',
-        imperative: 'imperativ',
-        subjunctive: 'konjunktiv',
-        passive:    'passiv',
+        present:    'grammar_present',
+        past:       'grammar_preteritum',
+        perfect:    'grammar_perfektum',
+        imperative: 'grammar_imperativ',
+        // The remaining tenses (futurum, konjunktiv, passiv,
+        // pluperfect…) are language-specific and don't have a generic
+        // alias. The wordList filter already drops them when the
+        // matching grammar_{lang}_{x} feature is off, so we don't need
+        // a second check here.
     };
     const CASE_TO_FEATURE = {
         // nominativ: null  → always shown (it's the lemma)
-        akkusativ: 'akkusativ',
-        dativ: 'dativ',
-        genitiv: 'genitiv',
+        akkusativ: 'grammar_accusative_nouns',
+        dativ:     'grammar_dative',
+        genitiv:   'grammar_genitiv',
     };
 
-    function isFeatureOn(featureName) {
-        if (!featureName) return true;
+    function isFeatureOn(featureId) {
+        if (!featureId) return true;
         const v = window.__lexiVocab;
         if (!v || typeof v.isFeatureEnabled !== 'function') return true;
-        const lang = bridge.getLookupLang();
-        return v.isFeatureEnabled(`grammar_${lang}_${featureName}`);
+        return v.isFeatureEnabled(featureId);
     }
 
     function findRelatedForms(entry) {
@@ -524,59 +525,10 @@ export function initLeksihjelpSettings(host, bridge) {
         return null;
     }
 
-    // Build the 4×4 case grid directly from raw entry.cases (bypasses
-    // the wordList, which currently strips accusative/dative/genitive
-    // entries due to a missing genericToLangMap mapping in vocab-seam.js).
-    // Filtered by Grammatikknivå case features (Akkusativ / Dativ / Genitiv).
-    function renderCaseGridFromRaw(rawEntry) {
-        if (!rawEntry || !rawEntry.cases || typeof rawEntry.cases !== 'object') return '';
-        const rows = [];
-        for (const cs of CASE_ROW_ORDER) {
-            const featureName = CASE_TO_FEATURE[cs];
-            if (featureName && !isFeatureOn(featureName)) continue;
-            const data = rawEntry.cases[cs];
-            if (!data || !data.forms) continue;
-            const sg = data.forms.singular || {};
-            const pl = data.forms.plural || {};
-            const def_sg   = sg.definite   || '';
-            const indef_sg = sg.indefinite || '';
-            const def_pl   = pl.definite   || '';
-            const indef_pl = pl.indefinite || '';
-            if (!def_sg && !indef_sg && !def_pl && !indef_pl) continue;
-            rows.push({ cs, def_sg, indef_sg, def_pl, indef_pl });
-        }
-        if (rows.length === 0) return '';
-        let html = `<div class="dict-tense-block dict-case-grid-block">
-            <div class="dict-tense-name">Bøyning (kasus)</div>
-            <table class="dict-case-grid"><thead><tr>
-                <th></th>
-                <th>Bestemt ent.</th>
-                <th>Ubestemt ent.</th>
-                <th>Bestemt fl.</th>
-                <th>Ubestemt fl.</th>
-            </tr></thead><tbody>`;
-        for (const row of rows) {
-            html += `<tr>
-                <th class="dict-case-label">${escapeHtml(CASE_LABEL_NB[row.cs] || row.cs)}</th>
-                <td>${escapeHtml(row.def_sg || '—')}</td>
-                <td>${escapeHtml(row.indef_sg || '—')}</td>
-                <td>${escapeHtml(row.def_pl || '—')}</td>
-                <td>${escapeHtml(row.indef_pl || '—')}</td>
-            </tr>`;
-        }
-        html += `</tbody></table></div>`;
-        return html;
-    }
-
     function renderRichDetailsHTML(rich) {
         if (!rich || !rich.entry) return '';
         const e = rich.entry;
         const out = [];
-        // Replace any wordList-derived case grid with the raw-data grid:
-        // the latter respects per-case Grammatikknivå AND survives the
-        // upstream wordList strip of non-nominativ cases.
-        const caseGrid = renderCaseGridFromRaw(e);
-        if (caseGrid) out.push(`<!-- raw-case-grid -->${caseGrid}`);
         if (e.cefr) {
             out.push(`<div class="dict-cefr-badge">${escapeHtml(e.cefr)}</div>`);
         }
@@ -612,13 +564,10 @@ export function initLeksihjelpSettings(host, bridge) {
         if (!card.isConnected) return;
         const enrichment = card.querySelector('.dict-enrichment');
         if (!enrichment) return;
-        // The wordList-derived case grid is incomplete (upstream strip of
-        // non-nominativ cases). If the raw entry has its own case grid,
-        // remove the wordList one before appending so we don't render
-        // both. They're identifiable by the .dict-case-grid-block class.
-        if (richHTML.includes('dict-case-grid-block')) {
-            enrichment.querySelectorAll('.dict-case-grid-block').forEach(el => el.remove());
-        }
+        // Append after the case/conjugation/comparative tables (which are
+        // built synchronously from the wordList; case rows are now
+        // complete since leksihjelp v3.0.9 fixed the genericToLangMap
+        // gap that used to strip non-nominativ entries).
         enrichment.insertAdjacentHTML('beforeend', richHTML);
     }
 
@@ -761,8 +710,8 @@ export function initLeksihjelpSettings(host, bridge) {
     }
 
     function renderComparativesHTML(forms) {
-        const comp = isFeatureOn('komparativ') ? forms.find(f => f.type === 'comparative') : null;
-        const sup  = isFeatureOn('superlativ') ? forms.find(f => f.type === 'superlative') : null;
+        const comp = isFeatureOn('grammar_comparative') ? forms.find(f => f.type === 'comparative') : null;
+        const sup  = isFeatureOn('grammar_superlative') ? forms.find(f => f.type === 'superlative') : null;
         if (!comp && !sup) return '';
         let html = `<div class="dict-tense-block"><div class="dict-tense-name">Sammenligning</div><table class="dict-conj-table"><tbody>`;
         if (comp) html += `<tr><td class="dict-conj-pronoun">komparativ</td><td class="dict-conj-form">${escapeHtml(comp.display || comp.word)}</td></tr>`;
@@ -906,15 +855,7 @@ export function initLeksihjelpSettings(host, bridge) {
                 const stored = result && result.enabledGrammarFeatures;
                 if (!stored || typeof stored !== 'object') return resolve(new Set());
                 const lang = bridge.getLookupLang();
-                // Per-language shape (the canonical one). Fall back to the
-                // legacy flat shape just in case storage was set by an old
-                // build or a peer with a flat write.
-                if (Array.isArray(stored[lang])) return resolve(new Set(stored[lang]));
-                if (Array.isArray(stored)) return resolve(new Set(stored));
-                if (Object.values(stored).some(v => v === true || v === 1)) {
-                    return resolve(new Set(Object.keys(stored).filter(k => stored[k] === true || stored[k] === 1)));
-                }
-                resolve(new Set());
+                resolve(new Set(Array.isArray(stored[lang]) ? stored[lang] : []));
             });
         });
     }
@@ -986,61 +927,25 @@ export function initLeksihjelpSettings(host, bridge) {
 
     // Storage adapter for the vendored grammar-features-section.js.
     //
-    // Two-shape mismatch to bridge:
-    //   1. The vendored module's deps interface returns the value at key
-    //      directly, but chrome.storage.local.get returns `{key: value}`.
-    //   2. (more importantly) The vendored grammar-features-section.js
-    //      reads/writes `enabledGrammarFeatures` as a FLAT object keyed
-    //      by feature id — but vocab-seam.js (and the extension popup,
-    //      and lockdown) all expect a PER-LANGUAGE shape:
-    //          { de: ['grammar_de_presens', ...], en: [...], ... }
-    //      Without translation, the seam reads
-    //      `stored.enabledGrammarFeatures[lang]` and gets undefined,
-    //      which falls back to "all features on" — breaking every
-    //      Grammatikknivå toggle.
+    // The vendored module's deps interface expects `storage.get(key)` to
+    // return the value at that key, but chrome.storage.local.get returns
+    // a `{key: value}` wrapper — flatten that here.
     //
-    // This adapter translates ONLY the `enabledGrammarFeatures` key:
-    //   - On read: extract the current lang's array and present it as
-    //     a flat `{id: true}` map.
-    //   - On write: merge the flat map back into the per-lang object,
-    //     overwriting only the current lang's entry.
+    // (Earlier this adapter also translated between flat `{id: true}`
+    // and per-language `{de: [...]}` shapes because grammar-features-section
+    // wrote the flat shape that the seam couldn't read. Fixed upstream
+    // in leksihjelp v3.0.9 commit 8f5416c — both writers now use the
+    // canonical per-language shape, so the translation layer is gone.)
     const grammarStorageAdapter = {
         get(key) {
             return new Promise(resolve =>
-                window.chrome.storage.local.get(key, (r) => {
-                    const raw = r ? r[key] : undefined;
-                    if (key !== 'enabledGrammarFeatures') return resolve(raw);
-                    if (!raw || typeof raw !== 'object') return resolve({});
-                    const lang = bridge.getLookupLang();
-                    const arr = Array.isArray(raw[lang]) ? raw[lang] : [];
-                    const flat = {};
-                    for (const id of arr) flat[id] = true;
-                    resolve(flat);
-                })
+                window.chrome.storage.local.get(key, (r) => resolve(r ? r[key] : undefined))
             );
         },
         set(obj) {
-            return new Promise(resolve => {
-                if (!obj || !('enabledGrammarFeatures' in obj)) {
-                    window.chrome.storage.local.set(obj, resolve);
-                    return;
-                }
-                const flat = obj.enabledGrammarFeatures;
-                const ids = flat && typeof flat === 'object' && !Array.isArray(flat)
-                    ? Object.keys(flat).filter(k => flat[k] === true || flat[k] === 1)
-                    : [];
-                const lang = bridge.getLookupLang();
-                window.chrome.storage.local.get('enabledGrammarFeatures', (r) => {
-                    const existing = (r && r.enabledGrammarFeatures && typeof r.enabledGrammarFeatures === 'object' && !Array.isArray(r.enabledGrammarFeatures))
-                        ? r.enabledGrammarFeatures
-                        : {};
-                    const merged = { ...existing, [lang]: ids };
-                    window.chrome.storage.local.set(
-                        { ...obj, enabledGrammarFeatures: merged },
-                        resolve
-                    );
-                });
-            });
+            return new Promise(resolve =>
+                window.chrome.storage.local.set(obj, resolve)
+            );
         },
     };
 

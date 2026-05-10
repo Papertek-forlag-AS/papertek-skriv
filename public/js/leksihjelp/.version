@@ -1,7 +1,7 @@
 {
-  "upstream_version": "3.0.7",
-  "upstream_commit": "ddeaf33fc604c61c3e45e4d23c779842fcece0d6",
-  "synced_at": "2026-05-09T21:23:41.654Z",
+  "upstream_version": "3.0.9",
+  "upstream_commit": "62719ec1fe67ae60e3fe96293de2673acedf92eb",
+  "synced_at": "2026-05-10T06:48:55.785Z",
   "inventory": [
     "i18n/strings.js",
     "content/vocab-seam-core.js",

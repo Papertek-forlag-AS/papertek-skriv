@@ -108,7 +108,8 @@
     // re-renders the active popover in place so the user sees the layout
     // change without having to close and re-open it.
     chrome.storage.local.get('spellCheckAlternatesVisible', (r) => {
-      alternatesVisible = r && r.spellCheckAlternatesVisible === true;
+      // Default ON: only treat an explicit `false` as off; unset → true.
+      alternatesVisible = !(r && r.spellCheckAlternatesVisible === false);
     });
     // Phase 27: hydrate cached examMode + subscribe to live toggle.
     chrome.storage.local.get('examMode', (r) => {
@@ -117,7 +118,7 @@
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== 'local') return;
       if ('spellCheckAlternatesVisible' in changes) {
-        alternatesVisible = changes.spellCheckAlternatesVisible.newValue === true;
+        alternatesVisible = changes.spellCheckAlternatesVisible.newValue !== false;
         if (popover && activePopoverIdx >= 0 && lastFindings[activePopoverIdx]) {
           showPopover(activePopoverIdx, lastFindings[activePopoverIdx]);
         }

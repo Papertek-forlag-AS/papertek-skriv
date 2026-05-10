@@ -1,6 +1,28 @@
 # Prompt for the Leksihjelp-side AI Agent
 
-> **What this is:** a self-contained briefing for the Claude session
+> **STATUS: ✅ RESOLVED.** All three issues were fixed upstream in
+> leksihjelp v3.0.9 (commits `c4ac7d3`, `8f5416c`, `62719ec`) and
+> Skriv re-synced on 2026-05-10 (commit forthcoming this branch).
+> The three Skriv-side workarounds have been removed:
+>
+> - `renderCaseGridFromRaw` → deleted (case grid now reads from the
+>   wordList, which has all four cases since Issue 1's fix).
+> - `grammarStorageAdapter` per-lang ↔ flat translator → simplified
+>   to a value-from-wrapper passthrough (Issue 2 fix made the
+>   translation unnecessary).
+> - `isFeatureOn` lang-prefixed-only restriction → reverted; now
+>   passes generic ids (`grammar_accusative_nouns` etc.) directly
+>   to `__lexiVocab.isFeatureEnabled`, which delegates to
+>   `buildFeaturePredicate` per Issue 3's fix.
+>
+> Verified post-sync: with Mye preset for German, searching "Hund"
+> renders the case grid as Nominativ + Akkusativ + Dativ (Genitiv
+> correctly hidden, since Mye doesn't include `grammar_de_genitiv`).
+>
+> The body below is preserved as a record of the diagnosis and fix
+> for future reference.
+>
+> **What this was:** a self-contained briefing for the Claude session
 > running inside the `Papertek-forlag-AS/leksihjelp` repo. While
 > integrating leksihjelp into Skriv (see
 > [docs/leksihjelp-integration.md](leksihjelp-integration.md)), the
