@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-05-09
+> Last updated: 2026-05-11
 
 ## What is this?
 
@@ -12,7 +12,7 @@ Papertek Skriv is a privacy-first PWA for student writing in Norwegian schools. 
 |------------- |------------------------ |------------------------------- |
 | Language     | Vanilla JS (ES6 modules)| No framework, no bundler       |
 | CSS          | Tailwind CSS (CDN)      | `https://cdn.tailwindcss.com`  |
-| Storage      | IndexedDB               | Database: `skriv-documents` v4 |
+| Storage      | IndexedDB               | Databases: `skriv-documents` v4, `skriv-versions` v1 |
 | PDF export   | jsPDF 2.5.1 (CDN)       | cdnjs.cloudflare.com           |
 | Positioning  | Floating UI 1.7.5 (CDN) | For toolbar popover            |
 | PWA          | Service Worker + manifest| Offline-first, installable     |
@@ -27,21 +27,20 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v70)
-├── icons/                  ← PWA icons (192, 512)
+├── sw.js                   ← Service Worker (cache v71)
+├── icons/                  ← PWA icon (192)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md          (legacy)
 │   ├── droefting.md        (legacy)
 │   ├── kronikk.md          (legacy)
-│   ├── nb/                 ← Bokmål (7 frames)
-│   └── nn/                 ← Nynorsk (7 frames)
+│   ├── nb/                 ← Bokmål (12 frames)
+│   └── nn/                 ← Nynorsk (12 frames)
 └── js/
     ├── app/                ← App-level orchestration
     │   ├── main.js         ← Router, init
     │   ├── document-store.js
     │   ├── document-list.js
     │   ├── document-search.js
-    │   ├── document-tags.js
     │   ├── trash-store.js
     │   ├── standalone-writer.js  ← Editor orchestrator
     │   ├── word-count-stats.js
@@ -55,7 +54,7 @@ public/
     │   └── leksihjelp-settings.js ← Slide-in drawer with the four leksihjelp controls
     ├── editor-core/
     │   ├── config.js       ← Constants (special chars)
-    │   ├── shared/         ← Cross-product utilities (8 modules)
+    │   ├── shared/         ← Cross-product utilities (10 modules)
     │   ├── student/        ← Student editor features
     │   │   └── german-exam-svg/  ← Hand-written SVG modules for image-based German tasks (one file per image)
     │   └── locales/        ← Translation files (nb, nn, en)

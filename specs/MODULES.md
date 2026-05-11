@@ -1,6 +1,6 @@
 # Module Registry
 
-> Last updated: 2026-05-09
+> Last updated: 2026-05-11
 
 Every module in the codebase. When you add, remove, or rename a module — update this file.
 
@@ -93,6 +93,11 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `nb/fagartikkel.md` | Fagartikkel | Bokmål   |
 | `nb/leserinnlegg.md` | Leserinnlegg | Bokmål |
 | `nb/novelle.md`   | Novelle       | Bokmål   |
+| `nb/retorisk-analyse.md` | Retorisk analyse | Bokmål |
+| `nb/kortsvar.md` | Kortsvar | Bokmål |
+| `nb/kreativ-tekst.md` | Kreativ tekst | Bokmål |
+| `nb/reflekterende-tekst.md` | Reflekterende tekst | Bokmål |
+| `nb/sammenligning.md` | Sammenlignende tekst | Bokmål |
 | `nn/analyse.md`   | Analyse       | Nynorsk  |
 | `nn/droefting.md` | Drøfting      | Nynorsk  |
 | `nn/kronikk.md`   | Kronikk       | Nynorsk  |
@@ -100,3 +105,8 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `nn/fagartikkel.md` | Fagartikkel | Nynorsk  |
 | `nn/leserinnlegg.md` | Lesarinnlegg | Nynorsk |
 | `nn/novelle.md`   | Novelle       | Nynorsk  |
+| `nn/retorisk-analyse.md` | Retorisk analyse | Nynorsk |
+| `nn/kortsvar.md` | Kortsvar | Nynorsk |
+| `nn/kreativ-tekst.md` | Kreativ tekst | Nynorsk |
+| `nn/reflekterende-tekst.md` | Reflekterande tekst | Nynorsk |
+| `nn/sammenligning.md` | Samanliknande tekst | Nynorsk |

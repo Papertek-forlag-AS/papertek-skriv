@@ -36,8 +36,16 @@ function promptToDocHtml(prompt) {
     const blocks = prompt.split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
     return blocks.map(block => {
         if (/^[-*]\s/m.test(block)) {
-            const items = block.split(/\n/).map(l => l.replace(/^[-*]\s+/, '').trim()).filter(Boolean);
-            return '<ul>' + items.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ul>';
+            const lines = block.split(/\n/).map(l => l.trim()).filter(Boolean);
+            const firstBullet = lines.findIndex(l => /^[-*]\s/.test(l));
+            const prefix = firstBullet > 0 ? lines.slice(0, firstBullet).join(' ') : null;
+            const items = lines.slice(firstBullet)
+                .filter(l => /^[-*]\s/.test(l))
+                .map(l => l.replace(/^[-*]\s+/, ''));
+            let out = '';
+            if (prefix) out += `<p>${escapeHtml(prefix)}</p>`;
+            out += '<ul>' + items.map(i => `<li>${escapeHtml(i)}</li>`).join('') + '</ul>';
+            return out;
         }
         return `<p>${escapeHtml(block)}</p>`;
     }).join('');

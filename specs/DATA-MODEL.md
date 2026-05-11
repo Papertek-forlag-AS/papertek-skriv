@@ -1,6 +1,6 @@
 # Data Model
 
-> Last updated: 2026-05-09
+> Last updated: 2026-05-11
 
 ## IndexedDB
 
@@ -88,16 +88,23 @@ Key path: `id`
 
 | Key                      | Type   | Purpose                                     |
 |------------------------- |------- |-------------------------------------------- |
-| `skriv-lang`             | string | Selected UI language (nb/nn/en)              |
+| `skriv_language`         | string | Selected UI language (nb/nn/en)              |
 | `skriv_theme`            | string | Theme preference (`light`, `dark`, `system`) |
 | `skriv_custom_subjects`  | string | **Legacy.** JSON array of student-created subject names. Read during v4 migration to seed custom folders. No longer written. |
 | `skriv_school_year`      | string | Active school year label e.g. `'2025/2026'`  |
 | `skriv_school_level`     | string | Selected school level ID (`barneskole`, `ungdomsskole`, `vg1`, `vg2`, `vg3`) |
-| `papertek.skriv.germanExam.deck.tysk-1` | string | JSON array of remaining (unseen) Tysk 1 task ids; auto-shuffles on exhaustion |
-| `papertek.skriv.germanExam.deck.tysk-2` | string | JSON array of remaining (unseen) Tysk 2 task ids; auto-shuffles on exhaustion |
+| `papertek.skriv.germanExam.deck.writing.tysk-1` | string | JSON array of remaining writing-mode Tysk 1 task ids; auto-shuffles on exhaustion |
+| `papertek.skriv.germanExam.deck.writing.tysk-2` | string | JSON array of remaining writing-mode Tysk 2 task ids; auto-shuffles on exhaustion |
+| `papertek.skriv.germanExam.deck.exam.tysk-1` | string | JSON array of remaining exam-mode Tysk 1 task ids; auto-shuffles on exhaustion |
+| `papertek.skriv.germanExam.deck.exam.tysk-2` | string | JSON array of remaining exam-mode Tysk 2 task ids; auto-shuffles on exhaustion |
 | `papertek.skriv.germanExam.activeLevel` | string | `'tysk-1'` or `'tysk-2'`; persists last selected level on the spinner screen |
+| `papertek.skriv.germanExam.activeMode`  | string | `'writing'` or `'exam'`; persists last selected German spinner mode |
 | `germanExam.writeExplainSeen`           | string | `'1'` once the user has seen the explain dialog before "Skriv svar" creates a doc |
 | `germanHintDrawer.variant.<docId>`      | string | `'simple'` or `'rich'`; per-document tab selection in the editor hint drawer |
+| `skriv_daily_goal`       | string | Writing-progress daily word goal             |
+| `skriv_writing_streak`   | string | Writing-progress streak count                |
+| `skriv_last_write_date`  | string | ISO date string for last streak update       |
+| `skriv_tour_completed`   | string | `'true'` when editor onboarding tour has been completed |
 | `skriv.leksihjelp.writingLang`          | string | Skrivespråk — drives spell-check + special-chars panel. One of `nb`/`nn`/`en`/`de`/`es`/`fr` |
 | `skriv.leksihjelp.lookupLang`           | string | Oppslagsspråk — drives dictionary popup language |
 | `skriv.leksihjelp.examMode`             | string | `'1'` when eksamensmodus is on, `''` otherwise |
@@ -106,5 +113,5 @@ Key path: `id`
 
 ## Other storage
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v70`.
+- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v71`.
 - **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.

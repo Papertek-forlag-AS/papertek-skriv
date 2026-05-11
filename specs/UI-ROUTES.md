@@ -1,6 +1,6 @@
 # UI & Routes
 
-> Last updated: 2026-03-04
+> Last updated: 2026-05-11
 
 ## Routing
 
@@ -49,9 +49,8 @@ App init
 **Main content:**
 - Header with app title, theme toggle, trash button, create-new button
 - Search bar (`document-search.js`) — filters documents by title and content, `Ctrl/Cmd+K` shortcut
-- Tag filter chips (`document-tags.js`)
 - Stats bar (document count, total word count → opens statistics overlay)
-- Document cards (title, preview, word count, last edited, folder badges, tags)
+- Document cards (title, preview, word count, last edited, folder badges)
   - Cards with no folder show a "Velg mappe" button with folder picker dropdown (multi-select)
   - Cards are `draggable="true"` with `data-doc-id` — drag to sidebar folders to assign
 - "No results" state when filters match nothing
@@ -67,7 +66,6 @@ App init
 │ ← Back  [save status]  [toolbar buttons...] │  ← Top bar
 ├─────────────────────────────────────────────┤
 │ Document title input                         │
-│ + Ny merkelapp (tag editor)                  │
 │ Mappe: [folder badges/picker]                 │  ← Folder picker row (multi-select)
 ├─────────────────────────────────────────────┤
 │                                              │
@@ -90,11 +88,21 @@ App init
 | Bilde           | image-manager.js        | Opens file picker for images      |
 | 💡 Hjelpetekst  | german-hint-drawer.js   | (German exam docs only) Opens simple/rich Norwegian draft drawer |
 | 📚 Leksihjelp   | leksihjelp-settings.js  | Opens settings drawer (Eksamensmodus, Skrivespråk, Oppslagsspråk, Grammatikknivå). Hidden when the Leksihjelp Chrome extension is detected on the page |
+| Verktøy ▼       | standalone-writer.js    | Opens advanced tools menu when Avansert is on |
+| Eksporter ▼     | text-export.js          | Dropdown: TXT, PDF, or Word export |
+
+**Advanced tools menu:**
+| Button          | Module                  | Behavior                          |
+|---------------- |------------------------ |---------------------------------- |
 | Ordspinner      | writing-spinner.js      | Shows random word suggestion      |
-| Ordradar        | word-frequency.js       | Toggles repetition highlighting   |
+| Gjentakelse     | word-frequency.js       | Toggles repetition highlighting   |
 | Setningslengde  | sentence-length.js      | Toggles rhythm bar visualization  |
 | Avsnittskart    | paragraph-map.js        | Toggles document minimap          |
-| Eksporter ▼     | text-export.js          | Dropdown: TXT or PDF export       |
+| Tabell          | table-manager.js        | Opens table insertion dialog      |
+| Tilbakemelding  | writing-feedback.js     | Toggles local writing feedback panel |
+| Versjonshistorikk | version-history.js    | Toggles saved snapshot timeline   |
+| LIX             | lix-score.js            | Toggles readability score panel   |
+| Argumentflyt    | argument-flow.js        | Toggles argument flow panel       |
 
 **Formatting toolbar (floating, on text selection):**
 - Bold, Italic, Underline
