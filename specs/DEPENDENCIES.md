@@ -1,6 +1,6 @@
 # Dependencies
 
-> Last updated: 2026-03-12
+> Last updated: 2026-05-11
 
 ## External (CDN)
 
@@ -105,3 +105,5 @@ app/main.js
 ```
 
 **Invariant:** No circular dependencies. No upward imports (shared never imports from student or app).
+
+`student/german-exam-svg/*.js` modules are leaf modules: each exports one default SVG string and imports nothing. New image-based German exam tasks must add their SVG modules to `sw.js ASSETS[]`.
