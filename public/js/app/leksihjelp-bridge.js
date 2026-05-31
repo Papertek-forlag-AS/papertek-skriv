@@ -78,6 +78,7 @@ function writeBool(key, on) {
  *   getExamMode(): boolean,
  *   setExamMode(on: boolean): void,
  *   onExamModeChange(fn: (on: boolean) => void): () => void,
+ *   requestExtensionPanel(): void,
  *   destroy(): void,
  * }}
  */
@@ -199,6 +200,24 @@ export function initLeksihjelpBridge(options = {}) {
         onExamModeChange(fn) {
             examModeListeners.add(fn);
             return () => examModeListeners.delete(fn);
+        },
+
+        /**
+         * Best-effort request to the leksihjelp extension to open its side
+         * panel. Fires a window message the extension's content script listens
+         * for (cross-repo contract: `skriv:leksihjelp:openPanel`). It is only a
+         * signal — Chrome forbids a web page from opening an extension's side
+         * panel directly, so callers must also show user guidance as the
+         * reliable fallback. No-op when no extension is listening.
+         */
+        requestExtensionPanel() {
+            if (typeof window === 'undefined') return;
+            try {
+                window.postMessage(
+                    { type: 'skriv:leksihjelp:openPanel', source: 'skriv' },
+                    window.location.origin,
+                );
+            } catch (_) { /* ignore */ }
         },
 
         destroy() {
