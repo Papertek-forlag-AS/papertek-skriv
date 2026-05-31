@@ -87,7 +87,7 @@ App init
 | Kilder          | reference-manager.js    | Opens citation dialog             |
 | Bilde           | image-manager.js        | Opens file picker for images      |
 | 💡 Hjelpetekst  | german-hint-drawer.js   | (German exam docs only) Opens simple/rich Norwegian draft drawer |
-| 📚 Leksihjelp   | leksihjelp-settings.js  | Opens settings drawer (Eksamensmodus, Skrivespråk, Oppslagsspråk, Grammatikknivå). Hidden when the Leksihjelp Chrome extension is detected on the page |
+| 📚 Leksihjelp   | leksihjelp-settings.js  | Opens settings drawer (Eksamensmodus, Skrivespråk, Oppslagsspråk, Grammatikknivå). When the Leksihjelp Chrome extension is detected, the button stays visible but fires `requestExtensionPanel()` (a `skriv:leksihjelp:openPanel` window message) and shows a guidance toast pointing the user to the extension's side panel |
 | Verktøy ▼       | standalone-writer.js    | Opens advanced tools menu when Avansert is on |
 | Eksporter ▼     | text-export.js          | Dropdown: TXT, PDF, or Word export |
 

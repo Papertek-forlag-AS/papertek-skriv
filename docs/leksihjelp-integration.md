@@ -97,6 +97,13 @@ compatible IndexedDB store name (`lexi-vocab`). Two stores will
 coexist on the Skriv origin: `skriv-documents` (Skriv's existing data)
 and `lexi-vocab` (the vendored cache).
 
+Skriv also publishes the following postMessage:
+
+- `window.postMessage({ type: 'skriv:leksihjelp:openPanel', source: 'skriv' }, origin)`
+  — fired when the user clicks Skriv's 📚 Leksihjelp button while the extension
+  is active. A best-effort request for the extension to open its side panel.
+  See task **L-6**.
+
 ### 3.3 Hydration messages
 
 Skriv's bridge module listens for the existing `lexi:hydration` events
@@ -246,6 +253,24 @@ owns it). Revisit only if users complain.
 
 **What:** a short pointer doc that says "Skriv consumes the same seam
 as Lockdown; see [skriv repo URL]/docs/leksihjelp-integration.md".
+
+### L-6. Open the side panel on Skriv's `skriv:leksihjelp:openPanel` message
+
+**What:** the extension's content script listens on `window` for `message`
+events where `event.data.type === 'skriv:leksihjelp:openPanel'` and forwards to
+the service worker, which calls `chrome.sidePanel.open({ tabId })`.
+
+**Caveat:** `chrome.sidePanel.open()` requires a user gesture in the extension's
+own context; a relayed postMessage may lose that gesture and be rejected by
+Chrome. Also set `chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })`
+so a click on the toolbar icon (which Skriv's guidance toast tells the user
+about) reliably opens the panel. The postMessage path is a best-effort
+enhancement.
+
+**Done when:** clicking Skriv's 📚 Leksihjelp button while the extension is
+active opens (or surfaces a clear path to) the extension's side panel.
+
+**Status:** Skriv side shipped; extension side owned by the leksihjelp repo.
 
 ## 6. Skriv-side tasks
 
@@ -408,7 +433,7 @@ Implemented as a soft seed in `standalone-writer.js`'s `launchEditor`:
 
 | Surface | Where | Trigger | Visible when |
 |---------|-------|---------|--------------|
-| `📚 Leksihjelp` button | Editor top bar | Click → opens settings drawer | Always (drawer hides when status === 'extension') |
+| `📚 Leksihjelp` button | Editor top bar | Click → opens settings drawer; in `extension` mode → fires `skriv:leksihjelp:openPanel` + guidance toast | Always visible |
 | Settings drawer | Slide-in right panel | Triggered by button | Status ∈ {'absent', 'embedded'} |
 | Dictionary popup | Floating, anchored to clicked word | Click any word in editor | Status ∈ {'embedded', 'extension'} (extension renders its own) |
 | Spell-check dots | Inline under words | Auto, debounced | Status ∈ {'embedded', 'extension'} |
@@ -461,6 +486,7 @@ Quick checklist either side can scan:
 - [x] **L-3** — `__lexiPresent` sentinel guarded on `chrome.runtime.id`
 - [ ] **L-4** — `externally_connectable` for Skriv (deferred)
 - [x] **L-5** — Pointer doc in leksihjelp planning
+- [ ] **L-6** — open side panel on `skriv:leksihjelp:openPanel` (Skriv side done)
 - [x] **S-1** — Plan + restore point
 - [x] **S-2** — Bridge module (`leksihjelp-bridge.js`)
 - [x] **S-3** — Settings panel (`leksihjelp-settings.js`)

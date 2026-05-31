@@ -511,17 +511,21 @@ export async function launchEditor(container, docId, onBack) {
     const leksihjelpBridge = initLeksihjelpBridge();
     const leksihjelpSettingsApi = initLeksihjelpSettings(writingEnv, leksihjelpBridge);
     const leksihjelpBtn = topBar.querySelector('#btn-leksihjelp');
-    function refreshLeksihjelpBtn() {
-        if (!leksihjelpBtn) return;
-        // Hide the button when the extension owns settings (single source of
-        // truth — extension popup edits the same options).
-        const hide = leksihjelpBridge.getStatus() === 'extension';
-        leksihjelpBtn.classList.toggle('hidden', hide);
-    }
-    refreshLeksihjelpBtn();
-    leksihjelpBridge.onStatusChange(refreshLeksihjelpBtn);
+    // The button is always available now. Behaviour branches on bridge status
+    // at click time: in 'extension' mode it points the user to the extension's
+    // side panel (best-effort open signal + guidance toast, since Chrome
+    // forbids a page from opening the panel itself); otherwise it opens Skriv's
+    // own settings drawer.
     if (leksihjelpBtn) {
-        leksihjelpBtn.addEventListener('click', () => leksihjelpSettingsApi.toggle());
+        leksihjelpBtn.classList.remove('hidden');
+        leksihjelpBtn.addEventListener('click', () => {
+            if (leksihjelpBridge.getStatus() === 'extension') {
+                leksihjelpBridge.requestExtensionPanel();
+                showToast(t('leksihjelp.openPanelHint'), { duration: 4000 });
+            } else {
+                leksihjelpSettingsApi.toggle();
+            }
+        });
     }
 
     // --- Special-chars panel — driven by the bridge's writingLang ---
