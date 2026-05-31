@@ -246,7 +246,7 @@ export default {
         statusHintAbsent: 'Leksihjelp is not available yet. Your choices are saved locally and applied when Leksihjelp arrives.',
         statusHintEmbedded: 'Leksihjelp is running inside Skriv. You can also install the browser extension for full features on every site.',
         statusHintExtension: 'The Leksihjelp extension is active — change settings in its popup.',
-        openPanelHint: 'The Leksihjelp extension is active — opening the side panel. You can also click the extension icon in your browser.',
+        openPanelHint: 'The Leksihjelp extension is active. Open it from the extension icon in your browser.',
         examMode: 'Exam mode',
         examModeHint: 'Hides features that are not allowed in exams (e.g. word predictions and pedagogical explanations).',
         writingLang: 'Writing language',
