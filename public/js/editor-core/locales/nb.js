@@ -237,6 +237,7 @@ export default {
         statusHintAbsent: 'Leksihjelp er ikke tilgjengelig ennå. Innstillingene lagres lokalt og brukes når Leksihjelp er på plass.',
         statusHintEmbedded: 'Leksihjelp kjører innebygd i Skriv. Du kan også installere utvidelsen for full funksjonalitet på alle nettsider.',
         statusHintExtension: 'Leksihjelp-utvidelsen er aktiv — bruk innstillingene i utvidelsens popup.',
+        openPanelHint: 'Leksihjelp-utvidelsen er aktiv — åpner sidepanelet. Du kan også klikke på utvidelsesikonet i nettleseren.',
         examMode: 'Eksamensmodus',
         examModeHint: 'Skjuler funksjoner som ikke er tillatt under eksamen (f.eks. ordforslag og pedagogiske forklaringer).',
         writingLang: 'Skrivespråk',
