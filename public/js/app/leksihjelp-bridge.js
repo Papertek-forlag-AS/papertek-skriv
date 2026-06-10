@@ -104,7 +104,19 @@ export function initLeksihjelpBridge(options = {}) {
         // Sentinel from the extension's content script (leksihjelp task L-3).
         // If set, the extension is the source of truth. We yield without
         // checking __lexiVocab, because the extension may still be hydrating.
+        //
+        // Two signals, because the extension content script runs in the
+        // ISOLATED world: `window.__lexiPresent` only crosses to our MAIN
+        // world when the extension injects into the main world (older path);
+        // the reliable cross-world signal is the `data-lexi-present` attribute
+        // the extension stamps on <html> (shared DOM). Check both so we yield
+        // regardless of which the installed extension version exposes —
+        // otherwise we stay 'embedded' and double-dip with the extension.
         if (typeof window !== 'undefined' && window.__lexiPresent === 'extension') {
+            return 'extension';
+        }
+        if (typeof document !== 'undefined' && document.documentElement
+            && document.documentElement.getAttribute('data-lexi-present') === 'extension') {
             return 'extension';
         }
         // Skriv's own vendored seam? It publishes __lexiVocab too. We treat
@@ -144,6 +156,25 @@ export function initLeksihjelpBridge(options = {}) {
     function onFocus() { setStatus(detectStatus()); }
     if (typeof window !== 'undefined') {
         window.addEventListener('focus', onFocus);
+    }
+
+    // The extension stamps `data-lexi-present="extension"` on <html> from its
+    // content script, which runs at document_idle — potentially AFTER our
+    // detectGraceMs one-shot above. Observe the attribute so we yield the
+    // moment it appears, regardless of timing, instead of double-dipping
+    // until the next focus event. Self-disconnects once we've yielded.
+    let presenceObserver = null;
+    if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined' && document.documentElement) {
+        presenceObserver = new MutationObserver(() => {
+            setStatus(detectStatus());
+            if (status === 'extension' && presenceObserver) {
+                presenceObserver.disconnect();
+                presenceObserver = null;
+            }
+        });
+        try {
+            presenceObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-lexi-present'] });
+        } catch (_) { presenceObserver = null; }
     }
 
     const api = {
@@ -222,6 +253,7 @@ export function initLeksihjelpBridge(options = {}) {
 
         destroy() {
             clearTimeout(detectTimer);
+            if (presenceObserver) { presenceObserver.disconnect(); presenceObserver = null; }
             if (typeof window !== 'undefined') {
                 window.removeEventListener('message', onWindowMessage);
                 window.removeEventListener('focus', onFocus);

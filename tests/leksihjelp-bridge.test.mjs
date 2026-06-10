@@ -26,3 +26,27 @@ test('requestExtensionPanel posts the cross-repo open-panel message', () => {
     delete globalThis.window;
   }
 });
+
+test('detectStatus yields to extension via data-lexi-present DOM attribute (isolated-world fix)', async () => {
+  // Extension content script runs in the isolated world, so window.__lexiPresent
+  // does NOT cross to Skriv's main world — only the shared-DOM attribute does.
+  globalThis.window = { location: { origin: 'https://skriv.papertek.app' }, addEventListener() {}, removeEventListener() {} };
+  globalThis.document = { documentElement: { getAttribute: (k) => (k === 'data-lexi-present' ? 'extension' : null) } };
+  try {
+    const bridge = initLeksihjelpBridge({ detectGraceMs: 5 });
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(bridge.getStatus(), 'extension', 'must yield to the extension via the DOM attribute');
+    bridge.destroy();
+  } finally { delete globalThis.window; delete globalThis.document; }
+});
+
+test('detectStatus reports embedded (not extension) when DOM attribute absent but vendored seam present', async () => {
+  globalThis.window = { location: { origin: 'https://skriv.papertek.app' }, addEventListener() {}, removeEventListener() {}, __lexiVocab: {} };
+  globalThis.document = { documentElement: { getAttribute: () => null } };
+  try {
+    const bridge = initLeksihjelpBridge({ detectGraceMs: 5 });
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(bridge.getStatus(), 'embedded', 'standalone Skriv (no extension attribute) stays embedded');
+    bridge.destroy();
+  } finally { delete globalThis.window; delete globalThis.document; }
+});
