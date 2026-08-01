@@ -365,59 +365,136 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
         return;
     }
 
-    // --- Image blocks: render image + caption to PDF ---
+    // --- Image blocks: render image + caption/side-text/dual-image to PDF ---
     if (isImageBlock(el)) {
-        const img = el.querySelector('img');
-        if (img?.src) {
-            // Max 70% of content width, centered
-            const maxImgWidth = state.contentWidth * 0.7;
+        const imgs = el.querySelectorAll('img');
+        const sideTextEl = el.querySelector('.skriv-image-sidetext');
+        if (imgs[0]?.src) {
+            const img = imgs[0];
             const naturalW = img.naturalWidth || 400;
             const naturalH = img.naturalHeight || 300;
             const aspectRatio = naturalH / naturalW;
 
-            const pdfWidth = Math.min(maxImgWidth, state.contentWidth);
-            const pdfHeight = pdfWidth * aspectRatio;
+            const wrappers = Array.from(el.querySelectorAll('.skriv-image-wrapper'));
+            const sideTexts = Array.from(el.querySelectorAll('.skriv-image-sidetext'));
+            const sideItems = Array.from(el.querySelectorAll('.skriv-image-wrapper, .skriv-image-sidetext'));
 
-            // Estimate total height needed: image + caption space
-            const estimatedTotal = pdfHeight + 15;
+            if (sideItems.length > 1) {
+                const count = Math.min(3, sideItems.length);
+                const containerRect = el.getBoundingClientRect();
+                const containerWidth = containerRect.width || 1;
+                const gap = 10;
+                let maxColHeight = 0;
+                let currentX = state.x;
 
-            // Page break if image won't fit
-            if (state.y + estimatedTotal > state.pageHeight - state.marginBottom) {
-                doc.addPage();
-                state.y = state.marginTop;
-            }
+                // Pre-calculate proportions based on inline styles since the DOM is detached
+                const proportions = [];
+                let usedProportion = 0;
+                let unstyledCount = 0;
 
-            // Center the image
-            const imgX = state.x + (state.contentWidth - pdfWidth) / 2;
-
-            try {
-                doc.addImage(img.src, imgX, state.y, pdfWidth, pdfHeight);
-                state.y += pdfHeight + 3;
-            } catch (e) {
-                console.warn('Image PDF export failed:', e);
-            }
-
-            // Caption
-            const caption = el.querySelector('.skriv-image-caption') || el.querySelector('figcaption');
-            if (caption?.textContent?.trim()) {
-                doc.setFont('times', 'italic');
-                doc.setFontSize(10);
-                doc.setTextColor(100, 100, 100);
-                const captionLines = doc.splitTextToSize(caption.textContent.trim(), state.contentWidth);
-                for (const line of captionLines) {
-                    if (state.y + 5 > state.pageHeight - state.marginBottom) {
-                        doc.addPage();
-                        state.y = state.marginTop;
+                for (let i = 0; i < count; i++) {
+                    const item = sideItems[i];
+                    let prop = 0;
+                    if (item.style.width && item.style.width.endsWith('%')) {
+                        prop = parseFloat(item.style.width) / 100;
+                    } else if (item.style.flex && item.style.flex.includes('%')) {
+                        const match = item.style.flex.match(/([\d.]+)%/);
+                        if (match) prop = parseFloat(match[1]) / 100;
                     }
-                    // Center caption text
-                    const captionWidth = doc.getTextWidth(line);
-                    const captionX = state.x + (state.contentWidth - captionWidth) / 2;
-                    doc.text(line, captionX, state.y);
-                    state.y += 10 * 0.352 * 1.5;
+                    if (prop > 0) {
+                        proportions[i] = prop;
+                        usedProportion += prop;
+                    } else {
+                        unstyledCount++;
+                    }
                 }
-                state.y += 4;
+                
+                // Distribute remaining space equally among unstyled items
+                const remaining = Math.max(0, 1 - usedProportion);
+                for (let i = 0; i < count; i++) {
+                    if (proportions[i] === undefined) {
+                        proportions[i] = unstyledCount > 0 ? remaining / unstyledCount : 1 / count;
+                    }
+                }
+
+                for (let i = 0; i < count; i++) {
+                    const item = sideItems[i];
+                    const proportion = proportions[i] || (1 / count);
+                    
+                    const availablePdfWidth = state.contentWidth - ((count - 1) * gap);
+                    const colWidth = availablePdfWidth * proportion;
+                    const colX = currentX;
+
+                    if (item.classList.contains('skriv-image-wrapper')) {
+                        const itemImg = item.querySelector('img');
+                        if (itemImg) {
+                            const aspect = (itemImg.naturalHeight || itemImg.height || 100) / (itemImg.naturalWidth || itemImg.width || 100);
+                            const h = colWidth * aspect;
+                            maxColHeight = Math.max(maxColHeight, h);
+                            try {
+                                doc.addImage(itemImg.src, colX, state.y, colWidth, h);
+                            } catch (e) {
+                                console.warn('PDF export image failed:', e);
+                            }
+                        }
+                    } else if (item.classList.contains('skriv-image-sidetext')) {
+                        doc.setFont('times', 'normal');
+                        doc.setFontSize(11);
+                        doc.setTextColor(40, 40, 40);
+                        const textLines = doc.splitTextToSize(item.textContent.trim(), colWidth);
+                        let textY = state.y + 6;
+                        for (const line of textLines) {
+                            doc.text(line, colX, textY);
+                            textY += 11 * 0.352 * 1.4;
+                        }
+                        maxColHeight = Math.max(maxColHeight, textLines.length * 11 * 0.352 * 1.4);
+                    }
+                    
+                    currentX += colWidth + gap;
+                }
+                state.y += maxColHeight + 10;
             } else {
-                state.y += 4;
+                // Standard full/centered image
+                const maxImgWidth = state.contentWidth * 0.7;
+                const pdfWidth = Math.min(maxImgWidth, state.contentWidth);
+                const pdfHeight = pdfWidth * aspectRatio;
+                const estimatedTotal = pdfHeight + 15;
+
+                if (state.y + estimatedTotal > state.pageHeight - state.marginBottom) {
+                    doc.addPage();
+                    state.y = state.marginTop;
+                }
+
+                const imgX = state.x + (state.contentWidth - pdfWidth) / 2;
+
+                try {
+                    doc.addImage(img.src, imgX, state.y, pdfWidth, pdfHeight);
+                    state.y += pdfHeight + 3;
+                } catch (e) {
+                    console.warn('Image PDF export failed:', e);
+                }
+
+                // Caption
+                const caption = el.querySelector('.skriv-image-caption') || el.querySelector('figcaption');
+                if (caption?.textContent?.trim()) {
+                    doc.setFont('times', 'italic');
+                    doc.setFontSize(10);
+                    doc.setTextColor(100, 100, 100);
+                    const captionLines = doc.splitTextToSize(caption.textContent.trim(), state.contentWidth);
+                    for (const line of captionLines) {
+                        if (state.y + 5 > state.pageHeight - state.marginBottom) {
+                            doc.addPage();
+                            state.y = state.marginTop;
+                        }
+                        const captionWidth = doc.getTextWidth(line);
+                        const captionX = state.x + (state.contentWidth - captionWidth) / 2;
+                        doc.text(line, captionX, state.y);
+                        state.y += 10 * 0.352 * 1.5;
+                    }
+                    state.y += 4;
+                } else {
+                    state.y += 4;
+                }
             }
         }
         state.afterHeading = false;
