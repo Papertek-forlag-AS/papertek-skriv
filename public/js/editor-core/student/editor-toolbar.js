@@ -128,7 +128,9 @@ export function initEditorToolbar(editor, options = {}) {
     let toolbarMousedown = false;
     toolbarWrapper.addEventListener('mousedown', () => { toolbarMousedown = true; });
     toolbarWrapper.addEventListener('mouseup',   () => { toolbarMousedown = false; });
-    document.addEventListener('mouseup', () => { toolbarMousedown = false; });
+
+    const onDocumentMouseup = () => { toolbarMousedown = false; };
+    document.addEventListener('mouseup', onDocumentMouseup);
 
     // --- Advanced toggle (fixed in top bar, added by standalone-writer) ---
     // The toolbar exposes API for standalone-writer to control advanced mode.
@@ -548,6 +550,7 @@ export function initEditorToolbar(editor, options = {}) {
     function destroy() {
         document.removeEventListener('selectionchange', onSelectionChange);
         editor.removeEventListener('keydown', onEditorKeydown);
+        document.removeEventListener('mouseup', onDocumentMouseup);
         if (toolbarWrapper.parentNode) {
             toolbarWrapper.parentNode.removeChild(toolbarWrapper);
         }

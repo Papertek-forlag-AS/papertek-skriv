@@ -6,11 +6,13 @@ level: vgs
 description: Informativ og saklig tekst basert på forskning og kunnskap
 
 ## Innledning
+spinner: innledning
 > Presenter emnet og forklar hvorfor det er relevant. Gi en kort oversikt over hva artikkelen handler om, og formuler eventuelt en problemstilling eller hypotese.
 - I denne artikkelen skal jeg se nærmere på...
 - Temaet er aktuelt fordi...
 
 ## Hoveddel
+spinner: argument
 
 ### Bakgrunn og teori
 > Gi leseren nødvendig bakgrunnsinformasjon. Forklar sentrale begreper og teorier som er relevante for emnet. Henvis til kilder.
@@ -28,6 +30,7 @@ description: Informativ og saklig tekst basert på forskning og kunnskap
 - En mulig forklaring er at...
 
 ## Avslutning
+spinner: avslutning
 > Oppsummer de viktigste poengene og presenter en konklusjon. Pek gjerne på hva som gjenstår å undersøke, eller hva vi kan lære av dette.
 - Oppsummert viser denne gjennomgangen at...
 - For fremtidig forskning kan det være interessant å...

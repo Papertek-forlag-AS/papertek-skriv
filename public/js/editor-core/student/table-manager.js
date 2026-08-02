@@ -530,14 +530,81 @@ export function initTableManager(editor, container, options = {}) {
 
     const scrollParent = editor.closest('.overflow-y-auto') || container || editor.parentElement;
 
+    // --- Table Resizing ---
+    let isResizing = false;
+    let resizeTarget = null;
+    let startX = 0;
+    let startWidth = 0;
+
+    function handleMouseMove(e) {
+        if (isResizing && resizeTarget) {
+            e.preventDefault();
+            const diff = e.clientX - startX;
+            resizeTarget.style.width = `${Math.max(40, startWidth + diff)}px`;
+            return;
+        }
+
+        const th = e.target.closest('th');
+        if (!th) {
+            if (editor.style.cursor === 'col-resize') editor.style.cursor = '';
+            return;
+        }
+
+        const rect = th.getBoundingClientRect();
+        // Detect right edge (within 8px)
+        if (Math.abs(e.clientX - rect.right) < 8) {
+            editor.style.cursor = 'col-resize';
+            th.dataset.resizeEdge = 'right';
+        } else {
+            if (editor.style.cursor === 'col-resize') editor.style.cursor = '';
+            delete th.dataset.resizeEdge;
+        }
+    }
+
+    function handleMouseDown(e) {
+        const th = e.target.closest('th');
+        if (th && editor.style.cursor === 'col-resize' && th.dataset.resizeEdge === 'right') {
+            e.preventDefault(); // Prevent text selection
+            isResizing = true;
+            resizeTarget = th;
+            startX = e.clientX;
+            startWidth = th.getBoundingClientRect().width;
+
+            // Fix all column widths explicitly before resizing so other columns don't spontaneously change
+            const table = th.closest('table');
+            if (table.style.width !== 'auto') {
+                const headers = Array.from(table.querySelectorAll('th'));
+                headers.forEach(h => {
+                    h.style.width = `${h.getBoundingClientRect().width}px`;
+                });
+                table.style.width = 'auto'; // Remove 100% width so columns dictate width
+            }
+        }
+    }
+
+    function handleGlobalMouseUp(e) {
+        if (isResizing) {
+            isResizing = false;
+            resizeTarget = null;
+            editor.style.cursor = '';
+            if (options.onInsert) options.onInsert();
+        }
+    }
+
     // --- Attach event listeners ---
     editor.addEventListener('keydown', handleKeyDown);
     editor.addEventListener('click', handleClick);
+    editor.addEventListener('mousemove', handleMouseMove);
+    editor.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mouseup', handleGlobalMouseUp);
     if (scrollParent) scrollParent.addEventListener('scroll', handleScroll);
 
     function destroy() {
         editor.removeEventListener('keydown', handleKeyDown);
         editor.removeEventListener('click', handleClick);
+        editor.removeEventListener('mousemove', handleMouseMove);
+        editor.removeEventListener('mousedown', handleMouseDown);
+        document.removeEventListener('mouseup', handleGlobalMouseUp);
         if (scrollParent) scrollParent.removeEventListener('scroll', handleScroll);
         hideToolbar();
         if (dialog) { dialog.remove(); dialog = null; }

@@ -33,20 +33,49 @@ async function init() {
         return;
     }
 
-    function route() {
+    let currentScreen = null;
+    let routeCounter = 0;
+
+    async function route() {
+        const localRouteCounter = ++routeCounter;
+
+        if (currentScreen && typeof currentScreen.destroy === 'function') {
+            try {
+                currentScreen.destroy();
+            } catch (err) {
+                console.error('Screen destroy failed:', err);
+            }
+            currentScreen = null;
+        }
+
         const hash = window.location.hash || '#/';
 
         if (hash.startsWith('#/doc/')) {
             const docId = hash.slice(6);
-            launchEditor(app, docId, () => {
+            const screen = await launchEditor(app, docId, () => {
                 window.location.hash = '#/';
             });
+            if (localRouteCounter === routeCounter) {
+                currentScreen = screen;
+            } else if (screen && typeof screen.destroy === 'function') {
+                screen.destroy();
+            }
         } else if (hash === '#/tysk') {
-            renderGermanExamScreen(app);
+            const screen = await renderGermanExamScreen(app);
+            if (localRouteCounter === routeCounter) {
+                currentScreen = screen;
+            } else if (screen && typeof screen.destroy === 'function') {
+                screen.destroy();
+            }
         } else {
-            renderDocumentList(app, (docId) => {
+            const screen = await renderDocumentList(app, (docId) => {
                 window.location.hash = `#/doc/${docId}`;
             });
+            if (localRouteCounter === routeCounter) {
+                currentScreen = screen;
+            } else if (screen && typeof screen.destroy === 'function') {
+                screen.destroy();
+            }
         }
     }
 

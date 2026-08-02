@@ -6,11 +6,13 @@ level: vgs
 description: Argumenterende kronikk med klar holdning til et aktuelt tema
 
 ## Innledning
+spinner: innledning
 > Start med en aktuell krok som fanger leserens oppmerksomhet. Presenter temaet og din holdning til det.
 - Nylig ble det kjent at... Dette viser at...
 - I denne kronikken vil jeg argumentere for at...
 
 ## Hoveddel
+spinner: argument
 > Bygg opp argumentasjonen din med tydelige argumenter. Hvert argument bør inneholde påstand, begrunnelse og eksempel.
 
 ### Argument 1
@@ -29,6 +31,7 @@ description: Argumenterende kronikk med klar holdning til et aktuelt tema
 - Likevel mener jeg at..., fordi...
 
 ## Avslutning
+spinner: avslutning
 > Oppsummer budskapet ditt og avslutt med en sterk oppfordring eller konklusjon som gir leseren noe å tenke på.
 - Alt i alt viser dette at...
 - Derfor mener jeg at vi må...

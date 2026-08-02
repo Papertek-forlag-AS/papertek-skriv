@@ -31,7 +31,7 @@ const DATE_LOCALES = {
  *   uk:       'one' | 'few' | 'many'   (Slavic plural rules)
  *   se:       'one' | 'two' | 'other'  (Sámi has dual number)
  */
-const PLURAL_RULES = {
+export const PLURAL_RULES = {
     // Norwegian Bokmål / Nynorsk: 1 = one, rest = other
     nb: (n) => n === 1 ? 'one' : 'other',
     nn: (n) => n === 1 ? 'one' : 'other',

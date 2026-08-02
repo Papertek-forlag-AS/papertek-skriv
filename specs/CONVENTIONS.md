@@ -111,3 +111,13 @@ sections: 4
 ```
 
 Parsed by `frame-parser.js` into: `{ name, metadata, sections[] }`.
+
+## Screen routing lifecycle
+
+App-level screens (e.g. `standalone-writer.js`, `document-list.js`, `german-exam-route.js`) loaded by the router in `main.js` must implement the destroy lifecycle to prevent memory leaks and duplicate global listeners (e.g. `document` or `window` event listeners).
+
+When a screen is initialized, it must return a `{ destroy: Function }` interface (or an API containing it). The router will:
+1. Track the current active screen instance.
+2. Call `currentScreen.destroy()` before transitioning to a new route.
+3. Clean up all global timers, event listeners, and sub-modules inside `destroy()`.
+

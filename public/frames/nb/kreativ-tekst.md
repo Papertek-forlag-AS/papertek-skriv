@@ -6,6 +6,7 @@ level: vgs
 description: Skjønnlitterær tekst - monolog, poetisk prosa, hybridtekst eller kort fortelling
 
 ## Åpning
+spinner: aapning
 > Start teksten med noe som fanger leseren umiddelbart: et bilde, en stemning, en påstand, en handling. Etabler stemme, tone og perspektiv fra første setning. Du velger selv form: monolog, dikt, kort fortelling, hybridtekst.
 - (Skriv en åpning som setter stemningen og griper leseren...)
 - (Etabler hvem som snakker, hvor vi er, eller hva som skjer...)
@@ -25,5 +26,6 @@ description: Skjønnlitterær tekst - monolog, poetisk prosa, hybridtekst eller 
 - (Rendyrk stemmen du har valgt - la den prege ordvalg, rytme, setningsbygning...)
 
 ## Avslutning
+spinner: avslutning
 > Land teksten. Avslutningen kan speile åpningen, overraske, etterlate et åpent spørsmål, eller gi et siste bilde som setter seg. En god avslutning forandrer hvordan leseren forstår resten av teksten.
 - (Skriv en avslutning som gir teksten resonans - noe som klinger videre hos leseren...)

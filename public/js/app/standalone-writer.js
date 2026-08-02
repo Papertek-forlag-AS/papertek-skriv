@@ -67,6 +67,9 @@ export async function launchEditor(container, docId, onBack) {
         return;
     }
 
+    let onToolsOutsideClick = null;
+    let onExportOutsideClick = null;
+
     container.innerHTML = '';
 
     // --- Build editor UI ---
@@ -598,6 +601,12 @@ export async function launchEditor(container, docId, onBack) {
         if (!suppressToast) autoSave.schedule();
     }
 
+    onToolsOutsideClick = (e) => {
+        if (toolsWrapper && !toolsWrapper.contains(e.target)) {
+            toolsMenu.classList.add('hidden');
+        }
+    };
+
     // Tools dropdown toggle
     if (toolsBtn && toolsMenu) {
         toolsBtn.addEventListener('click', (e) => {
@@ -605,11 +614,7 @@ export async function launchEditor(container, docId, onBack) {
             toolsMenu.classList.toggle('hidden');
         });
         // Close on outside click
-        document.addEventListener('click', (e) => {
-            if (toolsWrapper && !toolsWrapper.contains(e.target)) {
-                toolsMenu.classList.add('hidden');
-            }
-        });
+        document.addEventListener('click', onToolsOutsideClick);
         // Close menu when any tool inside is clicked
         toolsMenu.querySelectorAll('button').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -641,13 +646,71 @@ export async function launchEditor(container, docId, onBack) {
         }, 500);
     });
 
+    // --- Paste Sanitizer ---
+    editor.addEventListener('paste', (e) => {
+        // Let image-manager handle image pasting
+        if (e.clipboardData?.items) {
+            for (const item of e.clipboardData.items) {
+                if (item.type.startsWith('image/')) return;
+            }
+        }
+        
+        e.preventDefault();
+        const html = e.clipboardData.getData('text/html');
+        if (html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const allowedTags = new Set(['P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'H1', 'H2', 'H3', 'UL', 'OL', 'LI']);
+            
+            function sanitizeNode(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    return document.createTextNode(node.textContent);
+                }
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    if (allowedTags.has(node.tagName)) {
+                        const cleanEl = document.createElement(node.tagName);
+                        for (const child of Array.from(node.childNodes)) {
+                            const cleanChild = sanitizeNode(child);
+                            if (cleanChild) cleanEl.appendChild(cleanChild);
+                        }
+                        return cleanEl;
+                    } else {
+                        // Unwrap unsupported elements (e.g. SPAN, DIV) and keep text
+                        const fragment = document.createDocumentFragment();
+                        for (const child of Array.from(node.childNodes)) {
+                            const cleanChild = sanitizeNode(child);
+                            if (cleanChild) fragment.appendChild(cleanChild);
+                        }
+                        return fragment;
+                    }
+                }
+                return null;
+            }
+
+            const fragment = document.createDocumentFragment();
+            for (const child of Array.from(doc.body.childNodes)) {
+                const cleanChild = sanitizeNode(child);
+                if (cleanChild) fragment.appendChild(cleanChild);
+            }
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.appendChild(fragment);
+            document.execCommand('insertHTML', false, tempDiv.innerHTML);
+        } else {
+            const text = e.clipboardData.getData('text/plain');
+            if (text) {
+                document.execCommand('insertText', false, text);
+            }
+        }
+    });
+
     // --- Reference button ---
     topBar.querySelector('#btn-ref').addEventListener('click', () => {
         refsApi.openDialog();
     });
 
-    // --- Back button ---
-    topBar.querySelector('#btn-back').addEventListener('click', () => {
+    // --- Destroy screen API ---
+    const destroyScreen = () => {
         autoSave.saveNow();
         autoSave.destroy();
         toolbarApi.destroy();
@@ -676,6 +739,18 @@ export async function launchEditor(container, docId, onBack) {
         specialCharsApi.destroy();
         leksihjelpBridge.destroy();
         counterCleanup();
+
+        if (onToolsOutsideClick) {
+            document.removeEventListener('click', onToolsOutsideClick);
+        }
+        if (onExportOutsideClick) {
+            document.removeEventListener('click', onExportOutsideClick);
+        }
+        if (autoTocTimer) clearTimeout(autoTocTimer);
+    };
+
+    // --- Back button ---
+    topBar.querySelector('#btn-back').addEventListener('click', () => {
         onBack();
     });
 
@@ -687,11 +762,13 @@ export async function launchEditor(container, docId, onBack) {
         exportMenu.classList.toggle('hidden');
     });
 
-    document.addEventListener('click', (e) => {
+    onExportOutsideClick = (e) => {
         if (!exportBtn.contains(e.target) && !exportMenu.contains(e.target)) {
             exportMenu.classList.add('hidden');
         }
-    });
+    };
+
+    document.addEventListener('click', onExportOutsideClick);
 
     const getTitle = () => titleInput.value || t('skriv.untitled');
 
@@ -773,4 +850,8 @@ export async function launchEditor(container, docId, onBack) {
 
     // Focus the editor
     editor.focus();
+
+    return {
+        destroy: destroyScreen
+    };
 }

@@ -1081,6 +1081,275 @@ export const starters = {
         },
     },
 
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // KORTSVAR — kort, sammenlignende oppgave
+    // ─────────────────────────────────────────────────────────────────────────
+    kortsvar: {
+        us: {
+            innledning: [
+                'Tekst 1 er skrevet av... og handler om...',
+                'Jeg skal sammenligne... og...',
+                'I dette kortsvaret vil jeg ta for meg...',
+                'Begge tekstene tar opp temaet...',
+            ],
+            sammenligning: [
+                'Begge tekstene peker på at...',
+                'Et fellestrekk ved tekstene er...',
+                'Den største likheten er hvordan de...',
+                'Både forfatter 1 og forfatter 2 vektlegger...',
+            ],
+            forskjeller: [
+                'På den annen side velger tekst 2 å...',
+                'En viktig forskjell er at...',
+                'Mens tekst 1 er..., er tekst 2...',
+                'Til forskjell fra tekst 1, bruker tekst 2...',
+            ],
+            oppsummering: [
+                'Kort oppsummert viser sammenligningen at...',
+                'Samlet sett gir de to tekstene et bilde av...',
+                'Hovedforskjellen koker ned til...',
+                'Til tross for ulikhetene, er budskapet...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Dette kortsvaret tar utgangspunkt i tekstene...',
+                'Jeg skal foreta en sammenligning av...',
+                'Begge tekstene retter søkelyset mot...',
+                'Formålet med denne sammenligningen er...',
+            ],
+            sammenligning: [
+                'Tematisk sett har tekstene mye til felles, spesielt...',
+                'Et gjennomgående likhetstrekk er forfatternes bruk av...',
+                'Parallellen mellom tekstene blir tydelig når...',
+                'Begge tekstene bygger på premisset om at...',
+            ],
+            forskjeller: [
+                'Forskjellen i virkemiddelbruk kommer frem ved at...',
+                'Mens tekst 1 appellerer til..., støtter tekst 2 seg på...',
+                'Kontrasten er markant i måten forfatterne...',
+                'Der tekst 1 inntar et... perspektiv, velger tekst 2...',
+            ],
+            oppsummering: [
+                'Sammenligningen avdekker at tekstene utfyller...',
+                'Konklusjonen er at tekstene belyser temaet fra...',
+                'Dette viser hvordan ulik form påvirker...',
+                'Samlet sett underbygger de begge at...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // KREATIV TEKST — fortelling, dikt, novelle (kreativ inngang)
+    // ─────────────────────────────────────────────────────────────────────────
+    'kreativ-tekst': {
+        us: {
+            aapning: [
+                'Det hele begynte den dagen da...',
+                'Uten forvarsel smalt det...',
+                'Sola stekte, og gatene var tomme...',
+                'Ingen hadde trodd at...',
+            ],
+            skildring: [
+                'Lufta var tung av...',
+                'Lyden av... fylte rommet...',
+                'Skyggene danset over...',
+                'En iskald følelse spredte seg...',
+            ],
+            vendepunkt: [
+                'Men plutselig forandret alt seg...',
+                'Det var da hun forstod at...',
+                'I det øyeblikket skjedde det utrolige...',
+                'Ting skulle aldri bli det samme igjen...',
+            ],
+            avslutning: [
+                'Og med det var kapittelet lukket.',
+                'Kanskje var det like greit.',
+                'Stillheten senket seg endelig.',
+                'Noen ganger er det beste å...',
+            ],
+        },
+        vgs: {
+            aapning: [
+                'Regnet slo nådeløst mot asfalten, mens...',
+                'Stillheten i rommet var nesten til å ta og føle på...',
+                'I et flyktig sekund trodde hun at...',
+                'Det lå en ubeskrivelig tyngde over...',
+            ],
+            skildring: [
+                'Lyset brøt gjennom støvskyen og...',
+                'Lukten av... vekket umiddelbart minner om...',
+                'Landskapet lå badet i...',
+                'Ansiktet hans bar preg av...',
+            ],
+            vendepunkt: [
+                'Det uunngåelige inntraff med brutal kraft...',
+                'Som et lyn fra klar himmel innså han at...',
+                'Det var dette øyeblikket som definerte alt...',
+                'Erkjennelsen traff henne som et slag...',
+            ],
+            avslutning: [
+                'Slik forble det, urørlig og stille.',
+                'Minner blekende i lyset av en ny dag.',
+                'Og ingenting ville noensinne bli det samme.',
+                'Til syvende og sist var alt bare...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // REFLEKTERENDE TEKST
+    // ─────────────────────────────────────────────────────────────────────────
+    'reflekterende-tekst': {
+        us: {
+            innledning: [
+                'Har du noen gang tenkt over hvorfor...',
+                'Dette temaet får meg til å tenke på...',
+                'I dag snakker alle om..., men...',
+                'Et spørsmål som ofte dukker opp er...',
+            ],
+            hoveddel: [
+                'På den ene siden kan man si at...',
+                'Samtidig er det viktig å huske på...',
+                'Dette kan henge sammen med...',
+                'Mine egne erfaringer viser at...',
+            ],
+            refleksjon: [
+                'Jeg tror at grunnen til dette er...',
+                'Det får meg til å innse at...',
+                'Kanskje ligger løsningen i å...',
+                'Dette minner meg om...',
+            ],
+            avslutning: [
+                'Alt i alt er dette et tema som krever...',
+                'Forhåpentligvis vil vi en dag...',
+                'Det viktigste jeg tar med meg er...',
+                'Kanskje har vi noe å lære av...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'En av vår tids store utfordringer er knyttet til...',
+                'Å reflektere over... tvinger oss til å...',
+                'Debatten om... reiser grunnleggende spørsmål om...',
+                'Det finnes neppe et entydig svar på hvorfor...',
+            ],
+            hoveddel: [
+                'Et sentralt aspekt ved denne problematikken er...',
+                'Det er nærliggende å trekke paralleller til...',
+                'Dette fenomenet må ses i sammenheng med...',
+                'I et bredere perspektiv kan man hevde at...',
+            ],
+            refleksjon: [
+                'Dette etterlater en følelse av ambivalens...',
+                'Erkjennelsen av at... åpner for nye spørsmål...',
+                'Dypest sett handler dette om vår evne til...',
+                'Kanskje ligger kjernen i problemet nettopp i...',
+            ],
+            avslutning: [
+                'Slik sett representerer... ikke bare en utfordring, men...',
+                'Avslutningsvis er det grunn til å minne om...',
+                'Til syvende og sist koker det ned til...',
+                'Refleksjonen leder oss frem til at...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RETORISK ANALYSE
+    // ─────────────────────────────────────────────────────────────────────────
+    'retorisk-analyse': {
+        us: {
+            innledning: [
+                'Teksten jeg skal analysere heter...',
+                'Formålet med teksten er å overbevise om at...',
+                'Avsenderen av teksten er...',
+                'Målgruppen ser ut til å være...',
+            ],
+            'retorisk-situasjon': [
+                'Teksten ble skrevet fordi...',
+                'Den retoriske situasjonen er preget av...',
+                'Situasjonen krevde at avsenderen...',
+                'Debatten rundt dette temaet var...',
+            ],
+            etos: [
+                'Forfatteren bygger tillit ved å...',
+                'Avsenderen fremstår som troverdig fordi...',
+                'Bruken av egne erfaringer styrker etos...',
+                'Etos etableres tidlig i teksten ved...',
+            ],
+            patos: [
+                'Teksten spiller på følelser som...',
+                'Forfatteren prøver å vekke leserens...',
+                'Bruken av sterke ord skaper en følelse av...',
+                'For å fange oppmerksomheten bruker avsender...',
+            ],
+            logos: [
+                'Forfatteren bruker fakta for å bevise at...',
+                'Logikken i teksten er bygget opp rundt...',
+                'Argumentene støttes av statistikk som viser...',
+                'Avsenderen argumenterer logisk ved å vise til...',
+            ],
+            virkemidler: [
+                'Et viktig virkemiddel her er...',
+                'Gjentakelsen av... understreker at...',
+                'Forfatteren bruker ironi for å vise at...',
+                'Metaforen... hjelper leseren å forstå...',
+            ],
+            avslutning: [
+                'Alt i alt lykkes teksten med å...',
+                'Den mest effektive appellformen er...',
+                'Konklusjonen er at forfatteren klarer å...',
+                'Til tross for sterke argumenter, mangler teksten...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Denne retoriske analysen tar for seg...',
+                'Hovedintensjonen til avsenderen er å...',
+                'Teksten posisjonerer seg i debatten om...',
+                'Den retoriske strategien hviler tungt på...',
+            ],
+            'retorisk-situasjon': [
+                'Det påtrengende problemet (exigence) er...',
+                'Kairos-øyeblikket for teksten er preget av...',
+                'Avsenderen tilpasser seg den retoriske situasjonen ved...',
+                'Konteksten teksten inngår i, krever en strategi som...',
+            ],
+            etos: [
+                'Avsenderen konstruerer en initial etos preget av...',
+                'Den avledede etosen styrkes underveis ved at...',
+                'Kompetanse og autoritet etableres gjennom...',
+                'Etos appellerer til målgruppens verdier (dygd) ved å...',
+            ],
+            patos: [
+                'Patosappellen aktiveres umiddelbart gjennom...',
+                'Det følelsesmessige engasjementet vekkes ved hjelp av...',
+                'Billedbruken bidrar sterkt til å mobilisere patos...',
+                'Skiftet i tonefall skaper en emosjonell kontrast som...',
+            ],
+            logos: [
+                'Den logiske argumentasjonen (logos) bæres frem av...',
+                'Preste- og entymemer benyttes for å...',
+                'Induktiv resonnering ligger til grunn for påstanden om...',
+                'Holdbarheten i argumentasjonen styrkes av...',
+            ],
+            virkemidler: [
+                'Det stilistiske valget av... fungerer overbevisende...',
+                'De retoriske spørsmålene tjener funksjonen å...',
+                'Kontrastbruken polariserer debatten ved å...',
+                'Den gjennomgående metaforikken forsterker inntrykket av...',
+            ],
+            avslutning: [
+                'Samlet sett fremstår den retoriske strategien som...',
+                'Den dominerende patosappellen overskygger imidlertid...',
+                'Avsenderen oppnår sitt perlokutive mål ved å...',
+                'Tekstens retoriske styrke ligger i samspillet mellom...',
+            ],
+        },
+    },
+
     // ─────────────────────────────────────────────────────────────────────────
     // GENERELL — fallback når ingen skriveramme er aktiv
     // ─────────────────────────────────────────────────────────────────────────

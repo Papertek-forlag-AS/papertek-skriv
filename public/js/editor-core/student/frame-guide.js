@@ -507,20 +507,23 @@ export function initFrameGuide(editor, container, options = {}) {
         const prev = activeSectionIndex;
         activeSectionIndex = newActive;
 
-        let needsRender = false;
         // Mark the section we just left as on-hold (unless completed)
         if (prev >= 0 && sectionStates[prev] && !sectionStates[prev].completed && !sectionStates[prev].onHold) {
             sectionStates[prev].onHold = true;
             updateSectionMarkerVisuals(prev);
-            needsRender = true;
         }
-        // Clear on-hold for the section we just entered
-        if (newActive >= 0 && sectionStates[newActive] && sectionStates[newActive].onHold) {
-            sectionStates[newActive].onHold = false;
-            updateSectionMarkerVisuals(newActive);
-            needsRender = true;
+        // Manage state for the section we just entered
+        if (newActive >= 0 && sectionStates[newActive]) {
+            if (sectionStates[newActive].onHold) {
+                sectionStates[newActive].onHold = false;
+                updateSectionMarkerVisuals(newActive);
+            }
+            // Auto-expand the newly active section in the sidebar accordion
+            sectionStates.forEach((s, idx) => {
+                s.expanded = (idx === newActive);
+            });
         }
-        if (needsRender) renderSections();
+        renderSections();
     }
 
     function updateSectionMarkerVisuals(sectionIndex) {

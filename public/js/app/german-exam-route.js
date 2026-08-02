@@ -152,4 +152,13 @@ export function renderGermanExamScreen(appContainer) {
             });
         },
     });
+
+    return {
+        destroy() {
+            if (_currentSpinner) {
+                try { _currentSpinner.destroy(); } catch {}
+                _currentSpinner = null;
+            }
+        }
+    };
 }

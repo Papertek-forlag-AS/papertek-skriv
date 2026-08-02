@@ -597,6 +597,275 @@ export const starters = {
         },
     },
 
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // KORTSVAR — kort, samanliknande oppgåve
+    // ─────────────────────────────────────────────────────────────────────────
+    kortsvar: {
+        us: {
+            innledning: [
+                'Tekst 1 er skriven av... og handlar om...',
+                'Eg skal samanlikne... og...',
+                'I dette kortsvaret vil eg ta for meg...',
+                'Begge tekstane tek opp temaet...',
+            ],
+            sammenligning: [
+                'Begge tekstane peikar på at...',
+                'Eit fellestrekk ved tekstane er...',
+                'Den største likskapen er korleis dei...',
+                'Både forfattar 1 og forfattar 2 legg vekt på...',
+            ],
+            forskjeller: [
+                'På den andre sida vel tekst 2 å...',
+                'Ein viktig forskjell er at...',
+                'Mens tekst 1 er..., er tekst 2...',
+                'Til forskjell frå tekst 1, brukar tekst 2...',
+            ],
+            oppsummering: [
+                'Kort oppsummert viser samanlikninga at...',
+                'Samla sett gir dei to tekstane eit bilete av...',
+                'Hovudforskjellen koker ned til...',
+                'Trass i ulikskapane er bodskapen...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Dette kortsvaret tek utgangspunkt i tekstane...',
+                'Eg skal foreta ei samanlikning av...',
+                'Begge tekstane rettar søkjelyset mot...',
+                'Formålet med denne samanlikninga er...',
+            ],
+            sammenligning: [
+                'Tematisk sett har tekstane mykje til felles, spesielt...',
+                'Eit gjennomgåande likskapstrekk er bruken forfattarane gjer av...',
+                'Parallellen mellom tekstane blir tydeleg når...',
+                'Begge tekstane byggjer på premisset om at...',
+            ],
+            forskjeller: [
+                'Forskjellen i verkemiddelbruk kjem fram ved at...',
+                'Mens tekst 1 appellerer til..., støttar tekst 2 seg på...',
+                'Kontrasten er markant i måten forfattarane...',
+                'Der tekst 1 inntar eit... perspektiv, vel tekst 2...',
+            ],
+            oppsummering: [
+                'Samanlikninga avdekkjer at tekstane utfyller...',
+                'Konklusjonen er at tekstane belyser temaet frå...',
+                'Dette viser korleis ulik form påverkar...',
+                'Samla sett underbyggjer dei begge at...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // KREATIV TEKST — forteljing, dikt, novelle (kreativ inngang)
+    // ─────────────────────────────────────────────────────────────────────────
+    'kreativ-tekst': {
+        us: {
+            aapning: [
+                'Det heile byrja den dagen då...',
+                'Utan forvarsel small det...',
+                'Sola steikte, og gatene var tomme...',
+                'Ingen hadde trudd at...',
+            ],
+            skildring: [
+                'Lufta var tung av...',
+                'Lyden av... fylte rommet...',
+                'Skuggane dansa over...',
+                'Ei iskald kjensle spreidde seg...',
+            ],
+            vendepunkt: [
+                'Men plutseleg forandra alt seg...',
+                'Det var då ho forstod at...',
+                'I det augneblinken skjedde det utrulege...',
+                'Ting skulle aldri bli det same igjen...',
+            ],
+            avslutning: [
+                'Og med det var kapittelet lukka.',
+                'Kanskje var det like greitt.',
+                'Stilla senka seg endeleg.',
+                'Nokre gonger er det beste å...',
+            ],
+        },
+        vgs: {
+            aapning: [
+                'Regnet slo nådelaust mot asfalten, mens...',
+                'Stilla i rommet var nesten til å ta og føle på...',
+                'I eit flyktig sekund trudde ho at...',
+                'Det låg ei ubeskriveleg tyngd over...',
+            ],
+            skildring: [
+                'Lyset braut gjennom støvskya og...',
+                'Lukta av... vekte umiddelbart minne om...',
+                'Landskapet låg bada i...',
+                'Andletet hans bar preg av...',
+            ],
+            vendepunkt: [
+                'Det uunngåelege inntrefte med brutal kraft...',
+                'Som eit lyn frå klar himmel innsåg han at...',
+                'Det var denne augneblinken som definerte alt...',
+                'Erkjenninga trefte henne som eit slag...',
+            ],
+            avslutning: [
+                'Slik vart det verande, urørleg og stille.',
+                'Minne bleikna i lyset av ein ny dag.',
+                'Og ingenting ville nokosinne bli det same.',
+                'Til sjuande og sist var alt berre...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // REFLEKTERENDE TEKST
+    // ─────────────────────────────────────────────────────────────────────────
+    'reflekterende-tekst': {
+        us: {
+            innledning: [
+                'Har du nokon gong tenkt over kvifor...',
+                'Dette temaet får meg til å tenkje på...',
+                'I dag snakkar alle om..., men...',
+                'Eit spørsmål som ofte dukkar opp er...',
+            ],
+            hoveddel: [
+                'På den eine sida kan ein seie at...',
+                'Samtidig er det viktig å hugse på...',
+                'Dette kan hengje saman med...',
+                'Mine eigne erfaringar viser at...',
+            ],
+            refleksjon: [
+                'Eg trur at grunnen til dette er...',
+                'Det får meg til å innsjå at...',
+                'Kanskje ligg løysinga i å...',
+                'Dette minner meg om...',
+            ],
+            avslutning: [
+                'Alt i alt er dette eit tema som krev...',
+                'Forhåpentlegvis vil vi ein dag...',
+                'Det viktigaste eg tek med meg er...',
+                'Kanskje har vi noko å lære av...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Ei av dei store utfordringane i vår tid er knytt til...',
+                'Å reflektere over... tvingar oss til å...',
+                'Debatten om... reiser grunnleggjande spørsmål om...',
+                'Det finst knapt eit eintydig svar på kvifor...',
+            ],
+            hoveddel: [
+                'Eit sentralt aspekt ved denne problematikken er...',
+                'Det er nærliggjande å trekkje parallellar til...',
+                'Dette fenomenet må sjåast i samanheng med...',
+                'I eit breiare perspektiv kan ein hevde at...',
+            ],
+            refleksjon: [
+                'Dette etterlèt ei kjensle av ambivalens...',
+                'Erkjenninga av at... opnar for nye spørsmål...',
+                'Djupt sett handlar dette om vår evne til...',
+                'Kanskje ligg kjernen i problemet nettopp i...',
+            ],
+            avslutning: [
+                'Slik sett representerer... ikkje berre ei utfordring, men...',
+                'Avslutningsvis er det grunn til å minne om...',
+                'Til sjuande og sist koker det ned til...',
+                'Refleksjonen leier oss fram til at...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RETORISK ANALYSE
+    // ─────────────────────────────────────────────────────────────────────────
+    'retorisk-analyse': {
+        us: {
+            innledning: [
+                'Teksten eg skal analysere heiter...',
+                'Formålet med teksten er å overtyde om at...',
+                'Avsendaren av teksten er...',
+                'Målgruppa ser ut til å vere...',
+            ],
+            'retorisk-situasjon': [
+                'Teksten vart skriven fordi...',
+                'Den retoriske situasjonen er prega av...',
+                'Situasjonen kravde at avsendaren...',
+                'Debatten rundt dette temaet var...',
+            ],
+            etos: [
+                'Forfattaren byggjer tillit ved å...',
+                'Avsendaren framstår som truverdig fordi...',
+                'Bruken av eigne erfaringar styrkjer etos...',
+                'Etos vert etablert tidleg i teksten ved...',
+            ],
+            patos: [
+                'Teksten spelar på kjensler som...',
+                'Forfattaren prøver å vekkje lesaren si...',
+                'Bruken av sterke ord skaper ei kjensle av...',
+                'For å fange merksemda brukar avsendaren...',
+            ],
+            logos: [
+                'Forfattaren brukar fakta for å bevise at...',
+                'Logikken i teksten er bygd opp rundt...',
+                'Argumenta vert støtta av statistikk som viser...',
+                'Avsendaren argumenterer logisk ved å vise til...',
+            ],
+            virkemidler: [
+                'Eit viktig verkemiddel her er...',
+                'Gjentakinga av... understrekar at...',
+                'Forfattaren brukar ironi for å vise at...',
+                'Metaforen... hjelper lesaren å forstå...',
+            ],
+            avslutning: [
+                'Alt i alt lykkast teksten med å...',
+                'Den mest effektive appellforma er...',
+                'Konklusjonen er at forfattaren klarer å...',
+                'Trass i sterke argument, manglar teksten...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Denne retoriske analysen tek for seg...',
+                'Hovudintensjonen til avsendaren er å...',
+                'Teksten posisjonerer seg i debatten om...',
+                'Den retoriske strategien kviler tungt på...',
+            ],
+            'retorisk-situasjon': [
+                'Det påtrengjande problemet (exigence) er...',
+                'Kairos-augneblinken for teksten er prega av...',
+                'Avsendaren tilpassar seg den retoriske situasjonen ved...',
+                'Konteksten teksten inngår i, krev ein strategi som...',
+            ],
+            etos: [
+                'Avsendaren konstruerer ein initial etos prega av...',
+                'Den avleidde etosen vert styrkt undervegs ved at...',
+                'Kompetanse og autoritet vert etablert gjennom...',
+                'Etos appellerer til målgruppa sine verdiar (dyd) ved å...',
+            ],
+            patos: [
+                'Patosappellen vert aktivert umiddelbart gjennom...',
+                'Det kjenslemessige engasjementet vert vekt ved hjelp av...',
+                'Biletbruken bidreg sterkt til å mobilisere patos...',
+                'Skiftet i tonefall skaper ein emosjonell kontrast som...',
+            ],
+            logos: [
+                'Den logiske argumentasjonen (logos) vert boren fram av...',
+                'Premissar og entymem vert nytta for å...',
+                'Induktiv resonnering ligg til grunn for påstanden om...',
+                'Haldbarheita i argumentasjonen vert styrkt av...',
+            ],
+            virkemidler: [
+                'Det stilistiske valet av... fungerer overtydande...',
+                'Dei retoriske spørsmåla tener funksjonen å...',
+                'Kontrastbruken polariserer debatten ved å...',
+                'Den gjennomgåande metaforikken forsterkar inntrykket av...',
+            ],
+            avslutning: [
+                'Samla sett framstår den retoriske strategien som...',
+                'Den dominerande patosappellen overskuggar imidlertid...',
+                'Avsendaren oppnår sitt perlokutive mål ved å...',
+                'Teksten sin retoriske styrke ligg i samspelet mellom...',
+            ],
+        },
+    },
+
     generell: {
         us: {
             innleiing: [

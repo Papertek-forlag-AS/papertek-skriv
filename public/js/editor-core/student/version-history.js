@@ -26,12 +26,18 @@ import { t } from '../shared/i18n.js';
 import { countWords } from '../shared/word-counter.js';
 import { showToast } from '../shared/toast-notification.js';
 
-const SNAPSHOT_INTERVAL = 300000; // 5 minutes
-const WORD_THRESHOLD = 100;
-const MAX_SNAPSHOTS = 50;
+const TIMELINE_INTERVAL = 5000;
+const MAJOR_INTERVAL = 300000;
+const MAJOR_WORD_THRESHOLD = 100;
+const MAX_SNAPSHOTS = 5000;
 const DB_NAME = 'skriv-versions';
 const STORE_NAME = 'snapshots';
 const DB_VERSION = 1;
+
+let playbackCache = [];
+let playbackIndex = 0;
+let playbackTimer = null;
+let isPlaying = false;
 
 const STYLES = `
 .version-panel {
@@ -335,8 +341,10 @@ export function initVersionHistory(editor, options = {}) {
     const docId = options.docId || 'default';
     let panel = null;
     let styleEl = null;
-    let intervalId = null;
+    let timelineIntervalId = null;
+    let majorIntervalId = null;
     let lastSnapshotWords = 0;
+    let lastMajorSnapshotWords = 0;
     let lastSnapshotContent = '';
     let db = null;
     let overlayEl = null;
@@ -366,13 +374,14 @@ export function initVersionHistory(editor, options = {}) {
         });
     }
 
-    async function saveSnapshot() {
+    async function saveSnapshot(isMajor = false) {
         if (!db) return;
         const content = editor.innerHTML;
         if (content === lastSnapshotContent) return;
 
         lastSnapshotContent = content;
         lastSnapshotWords = countWords(editor.textContent);
+        if (isMajor) lastMajorSnapshotWords = lastSnapshotWords;
 
         const snapshot = {
             docId,
@@ -380,6 +389,7 @@ export function initVersionHistory(editor, options = {}) {
             content,
             wordCount: lastSnapshotWords,
             preview: editor.textContent.trim().slice(0, 60),
+            isMajor
         };
 
         return new Promise((resolve, reject) => {
@@ -455,17 +465,23 @@ export function initVersionHistory(editor, options = {}) {
     }
 
     // --- Auto-snapshot on interval ---
-    intervalId = setInterval(() => {
+    timelineIntervalId = setInterval(() => {
         if (document.visibilityState === 'visible') {
-            saveSnapshot();
+            saveSnapshot(false);
         }
-    }, SNAPSHOT_INTERVAL);
+    }, TIMELINE_INTERVAL);
+
+    majorIntervalId = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            saveSnapshot(true);
+        }
+    }, MAJOR_INTERVAL);
 
     // --- Word threshold snapshot ---
     function handleInput() {
         const currentWords = countWords(editor.textContent);
-        if (currentWords - lastSnapshotWords >= WORD_THRESHOLD) {
-            saveSnapshot();
+        if (currentWords - lastMajorSnapshotWords >= MAJOR_WORD_THRESHOLD) {
+            saveSnapshot(true);
         }
     }
     editor.addEventListener('input', handleInput);
@@ -483,35 +499,52 @@ export function initVersionHistory(editor, options = {}) {
         `;
         document.body.appendChild(panel);
 
-        panel.querySelector('.version-panel-close').addEventListener('click', hidePanel);
+        panel.addEventListener('click', (e) => {
+            if (e.target.closest('.version-panel-close')) {
+                hidePanel();
+            }
+        });
     }
 
     async function renderList() {
         if (!panel) return;
         const listEl = panel.querySelector('.version-list');
         const snapshots = await getSnapshots();
+        const majorSnapshots = snapshots.filter(s => s.isMajor);
 
-        if (snapshots.length === 0) {
-            listEl.innerHTML = `<div class="version-empty">${t('versions.empty') || 'Ingen lagrede versjoner ennå'}</div>`;
-            return;
-        }
+        let html = '';
 
-        let html = '<div class="version-timeline">';
-        for (const snap of snapshots) {
-            const timeStr = formatRelativeTime(snap.timestamp);
-            const wordsStr = `${snap.wordCount} ${t('versions.wordsLabel') || 'ord'}`;
-            const preview = escapeForAttr(snap.preview || '');
+        if (snapshots.length > 0) {
             html += `
-                <div class="version-entry" data-id="${snap.id}">
-                    <div class="version-entry-time">${timeStr}</div>
-                    <div class="version-entry-meta">
-                        <span class="version-entry-words">${wordsStr}</span>
-                    </div>
-                    <div class="version-entry-preview">${escapeHtml(snap.preview || '')}</div>
+                <div style="padding: 0 0 15px 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 15px;">
+                    <button class="version-play-full-timeline" style="width: 100%; padding: 8px; background: #0f766e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        ▶ Spill av hele tidslinjen
+                    </button>
                 </div>
             `;
         }
-        html += '</div>';
+
+        if (majorSnapshots.length === 0) {
+            html += `<div class="version-empty">${t('versions.empty') || 'Ingen lagrede versjoner ennå'}</div>`;
+        } else {
+            html += '<div class="version-timeline">';
+            for (const snap of majorSnapshots) {
+                const timeStr = formatRelativeTime(snap.timestamp);
+                const wordsStr = `${snap.wordCount} ${t('versions.wordsLabel') || 'ord'}`;
+                const preview = escapeForAttr(snap.preview || '');
+                html += `
+                    <div class="version-entry" data-id="${snap.id}">
+                        <div class="version-entry-time">${timeStr}</div>
+                        <div class="version-entry-meta">
+                            <span class="version-entry-words">${wordsStr}</span>
+                        </div>
+                        <div class="version-entry-preview">${escapeHtml(snap.preview || '')}</div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+        }
+
         listEl.innerHTML = html;
 
         // Attach click handlers
@@ -521,6 +554,14 @@ export function initVersionHistory(editor, options = {}) {
                 showPreview(id);
             });
         });
+
+        const btnPlayFull = listEl.querySelector('.version-play-full-timeline');
+        if (btnPlayFull) {
+            btnPlayFull.addEventListener('click', () => {
+                // Play from the very first recorded snapshot
+                showPreview(snapshots[snapshots.length - 1].id);
+            });
+        }
     }
 
     function showPanel() {
@@ -549,49 +590,213 @@ export function initVersionHistory(editor, options = {}) {
         }
     }
 
-    // --- Preview overlay ---
-    async function showPreview(snapshotId) {
+    // --- Playback overlay ---
+    async function showPreview(initialSnapshotId) {
         if (!db) return;
-        const tx = db.transaction(STORE_NAME, 'readonly');
-        const store = tx.objectStore(STORE_NAME);
-        const request = store.get(snapshotId);
-        request.onsuccess = () => {
-            const snapshot = request.result;
-            if (!snapshot) return;
+        const all = await getSnapshots();
+        playbackCache = all.reverse(); // Now chronological (oldest first)
+        
+        if (playbackCache.length === 0) return;
+        
+        playbackIndex = playbackCache.findIndex(s => s.id === initialSnapshotId);
+        if (playbackIndex === -1) playbackIndex = playbackCache.length - 1;
 
-            overlayEl = document.createElement('div');
-            overlayEl.className = 'version-overlay';
-            overlayEl.innerHTML = `
-                <div class="version-preview-box">
-                    <div class="version-preview-header">
-                        <h4>${t('versions.preview') || 'Forhåndsvisning'} — ${formatRelativeTime(snapshot.timestamp)}</h4>
+        overlayEl = document.createElement('div');
+        overlayEl.className = 'version-overlay';
+        overlayEl.innerHTML = `
+            <div class="version-preview-box" style="display:flex; flex-direction:column; max-width: 900px; height: 90vh;">
+                <div class="version-preview-header" style="flex-direction:column; align-items: stretch; gap: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h4>${t('versions.preview') || 'Tidslinjeavspilling'}</h4>
                         <div class="version-preview-actions">
-                            <button class="version-btn-restore">${t('versions.restore') || 'Gjenopprett'}</button>
+                            <button class="version-btn-restore" style="display:none;">${t('versions.restore') || 'Gjenopprett'}</button>
                             <button class="version-btn-close">${t('versions.close') || 'Lukk'}</button>
                         </div>
                     </div>
-                    <div class="version-preview-content">${snapshot.content}</div>
+                    
+                    <div style="display:flex; align-items:center; gap: 15px; background: #f8fafc; padding: 10px 15px; border-radius: 6px;">
+                        <button id="playback-prev" style="padding: 6px 12px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;">◀</button>
+                        <button id="playback-toggle" style="padding: 6px 16px; border:none; border-radius:4px; background:#0d9488; color:#fff; font-weight:bold; cursor:pointer; min-width: 90px;">Spill av</button>
+                        <button id="playback-next" style="padding: 6px 12px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;">▶</button>
+                        
+                        <div style="flex:1; display:flex; align-items:center; gap: 10px; font-size:13px; color:#475569;">
+                            <span id="playback-status" style="white-space:nowrap; min-width: 100px;">Snapshot 0/0</span>
+                            <input type="range" id="playback-slider" min="0" max="${playbackCache.length - 1}" value="${playbackIndex}" style="flex:1; cursor:pointer;">
+                        </div>
+                        
+                        <button id="playback-jump-live" style="padding: 6px 12px; border:none; border-radius:4px; background:#dcfce7; color:#166534; font-weight:bold; cursor:pointer;">● Gå til nåværende versjon av dokumentet</button>
+                    </div>
+                    
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#64748b;">
+                        <span id="playback-time-label">Tid</span>
+                        <span id="playback-word-label" style="color:#059669; font-weight:bold;">0 ord</span>
+                    </div>
                 </div>
-            `;
-            document.body.appendChild(overlayEl);
+                <div class="version-preview-content" style="white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 16px; flex:1; overflow-y:auto;"></div>
+            </div>
+        `;
+        document.body.appendChild(overlayEl);
 
-            overlayEl.querySelector('.version-btn-close').addEventListener('click', closeOverlay);
-            overlayEl.querySelector('.version-btn-restore').addEventListener('click', () => {
-                const msg = t('versions.restoreConfirm') || 'Erstatte nåværende tekst med denne versjonen?';
-                if (confirm(msg)) {
-                    restoreSnapshot(snapshotId);
+        const contentEl = overlayEl.querySelector('.version-preview-content');
+        const sliderEl = overlayEl.querySelector('#playback-slider');
+        const statusEl = overlayEl.querySelector('#playback-status');
+        const timeLabel = overlayEl.querySelector('#playback-time-label');
+        const wordLabel = overlayEl.querySelector('#playback-word-label');
+        const toggleBtn = overlayEl.querySelector('#playback-toggle');
+        const restoreBtn = overlayEl.querySelector('.version-btn-restore');
+
+        function renderFrame() {
+            if (playbackIndex < 0) playbackIndex = 0;
+            if (playbackIndex >= playbackCache.length) playbackIndex = playbackCache.length - 1;
+            
+            const currentSnap = playbackCache[playbackIndex];
+            const prevSnap = playbackIndex > 0 ? playbackCache[playbackIndex - 1] : null;
+            
+            const oldHtml = prevSnap ? prevSnap.content : '';
+            const newHtml = currentSnap.content;
+            
+            contentEl.innerHTML = generateDiffHtml(oldHtml, newHtml);
+            
+            sliderEl.value = playbackIndex;
+            statusEl.textContent = `Snapshot ${playbackIndex + 1}/${playbackCache.length}`;
+            timeLabel.textContent = formatRelativeTime(currentSnap.timestamp);
+            
+            const wordDiff = prevSnap ? (currentSnap.wordCount - prevSnap.wordCount) : currentSnap.wordCount;
+            const sign = wordDiff > 0 ? '+' : '';
+            wordLabel.textContent = `${sign}${wordDiff} ord (${currentSnap.wordCount} totalt)`;
+            
+            // Show restore button only if paused
+            restoreBtn.style.display = (!isPlaying) ? 'block' : 'none';
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                isPlaying = false;
+                toggleBtn.textContent = 'Spill av';
+                toggleBtn.style.background = '#0d9488';
+                clearTimeout(playbackTimer);
+                renderFrame();
+            } else {
+                if (playbackIndex >= playbackCache.length - 1) playbackIndex = 0; // loop
+                isPlaying = true;
+                toggleBtn.textContent = 'Pause';
+                toggleBtn.style.background = '#0f766e';
+                renderFrame();
+                playNext();
+            }
+        }
+
+        function playNext() {
+            if (!isPlaying) return;
+            playbackTimer = setTimeout(() => {
+                if (playbackIndex < playbackCache.length - 1) {
+                    playbackIndex++;
+                    renderFrame();
+                    
+                    // Auto scroll to bottom of content if appending
+                    contentEl.scrollTop = contentEl.scrollHeight;
+                    
+                    playNext();
+                } else {
+                    togglePlay(); // Stop when reaching end
                 }
-            });
+            }, 500); // 500ms per frame
+        }
 
-            // Close on backdrop click
-            overlayEl.addEventListener('click', (e) => {
-                if (e.target === overlayEl) closeOverlay();
-            });
-        };
+        overlayEl.querySelector('#playback-prev').addEventListener('click', () => {
+            if (isPlaying) togglePlay();
+            playbackIndex = Math.max(0, playbackIndex - 1);
+            renderFrame();
+        });
+        
+        overlayEl.querySelector('#playback-next').addEventListener('click', () => {
+            if (isPlaying) togglePlay();
+            playbackIndex = Math.min(playbackCache.length - 1, playbackIndex + 1);
+            renderFrame();
+        });
+        
+        toggleBtn.addEventListener('click', togglePlay);
+        
+        sliderEl.addEventListener('input', (e) => {
+            if (isPlaying) togglePlay();
+            playbackIndex = parseInt(e.target.value);
+            renderFrame();
+        });
+        
+        overlayEl.querySelector('#playback-jump-live').addEventListener('click', () => {
+            closeOverlay();
+        });
+
+        overlayEl.querySelector('.version-btn-close').addEventListener('click', closeOverlay);
+        restoreBtn.addEventListener('click', () => {
+            const msg = t('versions.restoreConfirm') || 'Erstatte nåværende tekst med denne versjonen?';
+            if (confirm(msg)) {
+                restoreSnapshot(playbackCache[playbackIndex].id);
+            }
+        });
+
+        overlayEl.addEventListener('click', (e) => {
+            if (e.target === overlayEl) closeOverlay();
+        });
+        
+        renderFrame();
+    }
+
+    function generateDiffHtml(oldHtml, newHtml) {
+        const tempOld = document.createElement('div'); tempOld.innerHTML = oldHtml;
+        const tempNew = document.createElement('div'); tempNew.innerHTML = newHtml;
+
+        // Strip UI chrome from interactive elements so only user text remains
+        const chromeSelector = '.skriv-slot-chips, .skriv-slot-prompt, .skriv-image-drag-handle, .skriv-image-handles, .skriv-toc';
+        tempOld.querySelectorAll(chromeSelector).forEach(e => e.remove());
+        tempNew.querySelectorAll(chromeSelector).forEach(e => e.remove());
+
+        const oldText = tempOld.textContent || '';
+        const newText = tempNew.textContent || '';
+
+        const tokenRegex = /([a-zA-ZæøåÆØÅ0-9]+|\s+|[^a-zA-ZæøåÆØÅ0-9\s]+)/g;
+        const oldWords = oldText.match(tokenRegex) || [];
+        const newWords = newText.match(tokenRegex) || [];
+
+        let html = '';
+        let i = 0, j = 0;
+        
+        while (i < oldWords.length || j < newWords.length) {
+            if (i < oldWords.length && j < newWords.length && oldWords[i] === newWords[j]) {
+                html += escapeHtml(oldWords[i]);
+                i++; j++;
+            } else {
+                let foundMatch = false;
+                for (let lookAhead = 1; lookAhead < 30 && !foundMatch; lookAhead++) {
+                    if (i + lookAhead < oldWords.length && oldWords[i + lookAhead] === newWords[j]) {
+                        html += `<del style="background:#fee2e2;color:#991b1b;text-decoration:line-through;">${escapeHtml(oldWords.slice(i, i + lookAhead).join(''))}</del>`;
+                        i += lookAhead;
+                        foundMatch = true;
+                    } else if (j + lookAhead < newWords.length && oldWords[i] === newWords[j + lookAhead]) {
+                        html += `<ins style="background:#dcfce7;color:#166534;text-decoration:none;">${escapeHtml(newWords.slice(j, j + lookAhead).join(''))}</ins>`;
+                        j += lookAhead;
+                        foundMatch = true;
+                    }
+                }
+                if (!foundMatch) {
+                    if (i < oldWords.length) {
+                        html += `<del style="background:#fee2e2;color:#991b1b;text-decoration:line-through;">${escapeHtml(oldWords[i])}</del>`;
+                        i++;
+                    }
+                    if (j < newWords.length) {
+                        html += `<ins style="background:#dcfce7;color:#166534;text-decoration:none;">${escapeHtml(newWords[j])}</ins>`;
+                        j++;
+                    }
+                }
+            }
+        }
+        return html;
     }
 
     function closeOverlay() {
         if (overlayEl) {
+            isPlaying = false;
+            clearTimeout(playbackTimer);
             overlayEl.remove();
             overlayEl = null;
         }
@@ -612,10 +817,17 @@ export function initVersionHistory(editor, options = {}) {
     async function init() {
         try {
             db = await openDB();
-            lastSnapshotContent = editor.innerHTML;
-            lastSnapshotWords = countWords(editor.textContent);
-            // Save initial snapshot
-            await saveSnapshot();
+            const snaps = await getSnapshots();
+            const majorSnaps = snaps.filter(s => s.isMajor);
+            
+            if (majorSnaps.length === 0) {
+                // Force an initial major snapshot ("Document Created")
+                await saveSnapshot(true);
+            } else {
+                // Just initialize state to prevent duplicate saving
+                lastSnapshotContent = editor.innerHTML;
+                lastSnapshotWords = countWords(editor.textContent);
+            }
         } catch (err) {
             console.warn('[version-history] Failed to initialize IndexedDB:', err);
         }
@@ -625,7 +837,8 @@ export function initVersionHistory(editor, options = {}) {
     // --- Destroy ---
     function destroy() {
         editor.removeEventListener('input', handleInput);
-        if (intervalId) clearInterval(intervalId);
+        if (timelineIntervalId) clearInterval(timelineIntervalId);
+        if (majorIntervalId) clearInterval(majorIntervalId);
         if (panel) panel.remove();
         if (overlayEl) overlayEl.remove();
         if (styleEl) styleEl.remove();

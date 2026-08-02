@@ -6,11 +6,13 @@ level: vgs
 description: Personlig og underholdende tekst med humor og refleksjon
 
 ## Innledning
+spinner: innledning
 > Start med noe som fanger leserens oppmerksomhet — en personlig opplevelse, en morsom observasjon eller et retorisk spørsmål. Presenter temaet på en uformell måte.
 - Det var en helt vanlig tirsdag da det slo meg at...
 - Har du noen gang lagt merke til at...
 
 ## Hoveddel
+spinner: utdyping
 
 ### Anekdote eller observasjon
 > Fortell en historie eller beskriv en situasjon fra ditt eget liv eller fra hverdagen. Bruk humor, overdrivelse eller ironi for å engasjere leseren.
@@ -28,6 +30,7 @@ description: Personlig og underholdende tekst med humor og refleksjon
 - Det ironiske er selvfølgelig at...
 
 ## Avslutning
+spinner: avslutning
 > Avslutt med en punchline, et poeng eller en tankevekkende sluttkommentar. Kåseriet skal etterlate leseren med et smil eller en ny tanke.
 - Og moralen? Kanskje er det rett og slett at...
 - Neste gang skal jeg i hvert fall...

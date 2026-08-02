@@ -11,9 +11,11 @@ description: Strukturert analyse av tekst, film, kunst eller anna verk
 - Det handlar kort fortalt om...
 
 ## Analyse
+spinner: hoveddel
 > Undersøk verket nærare. Kva verkemiddel vert brukte, og korleis bidreg dei til heilskapen?
 
 ### Oppbygging og struktur
+spinner: hoveddel
 > Korleis er verket bygd opp? Skildre komposisjon, struktur eller forteljeteknikk.
 - Verket er bygd opp slik at...
 
@@ -23,6 +25,7 @@ description: Strukturert analyse av tekst, film, kunst eller anna verk
 - Eit anna verkemiddel er...
 
 ### Tematikk
+spinner: tolkning
 > Kva er dei sentrale temaa i verket? Kva handlar det eigentleg om på eit djupare plan?
 - Eit viktig tema i verket er...
 - Dette kjem til uttrykk gjennom...
@@ -33,6 +36,7 @@ description: Strukturert analyse av tekst, film, kunst eller anna verk
 - Dette byggjer eg på at...
 
 ## Avslutning
+spinner: avslutning
 > Oppsummer analysen og tolkinga di. Kva er dei viktigaste funna? Har verket relevans i dag?
 - Oppsummert viser analysen at...
 - Verkets tyding i dag er...

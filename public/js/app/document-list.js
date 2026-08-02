@@ -257,6 +257,17 @@ export async function renderDocumentList(container, onOpenDocument) {
     applyFilters();
 
     mainContent.appendChild(footer);
+
+    return {
+        destroy() {
+            if (desktopSidebar && typeof desktopSidebar.destroy === 'function') {
+                desktopSidebar.destroy();
+            }
+            if (mobileSidebarInstance && typeof mobileSidebarInstance.destroy === 'function') {
+                mobileSidebarInstance.destroy();
+            }
+        }
+    };
 }
 
 /**
@@ -269,7 +280,7 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
     // Split docs: when viewing "all", separate filed and orphan docs
     let mainDocs = filteredDocs;
     let orphanDocs = [];
-    if (folderFilter === 'all') {
+    if (folderFilter === 'all' && !query) {
         mainDocs = filteredDocs.filter(d => d.folderIds && d.folderIds.length > 0);
         orphanDocs = filteredDocs.filter(d => !d.folderIds || d.folderIds.length === 0);
     }
