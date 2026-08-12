@@ -70,14 +70,28 @@ const INVENTORY = {
         'theme.js',
         'toast-notification.js',
         'in-page-modal.js',   // editor-toolbar.js -> showInPageConfirm
-        'frame-elements.js'   // editor-toolbar.js, image-manager.js
+        'frame-elements.js',  // editor-toolbar.js, image-manager.js
+        'word-counter.js'     // text-export.js -> countWords; also the live counter
     ],
     'student': [
         'slash-menu.js',
         'editor-toolbar.js',
         'image-manager.js',
         'table-manager.js',
-        'keyboard-shortcuts.js'
+        'keyboard-shortcuts.js',
+        // text-export ships downloadText/downloadDocx/downloadPDF. The first
+        // two need nothing extra — .docx is built as HTML carrying Word's XML
+        // headers, no library. downloadPDF needs a `window.jspdf` GLOBAL that
+        // Skriv loads separately; a consumer without it gets the module's own
+        // "pdfNotLoaded" alert rather than a crash. Leksihjelp deliberately
+        // does not surface a PDF button, so that path is never entered —
+        // vendoring jsPDF (~350 KB) is its own decision, not a side effect of
+        // wanting Word export.
+        'text-export.js',
+        // Zero imports. Pairs with SPECIAL_CHAR_GROUPS in config.js, which was
+        // already being exported and had no consumer downstream: de/fr/es
+        // characters a Norwegian keyboard cannot reach directly.
+        'special-chars-panel.js'
     ],
     // shared/i18n.js resolves these with a DYNAMIC import —
     // `await import(`../locales/${lang}.js`)` — so no static-import check
