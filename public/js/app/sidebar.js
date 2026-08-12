@@ -324,7 +324,7 @@ export function createSidebar(container, options) {
 
         btn.innerHTML = `
             <span class="flex-shrink-0 ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-stone-400 dark:text-stone-500'}">${FOLDER_ICON}</span>
-            <span class="flex-1 text-left truncate">${escapeHtml(node.name)}</span>
+            <span class="folder-name-span flex-1 text-left truncate">${escapeHtml(node.name)}</span>
             ${count > 0 ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-400 dark:text-stone-500">${count}</span>` : ''}
         `;
 
@@ -385,8 +385,48 @@ export function createSidebar(container, options) {
             }
         });
 
-        // Context menu for custom folders (right-click)
+        // Context menu and Double-click to rename for custom folders
         if (isCustom) {
+            btn.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const nameSpan = btn.querySelector('.folder-name-span');
+                if (!nameSpan || nameSpan.querySelector('input')) return;
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = node.name;
+                input.className = 'w-full bg-white dark:bg-stone-800 border border-emerald-400 rounded px-1 text-sm text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-1 focus:ring-emerald-400';
+                
+                const saveName = async () => {
+                    const newName = input.value.trim();
+                    if (newName && newName !== node.name) {
+                        nameSpan.textContent = t('skriv.saving') || 'Lagrer...';
+                        await renameFolder(node.id, newName);
+                        render();
+                    } else {
+                        nameSpan.textContent = escapeHtml(node.name);
+                    }
+                };
+                
+                input.addEventListener('blur', saveName);
+                input.addEventListener('keydown', (ke) => {
+                    if (ke.key === 'Enter') {
+                        input.blur();
+                    } else if (ke.key === 'Escape') {
+                        input.removeEventListener('blur', saveName);
+                        nameSpan.textContent = escapeHtml(node.name);
+                    }
+                    ke.stopPropagation(); // prevent other listeners
+                });
+                
+                nameSpan.innerHTML = '';
+                nameSpan.appendChild(input);
+                input.focus();
+                input.select();
+            });
+
             btn.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 showContextMenu(e, node, depth);
@@ -673,6 +713,11 @@ export function createSidebar(container, options) {
             }
         });
         levelSection.appendChild(refreshBtn);
+
+        const versionDiv = document.createElement('div');
+        versionDiv.className = 'mt-4 text-center text-[10px] text-stone-400 dark:text-stone-500 font-mono';
+        versionDiv.textContent = 'Papertek Skriv v73';
+        levelSection.appendChild(versionDiv);
 
         nav.appendChild(levelSection);
     }

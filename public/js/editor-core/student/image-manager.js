@@ -195,23 +195,9 @@ function createToolbar() {
     toolbar.style.cssText = `
         position: absolute;
         display: none;
-        z-index: 1000;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-        padding: 4px 6px;
-        gap: 2px;
-        align-items: center;
-        white-space: nowrap;
-        font-size: 13px;
     `;
 
     const buttons = [
-        { key: 'sideText', label: '📑 Side-innhold', action: 'side-text', group: 'layout' },
-        { key: 'valign', label: '↕️ Justering', action: 'valign', group: 'valign' },
-        { key: 'separator1', separator: true },
-        { key: 'shadow', label: '◐ Skygge', action: 'shadow', group: 'shadow' },
-        { key: 'separator2', separator: true },
         { key: 'delete', label: '🗑️ Slett', action: 'delete', group: 'delete' },
     ];
 
@@ -804,6 +790,7 @@ export function initImageManager(editor, container, options = {}) {
         if (!figure) return;
         const hasShadow = figure.classList.contains('skriv-image-shadow');
         const hasSide = figure.classList.contains('skriv-layout-side') || figure.classList.contains('skriv-layout-side-reverse');
+        const hasValign = figure.classList.contains('skriv-valign-center') || figure.classList.contains('skriv-valign-bottom');
 
         toolbar.querySelectorAll('.skriv-image-toolbar-btn').forEach(btn => {
             const action = btn.dataset.action;
@@ -811,6 +798,7 @@ export function initImageManager(editor, container, options = {}) {
 
             if (action === 'side-text' && hasSide) active = true;
             if (action === 'shadow' && hasShadow) active = true;
+            if (action === 'valign' && hasValign) active = true;
 
             btn.style.background = active ? '#059669' : 'transparent';
             btn.style.color = active ? '#fff' : '#374151';
@@ -1082,10 +1070,30 @@ export function initImageManager(editor, container, options = {}) {
         let dx = e.clientX - startX + itemDragState.dragOffsetX;
         const dy = e.clientY - startY;
 
-        // Fluid gradual vertical positioning via drag for side text box with discrete guide lines
-        if (isSidetext && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
-            const mainImg = figure.querySelector('.skriv-image-wrapper img') || figure.querySelector('img');
-            const imgH = mainImg ? mainImg.clientHeight : figure.clientHeight;
+        // Fluid gradual vertical positioning via drag for side items with discrete guide lines
+        if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+            if (figure.classList.contains('skriv-valign-center') || figure.classList.contains('skriv-valign-bottom')) {
+                // Convert CSS alignment to explicit margins to prevent visual jumping
+                const containerRect = flexContainer.getBoundingClientRect();
+                flexContainer.querySelectorAll('.skriv-image-wrapper, .skriv-image-sidetext').forEach(el => {
+                    const elRect = el.getBoundingClientRect();
+                    const topOffset = elRect.top - containerRect.top;
+                    el.style.marginTop = `${topOffset}px`;
+                    if (el === targetItem) {
+                        itemDragState.startMarginTop = topOffset;
+                        startMarginTop = topOffset;
+                    }
+                });
+                figure.classList.remove('skriv-valign-center', 'skriv-valign-bottom');
+                updateToolbarState(figure);
+                saveUndoSnapshot(); // Save state since we removed classes
+            }
+
+            let maxSiblingH = 0;
+            flexContainer.querySelectorAll('.skriv-image-wrapper, .skriv-image-sidetext').forEach(el => {
+                if (el !== targetItem) maxSiblingH = Math.max(maxSiblingH, el.clientHeight);
+            });
+            const imgH = maxSiblingH || figure.clientHeight;
             const itemH = targetItem.clientHeight || 80;
             const maxMargin = Math.max(0, imgH - itemH);
             
@@ -1389,6 +1397,8 @@ export function initImageManager(editor, container, options = {}) {
     `;
     container.appendChild(fileDropIndicator);
 
+    let savedRange = null;
+
     /**
      * Insert image at the current cursor position (or end of editor).
      * Splits paragraph if cursor is inside text block.
@@ -1406,8 +1416,15 @@ export function initImageManager(editor, container, options = {}) {
             const figure = createImageBlock(base64);
 
             const sel = window.getSelection();
-            if (sel && sel.rangeCount > 0) {
-                const range = sel.getRangeAt(0);
+            let range = null;
+            if (savedRange) {
+                range = savedRange;
+                savedRange = null;
+            } else if (sel && sel.rangeCount > 0) {
+                range = sel.getRangeAt(0);
+            }
+
+            if (range && editor.contains(range.commonAncestorContainer)) {
                 let block = range.startContainer;
                 while (block && block !== editor && block.parentNode !== editor) {
                     block = block.parentNode;
@@ -1494,6 +1511,13 @@ export function initImageManager(editor, container, options = {}) {
      * Open the file picker dialog.
      */
     function openFilePicker() {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            if (editor.contains(range.commonAncestorContainer)) {
+                savedRange = range.cloneRange();
+            }
+        }
         fileInput.click();
     }
 

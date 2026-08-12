@@ -145,6 +145,8 @@ export default {
         label: 'Språk',
     },
 
+
+
     theme: {
         toggle: 'Byt tema',
         light: 'Lyst tema',
@@ -278,22 +280,7 @@ export default {
         ariaLabel: 'Avsnittskart — visuell oversikt over tekststrukturen',
     },
 
-    image: {
-        button: 'Bilete',
-        captionPlaceholder: 'Bilettekst...',
-        tooLarge: 'Biletet er for stort (maks 5 MB)',
-        invalidType: 'Ugyldig filtype. Bruk PNG, JPEG eller GIF.',
-        deleted: 'Bilete fjerna',
-        alignLeft: 'Venstre',
-        alignCenter: 'Midtstilt',
-        alignRight: 'Høgre',
-        sizeSmall: 'Liten',
-        sizeMedium: 'Medium',
-        sizeFull: 'Full',
-        shadow: 'Skugge',
-        delete: 'Slett',
-        dragToMove: 'Dra for å flytte',
-    },
+
 
     focus: {
         exit: 'Avslutt fokusmodus',
@@ -427,6 +414,7 @@ export default {
         deleteConfirmYes: 'Ja, slett',
         saved: 'Lagra',
         saving: 'Lagrar...',
+        saveError: 'Kunne ikkje lagre. Prøv igjen.',
         placeholder: 'Byrj å skrive her...',
         backToDocuments: 'Mine dokument',
         downloadTxt: 'Last ned .txt',
@@ -437,6 +425,9 @@ export default {
         documentsCount: '{{count}} dokument',
         exportTitle: 'Eksporter',
         toolsMenu: 'Verktøy',
+        insightsTitle: 'Gjennomgang',
+        insightsTools: 'Verktøy',
+        insightsAnalysis: 'Analyse',
 
         // Advanced toggle + TOC
         advancedToggle: 'Avansert',
@@ -552,6 +543,7 @@ export default {
     },
 
     image: {
+        button: 'Bilete',
         toolbarTitle: 'Bildeverktøy',
         alignLeft: 'Venstrejuster',
         alignCenter: 'Midtstill',

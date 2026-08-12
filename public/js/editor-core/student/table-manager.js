@@ -22,6 +22,7 @@ export function initTableManager(editor, container, options = {}) {
     let selectedTable = null;
     let styleEl = null;
     let dialog = null;
+    let savedRange = null;
 
     // --- Inject self-contained CSS ---
     styleEl = document.createElement('style');
@@ -181,6 +182,14 @@ export function initTableManager(editor, container, options = {}) {
     function showInsertDialog() {
         if (dialog) return;
 
+        // Save current selection before focus is lost to the dialog
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            savedRange = sel.getRangeAt(0).cloneRange();
+        } else {
+            savedRange = null;
+        }
+
         const overlay = document.createElement('div');
         overlay.className = 'skriv-table-dialog-overlay';
 
@@ -259,6 +268,13 @@ export function initTableManager(editor, container, options = {}) {
     function insertTable(rows, cols) {
         editor.focus();
 
+        const sel = window.getSelection();
+        if (savedRange) {
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+            savedRange = null;
+        }
+
         const table = document.createElement('table');
         table.className = 'skriv-table';
         table.setAttribute('contenteditable', 'false');
@@ -290,7 +306,6 @@ export function initTableManager(editor, container, options = {}) {
         table.appendChild(tbody);
 
         // Insert at cursor position
-        const sel = window.getSelection();
         let insertBefore = null;
         if (sel.rangeCount > 0) {
             let node = sel.getRangeAt(0).startContainer;

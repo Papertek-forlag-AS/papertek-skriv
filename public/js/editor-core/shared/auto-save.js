@@ -36,17 +36,28 @@ export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, 
     let timer = null;
     let lastSavedHash = '';
 
-    function setStatus(text, clearAfter = 0) {
+    function setStatus(html, clearAfter = 0) {
         if (!statusEl) return;
-        statusEl.textContent = text;
+        statusEl.innerHTML = html;
         if (clearAfter > 0) {
             setTimeout(() => {
-                if (statusEl.textContent === text) {
-                    statusEl.textContent = '';
+                if (statusEl.innerHTML === html) {
+                    statusEl.innerHTML = '';
                 }
             }, clearAfter);
         }
     }
+
+    function checkOffline() {
+        if (!navigator.onLine && labels.offline) {
+            setStatus(labels.offline);
+        } else if (navigator.onLine && statusEl && statusEl.innerHTML === labels.offline) {
+            setStatus(labels.saved);
+        }
+    }
+
+    window.addEventListener('offline', checkOffline);
+    window.addEventListener('online', checkOffline);
 
     async function saveNow() {
         if (timer) { clearTimeout(timer); timer = null; }

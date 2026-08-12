@@ -23,6 +23,10 @@ import { initFrameSelector } from '../editor-core/student/frame-selector.js';
 import { initWritingSpinner } from '../editor-core/student/writing-spinner.js';
 import { initWordFrequency } from '../editor-core/student/word-frequency.js';
 import { initSentenceLength } from '../editor-core/student/sentence-length.js';
+import { initSlashMenu } from '../editor-core/student/slash-menu.js';
+import { initDragHandle } from '../editor-core/student/drag-handle.js';
+import { escapeHtml } from '../editor-core/shared/html-escape.js';
+import { showInPageConfirm } from '../editor-core/shared/in-page-modal.js';
 import { initParagraphMap } from '../editor-core/student/paragraph-map.js';
 import { initImageManager } from '../editor-core/student/image-manager.js';
 import { initFocusMode } from '../editor-core/student/focus-mode.js';
@@ -39,6 +43,8 @@ import { initLeksihjelpBridge } from './leksihjelp-bridge.js';
 import { initLeksihjelpSettings } from './leksihjelp-settings.js';
 import { initLeksihjelpDictionary } from './leksihjelp-dictionary.js';
 import { initSpecialCharsPanel } from '../editor-core/student/special-chars-panel.js';
+import { initFindReplace } from '../editor-core/student/find-replace.js';
+import { initInsightsDrawer } from '../editor-core/student/insights-drawer.js';
 import { SPECIAL_CHAR_GROUPS } from '../editor-core/config.js';
 // import { initMatte } from '../editor-core/student/matte.js'; // Deactivated — re-enable when subject choice is added
 import { showSubmissionChecklist } from '../editor-core/student/submission-checklist.js';
@@ -88,25 +94,13 @@ export async function launchEditor(container, docId, onBack) {
         <div class="flex-1"></div>
         <span id="save-status" class="text-xs text-stone-400"></span>
         <div class="skriv-toolbar-buttons flex items-center gap-1.5 min-w-0">
-            <button id="btn-structure" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('skriv.strukturTooltip')}">
+            <button id="btn-structure" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5" title="${t('skriv.strukturTooltip') || 'Velg skriveramme'}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"/></svg>
-                Struktur
+                ${t('skriv.strukturTooltip') || 'Velg skriveramme'}
             </button>
-            <button id="btn-advanced" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('skriv.advancedToggle')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-                ${t('skriv.advancedToggle')}
-            </button>
-            <button id="btn-ref" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('skriv.refButton')}">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                ${t('skriv.refButton')}
-            </button>
-            <button id="btn-image" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                title="${t('image.button')}">
-                📷
-                ${t('image.button')}
+            <button id="btn-insights" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5" title="${t('skriv.insightsTitle') || 'Gjennomgang'}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                ${t('skriv.insightsTitle') || 'Gjennomgang'}
             </button>
             <button id="btn-german-hint" class="hidden text-xs px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center gap-1.5"
                 title="${t('germanExam.hintButtonTitle')}">
@@ -118,57 +112,17 @@ export async function launchEditor(container, docId, onBack) {
                 📚
                 ${t('leksihjelp.button')}
             </button>
-            <div id="tools-wrapper" class="relative hidden flex-shrink-0">
-                <button id="btn-tools" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
-                    title="${t('skriv.toolsMenu')}">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
-                    ${t('skriv.toolsMenu')} &#9660;
-                </button>
-                <div id="tools-menu" class="hidden absolute right-0 top-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg py-1 z-50 min-w-[200px]">
-                    <button id="btn-spinner" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        <span>${t('spinner.title')}</span>
-                    </button>
-                    <button id="btn-radar" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                        <span>${t('radar.button')}</span>
-                    </button>
-                    <button id="btn-sentence-length" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        <span>${t('sentence.button')}</span>
-                    </button>
-                    <button id="btn-paragraph-map" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7"/></svg>
-                        <span>${t('paragraphMap.button')}</span>
-                    </button>
-                    <button id="btn-table" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18M8 6v12M16 6v12"/></svg>
-                        <span>${t('table.button')}</span>
-                    </button>
-                    <button id="btn-feedback" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>${t('feedback.button')}</span>
-                    </button>
-                    <button id="btn-versions" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>${t('versions.title')}</span>
-                    </button>
-                    <button id="btn-lix" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0h6m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4"/></svg>
-                        <span>LIX</span>
-                    </button>
-                    <button id="btn-argument-flow" class="tool-menu-item flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-left">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-                        <span>${t('argument.title')}</span>
-                    </button>
-                </div>
-            </div>
         </div>
+        
+        <button id="btn-dark-mode" class="hidden text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5" title="Mørk Modus">
+            <svg class="w-3.5 h-3.5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+            <svg class="w-3.5 h-3.5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
         <div class="relative flex-shrink-0">
             <button id="btn-export" class="text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors">
                 ${t('skriv.exportTitle')} &#9660;
             </button>
-            <div id="export-menu" class="hidden absolute right-0 top-full mt-1 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
+            <div id="export-menu" class="hidden animate-dropdown-in absolute right-0 top-full mt-1 bg-white/85 dark:bg-stone-800/85 backdrop-blur-md border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
                 <button id="btn-download-txt" class="block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">${t('skriv.downloadTxt')}</button>
                 <button id="btn-download-pdf" class="block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">${t('skriv.downloadPdf')}</button>
                 <button id="btn-download-docx" class="block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">${t('skriv.downloadDocx')}</button>
@@ -243,8 +197,29 @@ export async function launchEditor(container, docId, onBack) {
     wordCountDisplay.className = 'max-w-3xl mx-auto text-xs text-stone-500';
     wordCountBar.appendChild(wordCountDisplay);
 
+    // Search panel
+    const searchPanel = document.createElement('div');
+    searchPanel.id = 'search-panel';
+    searchPanel.className = 'hidden px-4 py-2 border-b border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800 flex items-center gap-2';
+    searchPanel.innerHTML = `
+        <div class="relative flex-1 max-w-sm">
+            <input type="text" id="search-input" placeholder="Søk i dokumentet (⌘F)" class="w-full pl-3 pr-12 py-1.5 text-sm border border-stone-300 dark:border-stone-600 rounded bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 focus:outline-none focus:border-emerald-500" />
+            <span id="search-count" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-stone-400">0/0</span>
+        </div>
+        <button id="search-prev" class="p-1.5 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 rounded hover:bg-stone-200 dark:hover:bg-stone-700" title="Forrige">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+        </button>
+        <button id="search-next" class="p-1.5 text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 rounded hover:bg-stone-200 dark:hover:bg-stone-700" title="Neste">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <button id="search-close" class="p-1.5 text-stone-500 hover:text-red-500 rounded hover:bg-stone-200 dark:hover:bg-stone-700 ml-2" title="Lukk">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+    `;
+
     // Assemble
     writingEnv.appendChild(topBar);
+    writingEnv.appendChild(searchPanel);
     writingEnv.appendChild(titleRow);
     writingEnv.appendChild(folderRow);
     writingEnv.appendChild(editorWrap);
@@ -277,9 +252,10 @@ export async function launchEditor(container, docId, onBack) {
         statusEl: saveStatusEl,
         debounceMs: 1000,
         labels: {
-            saving: t('skriv.saving'),
-            saved:  t('skriv.saved'),
-            error:  t('common.error'),
+            saving: `<div class="flex items-center gap-1.5"><svg class="w-4 h-4 text-emerald-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11v6m-3-3l3-3 3 3"/></svg><span class="hidden sm:inline">${t('skriv.saving')}</span></div>`,
+            saved: `<div class="flex items-center gap-1.5"><svg class="w-4 h-4 text-stone-400 dark:text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg><span class="hidden sm:inline">${t('skriv.saved')}</span></div>`,
+            offline: `<div class="flex items-center gap-1.5" title="Lagret lokalt"><svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg><span class="hidden sm:inline">Frakoblet</span></div>`,
+            error: t('skriv.saveError'),
         },
     });
 
@@ -322,16 +298,9 @@ export async function launchEditor(container, docId, onBack) {
             });
     }
 
-    // --- Frame selector (Struktur button) ---
-    const strukturBtn = topBar.querySelector('#btn-structure');
-    const frameSelectorApi = initFrameSelector(strukturBtn, editor, frameApi, {
-        onFrameApplied: () => {
-            // Auto-enable advanced mode when a frame is applied
-            if (!toolbarApi.isAdvancedMode()) {
-                toolbarApi.setAdvancedMode(true);
-            }
-        },
-    });
+    // --- Frame selector ---
+    const structureBtn = topBar.querySelector('#btn-structure');
+    const frameSelectorApi = initFrameSelector(structureBtn, editor, frameApi);
 
     // Update Struktur button state on load (in case frame was rehydrated)
     if (doc.frameType) {
@@ -350,68 +319,22 @@ export async function launchEditor(container, docId, onBack) {
         getLevel: () => getSchoolLevel(),
         getActiveFrame: () => frameApi.getActiveFrame(),
     });
-    const spinnerBtn = topBar.querySelector('#btn-spinner');
-    spinnerBtn.addEventListener('click', () => {
-        spinnerApi.show();
-    });
 
     // --- Repetition Radar ---
     const radarApi = initWordFrequency(editor, writingEnv, {
         onWordClick: (word, range) => {
-            // Open synonym popup if synonym data exists for this word
-            // The synonym popup is handled by the spinner's dblclick handler,
-            // but we can also trigger it by simulating a selection + showing spinner
             editor.focus();
             const sel = window.getSelection();
             sel.removeAllRanges();
             sel.addRange(range);
         },
     });
-    const radarBtn = topBar.querySelector('#btn-radar');
-    radarBtn.addEventListener('click', () => {
-        const isNowActive = radarApi.toggle();
-        if (isNowActive) {
-            radarBtn.classList.remove('text-stone-500', 'border-stone-200');
-            radarBtn.classList.add('text-amber-700', 'border-amber-400', 'bg-amber-50');
-            showToast(t('radar.on'), { duration: 1500 });
-        } else {
-            radarBtn.classList.remove('text-amber-700', 'border-amber-400', 'bg-amber-50');
-            radarBtn.classList.add('text-stone-500', 'border-stone-200');
-            showToast(t('radar.off'), { duration: 1500 });
-        }
-    });
 
     // --- Sentence Length Visualization ---
     const sentenceApi = initSentenceLength(editor, writingEnv);
-    const sentenceBtn = topBar.querySelector('#btn-sentence-length');
-    sentenceBtn.addEventListener('click', () => {
-        const isNowActive = sentenceApi.toggle();
-        if (isNowActive) {
-            sentenceBtn.classList.remove('text-stone-500', 'border-stone-200');
-            sentenceBtn.classList.add('text-blue-700', 'border-blue-400', 'bg-blue-50');
-            showToast(t('sentence.on'), { duration: 1500 });
-        } else {
-            sentenceBtn.classList.remove('text-blue-700', 'border-blue-400', 'bg-blue-50');
-            sentenceBtn.classList.add('text-stone-500', 'border-stone-200');
-            showToast(t('sentence.off'), { duration: 1500 });
-        }
-    });
 
     // --- Paragraph Map (minimap) ---
     const paragraphMapApi = initParagraphMap(editor, editorWrap);
-    const paragraphMapBtn = topBar.querySelector('#btn-paragraph-map');
-    paragraphMapBtn.addEventListener('click', () => {
-        const isNowActive = paragraphMapApi.toggle();
-        if (isNowActive) {
-            paragraphMapBtn.classList.remove('text-stone-500', 'border-stone-200');
-            paragraphMapBtn.classList.add('text-violet-700', 'border-violet-400', 'bg-violet-50');
-            showToast(t('paragraphMap.on'), { duration: 1500 });
-        } else {
-            paragraphMapBtn.classList.remove('text-violet-700', 'border-violet-400', 'bg-violet-50');
-            paragraphMapBtn.classList.add('text-stone-500', 'border-stone-200');
-            showToast(t('paragraphMap.off'), { duration: 1500 });
-        }
-    });
 
 
     // --- Focus Mode ---
@@ -424,76 +347,97 @@ export async function launchEditor(container, docId, onBack) {
     const shortcutsApi = initKeyboardShortcuts(editor, {
         onSave: () => autoSave.saveNow(),
         onFocusMode: () => focusApi.toggle(),
-        isAdvancedMode: () => toolbarApi.isAdvancedMode(),
     });
 
     // --- Table Manager ---
     const tableApi = initTableManager(editor, writingEnv, { onInsert: () => autoSave.schedule() });
-    const tableBtn = topBar.querySelector('#btn-table');
-    if (tableBtn) {
-        tableBtn.addEventListener('click', () => tableApi.showInsertDialog());
-    }
+
+    // --- Slash Menu ---
+    const slashMenuApi = initSlashMenu(editor, {
+        actions: [
+            {
+                label: 'Overskrift 1',
+                icon: '<b class="font-serif">H1</b>',
+                execute: () => { document.execCommand('formatBlock', false, 'H1'); }
+            },
+            {
+                label: 'Overskrift 2',
+                icon: '<b class="font-serif text-sm">H2</b>',
+                execute: () => { document.execCommand('formatBlock', false, 'H2'); }
+            },
+            {
+                label: 'Punktliste',
+                icon: '•',
+                execute: () => { document.execCommand('insertUnorderedList', false, null); }
+            },
+            {
+                label: 'Nummerert liste',
+                icon: '1.',
+                execute: () => { document.execCommand('insertOrderedList', false, null); }
+            },
+            {
+                label: t('skriv.refButton') || 'Kilde',
+                icon: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>',
+                execute: () => refsApi.openDialog()
+            },
+            {
+                label: t('image.button') || 'Bilde',
+                icon: '📷',
+                execute: () => imageApi.openFilePicker()
+            },
+            {
+                label: 'Tabell',
+                icon: '📊',
+                execute: () => tableApi.showInsertDialog()
+            },
+            {
+                label: 'Skriv "/"',
+                icon: '/',
+                keepSlash: true
+            }
+        ]
+    });
+
+    // --- Drag Handle ---
+    const dragHandleApi = initDragHandle(editor, {
+        onDragDrop: () => autoSave.schedule()
+    });
 
     // --- Writing Feedback ---
     const feedbackApi = initWritingFeedback(editor, writingEnv, {
         getActiveFrame: () => frameApi.getActiveFrame(),
     });
-    const feedbackBtn = topBar.querySelector('#btn-feedback');
-    if (feedbackBtn) {
-        feedbackBtn.addEventListener('click', () => {
-            const isNowActive = feedbackApi.toggle(feedbackBtn);
-            if (isNowActive) {
-                feedbackBtn.classList.remove('text-stone-500', 'border-stone-200');
-                feedbackBtn.classList.add('text-teal-700', 'border-teal-400', 'bg-teal-50');
-            } else {
-                feedbackBtn.classList.remove('text-teal-700', 'border-teal-400', 'bg-teal-50');
-                feedbackBtn.classList.add('text-stone-500', 'border-stone-200');
-            }
-        });
-    }
 
     // --- Version History ---
     const versionApi = initVersionHistory(editor, {
         docId: docId,
         onRestore: () => { autoSave.schedule(); },
     });
-    const versionsBtn = topBar.querySelector('#btn-versions');
-    if (versionsBtn) {
-        versionsBtn.addEventListener('click', () => versionApi.toggle());
-    }
 
     // --- LIX Readability Score ---
     const lixApi = initLixScore(editor, writingEnv, { getLevel: () => getSchoolLevel() });
-    const lixBtn = topBar.querySelector('#btn-lix');
-    if (lixBtn) {
-        lixBtn.addEventListener('click', () => {
-            const isNowActive = lixApi.toggle();
-            if (isNowActive) {
-                lixBtn.classList.remove('text-stone-500', 'border-stone-200');
-                lixBtn.classList.add('text-indigo-700', 'border-indigo-400', 'bg-indigo-50');
-            } else {
-                lixBtn.classList.remove('text-indigo-700', 'border-indigo-400', 'bg-indigo-50');
-                lixBtn.classList.add('text-stone-500', 'border-stone-200');
-            }
-        });
-    }
 
     // --- Argument Flow ---
     const argumentApi = initArgumentFlow(editor, writingEnv, {
         getActiveFrame: () => frameApi.getActiveFrame(),
     });
-    const argumentBtn = topBar.querySelector('#btn-argument-flow');
-    if (argumentBtn) {
-        argumentBtn.addEventListener('click', () => {
-            const isNowActive = argumentApi.toggle();
-            if (isNowActive) {
-                argumentBtn.classList.remove('text-stone-500', 'border-stone-200');
-                argumentBtn.classList.add('text-blue-700', 'border-blue-400', 'bg-blue-50');
-            } else {
-                argumentBtn.classList.remove('text-blue-700', 'border-blue-400', 'bg-blue-50');
-                argumentBtn.classList.add('text-stone-500', 'border-stone-200');
-            }
-        });
+
+    // --- Insights Drawer (Gjennomgang) ---
+    const insightsDrawerApi = initInsightsDrawer(writingEnv, [
+        { label: 'Søk', description: 'Søk etter ord og uttrykk i teksten', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', isTool: true, action: () => openSearch() },
+        { label: 'Fokusmodus', description: 'Skjul alt annet og fokuser kun på teksten din', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', isTool: true, action: () => focusApi.toggle() },
+        { label: 'Spinn', description: 'Få hjelp til å variere språket og ordvalget ditt', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', isTool: true, action: () => spinnerApi.show() },
+        { label: 'Tilbakemelding', description: 'Få umiddelbar formativ vurdering av teksten', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', isTool: true, action: () => feedbackApi.toggle() },
+        { label: 'Versjoner', description: 'Se og gjenopprett tidligere versjoner av teksten', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', isTool: true, action: () => versionApi.toggle() },
+        { label: 'Ord-radar', description: 'Finn ord som brukes ofte for å skape mer variasjon', icon: 'M13 10V3L4 14h7v7l9-11h-7z', isAnalysis: true, action: () => radarApi.toggle() },
+        { label: 'Setningslengde', description: 'Visuell sjekk for å sikre god flyt og variasjon i lengde', icon: 'M4 6h16M4 12h16m-7 6h7', isAnalysis: true, action: () => sentenceApi.toggle() },
+        { label: 'Avsnittskart', description: 'Se tekstens visuelle oppbygning og balanse', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', isAnalysis: true, action: () => paragraphMapApi.toggle() },
+        { label: 'LIX', description: 'Mål tekstens lesbarhet og kompleksitet', icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z', isAnalysis: true, action: () => lixApi.toggle() },
+        { label: 'Argument-flyt', description: 'Analyser hvordan argumentene dine henger sammen', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', isAnalysis: true, action: () => argumentApi.toggle() },
+    ]);
+    const insightsBtn = topBar.querySelector('#btn-insights');
+    if (insightsBtn) {
+        insightsBtn.addEventListener('click', () => insightsDrawerApi.toggle());
     }
 
     // --- German Hint Drawer (only mounted when the doc was seeded with one) ---
@@ -567,6 +511,67 @@ export async function launchEditor(container, docId, onBack) {
     // --- Onboarding Tour ---
     const tourApi = initOnboardingTour();
 
+    // --- Search functionality ---
+    const searchApi = initFindReplace(editor, writingEnv);
+    const searchBtn = topBar.querySelector('#btn-search');
+    const searchInput = searchPanel.querySelector('#search-input');
+    const searchCount = searchPanel.querySelector('#search-count');
+    const searchPrev = searchPanel.querySelector('#search-prev');
+    const searchNext = searchPanel.querySelector('#search-next');
+    const searchClose = searchPanel.querySelector('#search-close');
+
+    function openSearch() {
+        searchPanel.classList.remove('hidden');
+        searchInput.focus();
+        searchInput.select();
+    }
+    
+    function closeSearch() {
+        searchPanel.classList.add('hidden');
+        searchApi.clear();
+        searchInput.value = '';
+        searchCount.textContent = '0/0';
+        editor.focus();
+    }
+
+    function updateSearchCount(res) {
+        if (res.count === 0) {
+            searchCount.textContent = '0/0';
+        } else {
+            searchCount.textContent = `${res.current}/${res.count}`;
+        }
+    }
+
+    searchClose.addEventListener('click', closeSearch);
+
+    searchInput.addEventListener('input', () => {
+        const res = searchApi.search(searchInput.value);
+        updateSearchCount(res);
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                updateSearchCount(searchApi.prev());
+            } else {
+                updateSearchCount(searchApi.next());
+            }
+        } else if (e.key === 'Escape') {
+            closeSearch();
+        }
+    });
+
+    searchPrev.addEventListener('click', () => updateSearchCount(searchApi.prev()));
+    searchNext.addEventListener('click', () => updateSearchCount(searchApi.next()));
+
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+            e.preventDefault();
+            openSearch();
+        }
+    });
+
     // --- Advanced toggle button ---
     const advancedBtn = topBar.querySelector('#btn-advanced');
 
@@ -580,8 +585,14 @@ export async function launchEditor(container, docId, onBack) {
         if (enabled) {
             advancedBtn.classList.remove('text-stone-500', 'border-stone-200');
             advancedBtn.classList.add('text-emerald-700', 'border-emerald-400', 'bg-emerald-50');
-            // Show the Verktøy dropdown
+            
+            // Show all advanced buttons
             if (toolsWrapper) toolsWrapper.classList.remove('hidden');
+            ['#btn-structure', '#btn-ref', '#btn-image', '#btn-dark-mode'].forEach(sel => {
+                const btn = topBar.querySelector(sel);
+                if (btn) btn.classList.remove('hidden');
+            });
+            
             // Check if headings exist — if so, auto-insert TOC
             const hasHeadings = editor.querySelectorAll('h1, h2').length > 0;
             if (hasHeadings && !tocApi.hasTOC()) {
@@ -592,9 +603,15 @@ export async function launchEditor(container, docId, onBack) {
         } else {
             advancedBtn.classList.remove('text-emerald-700', 'border-emerald-400', 'bg-emerald-50');
             advancedBtn.classList.add('text-stone-500', 'border-stone-200');
-            // Hide the Verktøy dropdown and close menu
+            
+            // Hide all advanced buttons
             if (toolsWrapper) toolsWrapper.classList.add('hidden');
             if (toolsMenu) toolsMenu.classList.add('hidden');
+            ['#btn-structure', '#btn-ref', '#btn-image', '#btn-dark-mode'].forEach(sel => {
+                const btn = topBar.querySelector(sel);
+                if (btn) btn.classList.add('hidden');
+            });
+            
             tocApi.remove();
             if (!suppressToast) showToast(t('skriv.advancedOff'), { duration: 1500 });
         }
@@ -623,25 +640,17 @@ export async function launchEditor(container, docId, onBack) {
         });
     }
 
-    // Listen for advanced mode changes from toolbar (including auto-detect)
-    toolbarApi.onAdvancedChange(updateAdvancedUI);
-
-    // Allow toasts after initial auto-detect has had a chance to fire
-    setTimeout(() => { suppressToast = false; }, 100);
-
-    advancedBtn.addEventListener('click', () => {
-        toolbarApi.toggleAdvancedMode();
-    });
-
     // --- Auto-TOC: insert/remove TOC based on heading presence ---
     let autoTocTimer = null;
     editor.addEventListener('input', () => {
-        if (!toolbarApi.isAdvancedMode()) return;
         if (autoTocTimer) clearTimeout(autoTocTimer);
         autoTocTimer = setTimeout(() => {
-            const hasHeadings = editor.querySelectorAll('h1, h2').length > 0;
+            const headings = Array.from(editor.querySelectorAll('h1, h2')).filter(h => h.textContent.trim().length > 0);
+            const hasHeadings = headings.length > 0;
             if (hasHeadings && !tocApi.hasTOC()) {
                 tocApi.insert();
+            } else if (!hasHeadings && tocApi.hasTOC()) {
+                tocApi.remove();
             }
         }, 500);
     });
@@ -704,10 +713,55 @@ export async function launchEditor(container, docId, onBack) {
         }
     });
 
-    // --- Reference button ---
-    topBar.querySelector('#btn-ref').addEventListener('click', () => {
-        refsApi.openDialog();
+    // --- File Drag and Drop in Editor ---
+    editorWrap.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
     });
+
+    editorWrap.addEventListener('drop', async (e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                if (file.name.match(/\.(txt|md|html|json|csv)$/i)) {
+                    let confirmMessage = t('skriv.confirmFileDrop');
+                    if (confirmMessage === 'skriv.confirmFileDrop') {
+                        confirmMessage = 'Er du sikker på at du vil sette inn innholdet fra denne filen akkurat her?';
+                    }
+                    
+                    let importTitle = t('skriv.importFileTitle');
+                    if (importTitle === 'skriv.importFileTitle') importTitle = 'Sett inn fil';
+                    
+                    let btnText = t('skriv.import');
+                    if (btnText === 'skriv.import') btnText = 'Sett inn';
+                    
+                    let cancelText = t('skriv.cancel');
+                    if (cancelText === 'skriv.cancel') cancelText = 'Avbryt';
+
+                    if (await showInPageConfirm(importTitle, confirmMessage, btnText, cancelText)) {
+                        const text = await file.text();
+                        const paragraphs = text
+                            .split(/\r?\n/)
+                            .map(p => {
+                                const t = p.trim();
+                                return t ? `<p>${escapeHtml(t)}</p>` : `<p><br></p>`;
+                            })
+                            .join('');
+                        document.execCommand('insertHTML', false, paragraphs || `<p>${escapeHtml(text)}</p>`);
+                        autoSave.schedule();
+                    }
+                } else {
+                    let unsupportedText = t('skriv.unsupportedFile');
+                    if (unsupportedText === 'skriv.unsupportedFile') unsupportedText = 'Kan bare sette inn tekstfiler her';
+                    showToast(unsupportedText, { duration: 2500 });
+                }
+            }
+        }
+    });
+
 
     // --- Destroy screen API ---
     const destroyScreen = () => {
@@ -733,10 +787,14 @@ export async function launchEditor(container, docId, onBack) {
         tourApi.destroy();
         lixApi.destroy();
         argumentApi.destroy();
+        specialCharsApi.destroy();
+        insightsDrawerApi.destroy();
+        leksihjelpDictApi.destroy();
         if (germanHintApi) germanHintApi.destroy();
         leksihjelpSettingsApi.destroy();
-        leksihjelpDictApi.destroy();
-        specialCharsApi.destroy();
+        slashMenuApi.destroy();
+        dragHandleApi.destroy();
+        document.body.classList.remove('skriv-editor-active');
         leksihjelpBridge.destroy();
         counterCleanup();
 
@@ -755,6 +813,24 @@ export async function launchEditor(container, docId, onBack) {
     });
 
     // --- Export menu ---
+    
+    const darkModeBtn = topBar.querySelector('#btn-dark-mode');
+    if (darkModeBtn) {
+        darkModeBtn.addEventListener('click', () => {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+        
+        // Init theme from localstorage
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }
+
     const exportBtn = topBar.querySelector('#btn-export');
     const exportMenu = topBar.querySelector('#export-menu');
 

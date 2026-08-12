@@ -63,13 +63,13 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
 
     // --- Build dropdown panel (appended to body to avoid overflow clipping) ---
     const panel = document.createElement('div');
-    panel.className = 'hidden bg-white border border-stone-200 rounded-lg shadow-lg py-2 min-w-[240px]';
+    panel.className = 'hidden bg-white/85 dark:bg-stone-800/85 backdrop-blur-md border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg py-2 min-w-[240px]';
     panel.style.cssText = 'position: fixed; z-index: 100; max-height: 400px; overflow-y: auto;';
     document.body.appendChild(panel);
 
     /** Position the panel below the button using fixed coords. */
-    function positionPanel() {
-        const rect = button.getBoundingClientRect();
+    function positionPanel(customRect) {
+        const rect = customRect || button.getBoundingClientRect();
         panel.style.top = `${rect.bottom + 4}px`;
         // Align left edge with button, but clamp to viewport
         const left = Math.min(rect.left, window.innerWidth - 260);
@@ -84,7 +84,7 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
 
             // Toggle guide visibility
             const toggleBtn = document.createElement('button');
-            toggleBtn.className = 'block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors';
+            toggleBtn.className = 'block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors';
             toggleBtn.textContent = frameGuide.isVisible?.() ? t('skriv.frameHideGuide') : t('skriv.frameShowGuide');
             toggleBtn.addEventListener('click', () => {
                 panel.classList.add('hidden');
@@ -94,7 +94,7 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
 
             // Switch frame
             const switchBtn = document.createElement('button');
-            switchBtn.className = 'block w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 transition-colors';
+            switchBtn.className = 'block w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors';
             switchBtn.textContent = t('skriv.frameSwitchFrame');
             switchBtn.addEventListener('click', () => {
                 buildFramePickerList();
@@ -137,7 +137,7 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
             const isActive = frameGuide.getActiveFrame() === frame.id;
 
             btn.innerHTML = `
-                <div class="text-sm font-medium ${isActive ? 'text-emerald-700' : 'text-stone-700'}">
+                <div class="text-sm font-medium ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-700 dark:text-stone-300'}">
                     ${isActive ? '&#10003; ' : ''}${t(frame.labelKey)}
                 </div>
                 <div class="text-xs text-stone-400 mt-0.5">${t(frame.descKey)}</div>
@@ -219,12 +219,12 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
 
     function updateButtonState() {
         if (frameGuide.hasFrame()) {
-            button.classList.remove('text-stone-500', 'border-stone-200');
-            button.classList.add('text-emerald-700', 'border-emerald-400', 'bg-emerald-50');
+            button.classList.remove('text-stone-500', 'dark:text-stone-400', 'border-stone-200', 'dark:border-stone-600', 'hover:bg-stone-100', 'dark:hover:bg-stone-700');
+            button.classList.add('text-emerald-700', 'dark:text-emerald-400', 'border-emerald-400', 'dark:border-emerald-600', 'bg-emerald-50', 'dark:bg-emerald-900/30');
             button.title = t('skriv.frameActive');
         } else {
-            button.classList.remove('text-emerald-700', 'border-emerald-400', 'bg-emerald-50');
-            button.classList.add('text-stone-500', 'border-stone-200');
+            button.classList.remove('text-emerald-700', 'dark:text-emerald-400', 'border-emerald-400', 'dark:border-emerald-600', 'bg-emerald-50', 'dark:bg-emerald-900/30');
+            button.classList.add('text-stone-500', 'dark:text-stone-400', 'border-stone-200', 'dark:border-stone-600', 'hover:bg-stone-100', 'dark:hover:bg-stone-700');
             button.title = t('skriv.strukturTooltip');
         }
     }
@@ -238,9 +238,16 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
         panel.classList.toggle('hidden');
     }
 
+    function openDialog(customRect) {
+        buildPanel();
+        positionPanel(customRect);
+        panel.classList.remove('hidden');
+    }
+
     // Close panel when clicking outside
     function handleOutsideClick(e) {
-        if (!button.contains(e.target) && !panel.contains(e.target)) {
+        // Only close if it's not the button, not inside the panel, and panel is visible
+        if (!button.contains(e.target) && !panel.contains(e.target) && !panel.classList.contains('hidden')) {
             panel.classList.add('hidden');
         }
     }
@@ -258,5 +265,5 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
         panel.remove();
     }
 
-    return { destroy, updateButtonState };
+    return { destroy, updateButtonState, openDialog };
 }

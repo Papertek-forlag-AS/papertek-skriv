@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v72';
+const CACHE_NAME = 'skriv-v75';
 const ASSETS = [
     '/',
     '/index.html',
@@ -40,6 +40,7 @@ const ASSETS = [
     '/js/editor-core/shared/aria-live.js',
     '/js/editor-core/student/editor-toolbar.js',
     '/js/editor-core/student/text-export.js',
+    '/js/editor-core/student/find-replace.js',
     '/js/editor-core/student/toc-manager.js',
     '/js/editor-core/student/reference-manager.js',
     '/js/editor-core/student/special-chars-panel.js',
@@ -68,6 +69,7 @@ const ASSETS = [
     '/js/editor-core/student/german-exam-data.js',
     '/js/editor-core/student/german-exam-spinner.js',
     '/js/editor-core/student/german-hint-drawer.js',
+    '/js/editor-core/student/insights-drawer.js',
     '/js/editor-core/student/german-exam-svg/birthday.js',
     '/js/editor-core/student/german-exam-svg/city.js',
     '/js/editor-core/student/german-exam-svg/berlin.js',

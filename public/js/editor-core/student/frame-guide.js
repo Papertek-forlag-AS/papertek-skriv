@@ -30,7 +30,10 @@ const CSS = `
     left: 0;
     width: 300px;
     height: 100vh;
-    background: #fafaf9;
+    background: rgba(250, 250, 249, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 2px 0 10px rgba(0,0,0,0.02);
     border-right: 1px solid #e7e5e4;
     overflow-y: auto;
     z-index: 30;

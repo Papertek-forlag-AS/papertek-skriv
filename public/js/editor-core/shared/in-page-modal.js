@@ -96,7 +96,7 @@ export function showInPageConfirm(title, message, confirmText, cancelText) {
 
     return new Promise((resolve) => {
         const { overlay, close } = createOverlay(title, `
-            <div class="skriv-modal-box bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="skriv-modal-box animate-modal-in bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
                 <h3 class="text-lg font-bold text-stone-900 dark:text-stone-100 mb-2">${escapeHtml(title)}</h3>
                 <p class="text-sm text-stone-600 dark:text-stone-400 mb-6">${escapeHtml(message)}</p>
                 <div class="flex gap-3 justify-center">
@@ -141,7 +141,7 @@ export function showInPagePrompt(title, message, confirmText, cancelText, placeh
 
     return new Promise((resolve) => {
         const { overlay, close } = createOverlay(title, `
-            <div class="skriv-modal-box bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <div class="skriv-modal-box animate-modal-in bg-white dark:bg-stone-800 rounded-2xl shadow-2xl max-w-md w-full p-6">
                 <h3 class="text-lg font-bold text-stone-900 dark:text-stone-100 mb-2 text-center">${escapeHtml(title)}</h3>
                 <p class="text-sm text-stone-600 dark:text-stone-400 mb-4 text-center">${escapeHtml(message)}</p>
                 <input data-modal-input type="text" placeholder="${escapeHtml(placeholder)}"

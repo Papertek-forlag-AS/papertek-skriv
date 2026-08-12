@@ -32,12 +32,9 @@ import { isInsideNonEditableBlock, FRAME_SELECTORS } from '../shared/frame-eleme
  * @returns {Object} toolbar API with destroy(), isAdvancedMode(), onAdvancedChange(), setAdvancedMode()
  */
 export function initEditorToolbar(editor, options = {}) {
-    const skipAutoDetectAdvanced = !!options.skipAutoDetectAdvanced;
     document.execCommand('defaultParagraphSeparator', false, 'p');
 
     const container = editor.closest('#writing-env') || editor.parentElement;
-    let advancedMode = false;
-    const advancedChangeListeners = [];
 
     // --- Build toolbar DOM ---
     const toolbar = document.createElement('div');
@@ -115,9 +112,8 @@ export function initEditorToolbar(editor, options = {}) {
     toolbar.appendChild(btnH1);
     toolbar.appendChild(btnH2);
 
-    // Hide advanced buttons initially
-    const advancedBtns = [sepLists, btnBulletList, btnOrderedList, sepHeadings, btnH1, btnH2];
-    advancedBtns.forEach(el => { el.style.display = 'none'; });
+    // All buttons visible by default now
+    // Advanced mode has been removed; progressive disclosure uses slash-menu
 
     const toolbarWrapper = document.createElement('div');
     toolbarWrapper.className = 'fixed z-[300]';
@@ -132,62 +128,8 @@ export function initEditorToolbar(editor, options = {}) {
     const onDocumentMouseup = () => { toolbarMousedown = false; };
     document.addEventListener('mouseup', onDocumentMouseup);
 
-    // --- Advanced toggle (fixed in top bar, added by standalone-writer) ---
-    // The toolbar exposes API for standalone-writer to control advanced mode.
-
-    function updateAdvancedButtons() {
-        const display = advancedMode ? '' : 'none';
-        advancedBtns.forEach(el => { el.style.display = display; });
-    }
-
-    async function toggleAdvancedMode() {
-        if (advancedMode) {
-            // Check if there are headings in the editor
-            const headings = editor.querySelectorAll('h1, h2');
-            const toc = editor.querySelector('.skriv-toc');
-            if (headings.length > 0 || toc) {
-                const confirmed = await showInPageConfirm(
-                    t('skriv.advancedDisableConfirmTitle'),
-                    t('skriv.advancedDisableConfirmMessage'),
-                    t('skriv.advancedDisableConfirmYes'),
-                    t('common.cancel')
-                );
-                if (!confirmed) return;
-
-                // Convert headings to bold paragraphs with data markers for restoration
-                headings.forEach(h => {
-                    const p = document.createElement('p');
-                    const level = h.tagName.toUpperCase() === 'H1' ? '1' : '2';
-                    p.setAttribute('data-was-heading', level);
-                    p.innerHTML = `<b>${h.innerHTML}</b>`;
-                    h.parentNode.replaceChild(p, h);
-                });
-
-                // Remove TOC
-                if (toc) toc.remove();
-            }
-            advancedMode = false;
-        } else {
-            // Restore marked paragraphs back to headings
-            const markedParas = editor.querySelectorAll('p[data-was-heading]');
-            markedParas.forEach(p => {
-                const level = p.getAttribute('data-was-heading');
-                const tag = level === '1' ? 'h1' : 'h2';
-                const heading = document.createElement(tag);
-                const boldChild = p.querySelector(':scope > b');
-                if (boldChild && p.childNodes.length === 1) {
-                    heading.innerHTML = boldChild.innerHTML;
-                } else {
-                    heading.innerHTML = p.innerHTML;
-                }
-                p.parentNode.replaceChild(heading, p);
-            });
-
-            advancedMode = true;
-        }
-        updateAdvancedButtons();
-        advancedChangeListeners.forEach(fn => fn(advancedMode));
-    }
+    // --- Advanced toggle (Removed) ---
+    // All buttons are now always visible
 
     // --- Helper: find closest LI ancestor within editor ---
     function getClosestLI() {
@@ -408,6 +350,28 @@ export function initEditorToolbar(editor, options = {}) {
             // If not in a list, let Tab do default (or nothing — we don't trap Tab outside lists)
         }
 
+        // --- Backspace at the beginning of a list item to outdent ---
+        if (e.key === 'Backspace') {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount && sel.isCollapsed) {
+                const li = getClosestLI();
+                if (li) {
+                    const range = sel.getRangeAt(0);
+                    const testRange = document.createRange();
+                    testRange.setStart(li, 0);
+                    testRange.setEnd(range.startContainer, range.startOffset);
+                    
+                    const fragment = testRange.cloneContents();
+                    // Check if there is no text or meaningful elements before the caret
+                    if (fragment.textContent.length === 0 && !fragment.querySelector('img')) {
+                        e.preventDefault();
+                        document.execCommand('outdent');
+                        return;
+                    }
+                }
+            }
+        }
+
         if (e.key === 'Enter' && !e.shiftKey) {
             const sel = window.getSelection();
             if (!sel || !sel.rangeCount) return;
@@ -556,40 +520,9 @@ export function initEditorToolbar(editor, options = {}) {
         }
     }
 
-    // --- Check if document already has advanced content ---
-    function detectExistingAdvanced() {
-        const hasHeadings = editor.querySelectorAll('h1, h2').length > 0;
-        const hasToc = !!editor.querySelector('.skriv-toc');
-        const hasLists = editor.querySelectorAll('ul, ol').length > 0;
-        const hasMarkedHeadings = editor.querySelectorAll('p[data-was-heading]').length > 0;
-        const hasFrame = editor.querySelectorAll(FRAME_SELECTORS.section).length > 0;
-        if (hasHeadings || hasToc || hasLists || hasFrame) {
-            advancedMode = true;
-            updateAdvancedButtons();
-            advancedChangeListeners.forEach(fn => fn(advancedMode));
-        }
-        // Note: hasMarkedHeadings alone doesn't auto-enable advanced mode —
-        // the student turned it off deliberately. The markers just preserve the ability to restore.
-    }
-
-    // Detect after a short delay to ensure all listeners are registered.
-    // Skipped when caller opts out (e.g. German exam docs) so a seeded
-    // prompt with bullet points doesn't pull the student into advanced.
-    if (!skipAutoDetectAdvanced) {
-        setTimeout(detectExistingAdvanced, 50);
-    }
-
     return {
         destroy,
         toolbarEl: toolbar,
-        isAdvancedMode: () => advancedMode,
-        toggleAdvancedMode,
-        setAdvancedMode: (enabled) => {
-            advancedMode = enabled;
-            updateAdvancedButtons();
-            advancedChangeListeners.forEach(fn => fn(advancedMode));
-        },
-        onAdvancedChange: (fn) => { advancedChangeListeners.push(fn); },
         getBlockElement,
     };
 }

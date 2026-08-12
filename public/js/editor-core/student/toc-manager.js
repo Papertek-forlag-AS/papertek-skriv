@@ -85,7 +85,9 @@ export function initTOC(editor) {
             if (isFrameElement(child)) continue;
             const tag = child.tagName?.toUpperCase();
             if (tag === 'H1' || tag === 'H2') {
-                headings.push(child);
+                if (child.textContent.trim().length > 0) {
+                    headings.push(child);
+                }
             }
         }
 
@@ -103,10 +105,7 @@ export function initTOC(editor) {
         tocEl.appendChild(title);
 
         if (headings.length === 0) {
-            const empty = document.createElement('p');
-            empty.className = 'toc-empty';
-            empty.textContent = t('skriv.tocEmpty');
-            tocEl.appendChild(empty);
+            remove();
             return;
         }
 

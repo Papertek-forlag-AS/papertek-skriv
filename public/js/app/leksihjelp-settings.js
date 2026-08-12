@@ -223,6 +223,7 @@ export function initLeksihjelpSettings(host, bridge) {
     drawer.setAttribute('role', 'complementary');
     drawer.setAttribute('aria-labelledby', 'leksihjelp-settings-title');
     drawer.setAttribute('aria-hidden', 'true');
+    drawer.inert = true;
 
     // Active tab persists per-session so opening the drawer twice in a
     // row keeps the student where they were. Default to 'dictionary'
@@ -1036,6 +1037,7 @@ export function initLeksihjelpSettings(host, bridge) {
         isOpen = true;
         drawer.style.pointerEvents = 'auto';
         drawer.setAttribute('aria-hidden', 'false');
+        drawer.inert = false;
         // eslint-disable-next-line no-unused-expressions
         drawer.offsetWidth;
         drawer.classList.remove('translate-x-full');
@@ -1049,6 +1051,7 @@ export function initLeksihjelpSettings(host, bridge) {
         drawer.classList.remove('translate-x-0');
         drawer.classList.add('translate-x-full');
         drawer.setAttribute('aria-hidden', 'true');
+        drawer.inert = true;
         setTimeout(() => {
             if (!isOpen) drawer.style.pointerEvents = 'none';
         }, 220);

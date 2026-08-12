@@ -147,6 +147,78 @@ export async function renderDocumentList(container, onOpenDocument) {
 
     header.querySelector('#btn-hamburger').addEventListener('click', openMobileSidebar);
 
+    // --- File drag & drop import ---
+    const dragOverlay = document.createElement('div');
+    dragOverlay.className = 'fixed inset-0 z-[100] bg-emerald-900/50 backdrop-blur-sm hidden flex-col items-center justify-center pointer-events-none transition-opacity opacity-0';
+    dragOverlay.innerHTML = `
+        <div class="bg-white dark:bg-stone-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4 border-2 border-dashed border-emerald-400">
+            <svg class="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <span class="text-xl font-medium text-stone-900 dark:text-stone-100">Slipp filen her for å importere</span>
+        </div>
+    `;
+    container.appendChild(dragOverlay);
+
+    let dragCounter = 0;
+    container.addEventListener('dragenter', (e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            dragCounter++;
+            dragOverlay.classList.remove('hidden');
+            dragOverlay.classList.add('flex');
+            requestAnimationFrame(() => dragOverlay.classList.remove('opacity-0'));
+        }
+    });
+    container.addEventListener('dragover', (e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+    });
+    container.addEventListener('dragleave', (e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+            dragCounter--;
+            if (dragCounter === 0) {
+                dragOverlay.classList.add('opacity-0');
+                setTimeout(() => {
+                    if (dragCounter === 0) {
+                        dragOverlay.classList.add('hidden');
+                        dragOverlay.classList.remove('flex');
+                    }
+                }, 200);
+            }
+        }
+    });
+    container.addEventListener('drop', async (e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            dragCounter = 0;
+            dragOverlay.classList.add('opacity-0', 'hidden');
+            dragOverlay.classList.remove('flex');
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const text = await file.text();
+                let title = file.name;
+                title = title.replace(/\.[^/.]+$/, ''); // Remove extension
+                
+                const doc = await createDocument(title);
+                
+                // Simple conversion: double newlines = paragraphs. single newline = <br>
+                const paragraphs = text
+                    .split(/\r?\n\r?\n/)
+                    .filter(p => p.trim())
+                    .map(p => `<p>${escapeHtml(p.trim()).replace(/\n/g, '<br>')}</p>`)
+                    .join('');
+                
+                await saveDocument(doc.id, {
+                    html: paragraphs || `<p>${escapeHtml(text)}</p>`
+                });
+                onOpenDocument(doc.id);
+            }
+        }
+    });
+    // --------------------------------
+
     // Sidebar options
     const sidebarOptions = {
         docs,
@@ -281,7 +353,7 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
     let mainDocs = filteredDocs;
     let orphanDocs = [];
     if (folderFilter === 'all' && !query) {
-        mainDocs = filteredDocs.filter(d => d.folderIds && d.folderIds.length > 0);
+        mainDocs = filteredDocs; // Show everything in the main list
         orphanDocs = filteredDocs.filter(d => !d.folderIds || d.folderIds.length === 0);
     }
 
@@ -340,7 +412,9 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
         card.setAttribute('tabindex', '0');
         card.setAttribute('draggable', 'true');
         card.setAttribute('data-doc-id', doc.id);
-        card.className = 'group bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl p-4 mb-3 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1';
+        const isOrphan = !doc.folderIds || doc.folderIds.length === 0;
+        const orphanStyles = isOrphan ? 'border-l-4 border-l-amber-400 ' : '';
+        card.className = `group bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 ${orphanStyles}rounded-xl p-4 mb-3 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1`;
 
         const title = doc.title || t('skriv.untitled');
         const wordCount = doc.wordCount || 0;
@@ -394,10 +468,24 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
                 t('common.cancel')
             );
             if (confirmed) {
+                // Collapse animation
+                card.style.height = card.offsetHeight + 'px';
+                card.classList.add('collapse-transition');
+                void card.offsetHeight; // force reflow
+                card.style.height = '0';
+                card.style.opacity = '0';
+                card.style.margin = '0';
+                card.style.padding = '0';
+                card.style.borderWidth = '0';
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+
                 const fullDoc = await getDocument(doc.id);
                 if (fullDoc) {
                     await trashDocument(fullDoc);
                 }
+                await deleteDocument(doc.id);
+                showToast(t('skriv.trashMovedToTrash', { title }));
                 renderDocumentList(container, onOpenDocument);
             }
         });

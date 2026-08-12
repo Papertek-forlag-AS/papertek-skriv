@@ -145,6 +145,8 @@ export default {
         label: 'Språk',
     },
 
+
+
     theme: {
         toggle: 'Bytt tema',
         light: 'Lyst tema',
@@ -278,22 +280,7 @@ export default {
         ariaLabel: 'Avsnittskart — visuell oversikt over tekstens struktur',
     },
 
-    image: {
-        button: 'Bilde',
-        captionPlaceholder: 'Bildetekst...',
-        tooLarge: 'Bildet er for stort (maks 5 MB)',
-        invalidType: 'Ugyldig filtype. Bruk PNG, JPEG eller GIF.',
-        deleted: 'Bilde fjernet',
-        alignLeft: 'Venstre',
-        alignCenter: 'Midtstilt',
-        alignRight: 'Høyre',
-        sizeSmall: 'Liten',
-        sizeMedium: 'Medium',
-        sizeFull: 'Full',
-        shadow: 'Skygge',
-        delete: 'Slett',
-        dragToMove: 'Dra for å flytte',
-    },
+
 
     focus: {
         exit: 'Avslutt fokusmodus',
@@ -427,6 +414,7 @@ export default {
         deleteConfirmYes: 'Ja, slett',
         saved: 'Lagret',
         saving: 'Lagrer...',
+        saveError: 'Kunne ikke lagre. Prøv igjen.',
         placeholder: 'Begynn å skrive her...',
         backToDocuments: 'Mine dokumenter',
         downloadTxt: 'Last ned .txt',
@@ -440,6 +428,9 @@ export default {
         },
         exportTitle: 'Eksporter',
         toolsMenu: 'Verktøy',
+        insightsTitle: 'Gjennomgang',
+        insightsTools: 'Verktøy',
+        insightsAnalysis: 'Analyse',
 
         // Advanced toggle + TOC
         advancedToggle: 'Avansert',
@@ -547,6 +538,7 @@ export default {
             one: 'Dokumentet "{{title}}" flyttes til papirkurven. Du kan gjenopprette det innen {{days}} dag.',
             other: 'Dokumentet "{{title}}" flyttes til papirkurven. Du kan gjenopprette det innen {{days}} dager.',
         },
+        deleteConfirmYesTrash: 'Ja, flytt til papirkurv',
         trashCount: {
             one: '{{count}} i papirkurven',
             other: '{{count}} i papirkurven',
@@ -554,6 +546,7 @@ export default {
     },
 
     image: {
+        button: 'Bilde',
         toolbarTitle: 'Bildeverktøy',
         alignLeft: 'Venstrejuster',
         alignCenter: 'Midtstill',

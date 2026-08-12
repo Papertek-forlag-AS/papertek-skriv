@@ -154,6 +154,8 @@ export default {
         label: 'Language',
     },
 
+
+
     theme: {
         toggle: 'Switch theme',
         light: 'Light mode',
@@ -287,22 +289,7 @@ export default {
         ariaLabel: 'Paragraph map — visual overview of text structure',
     },
 
-    image: {
-        button: 'Image',
-        captionPlaceholder: 'Caption...',
-        tooLarge: 'Image is too large (max 5 MB)',
-        invalidType: 'Invalid file type. Use PNG, JPEG or GIF.',
-        deleted: 'Image removed',
-        alignLeft: 'Left',
-        alignCenter: 'Center',
-        alignRight: 'Right',
-        sizeSmall: 'Small',
-        sizeMedium: 'Medium',
-        sizeFull: 'Full',
-        shadow: 'Shadow',
-        delete: 'Delete',
-        dragToMove: 'Drag to move',
-    },
+
 
     focus: {
         exit: 'Exit focus mode',
@@ -436,6 +423,7 @@ export default {
         deleteConfirmYes: 'Yes, delete',
         saved: 'Saved',
         saving: 'Saving...',
+        saveError: 'Could not save. Please try again.',
         placeholder: 'Start writing here...',
         backToDocuments: 'My documents',
         downloadTxt: 'Download .txt',
@@ -452,6 +440,9 @@ export default {
         },
         exportTitle: 'Export',
         toolsMenu: 'Tools',
+        insightsTitle: 'Insights',
+        insightsTools: 'Tools',
+        insightsAnalysis: 'Analysis',
 
         // Advanced toggle + TOC
         advancedToggle: 'Advanced',
@@ -567,6 +558,7 @@ export default {
     },
 
     image: {
+        button: 'Image',
         toolbarTitle: 'Image tools',
         alignLeft: 'Align left',
         alignCenter: 'Align center',

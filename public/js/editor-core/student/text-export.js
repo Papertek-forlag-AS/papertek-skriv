@@ -540,6 +540,24 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
     // --- Paragraph handling ---
     if (tag === 'P') {
         state.isFirstLineOfParagraph = true;
+
+        // Widow/Orphan control: Estimate paragraph height.
+        // If only 1-2 lines fit on this page, push the entire paragraph to the next page.
+        const rawText = el.textContent || '';
+        if (rawText.trim()) {
+            const fontSize = 12;
+            const lineHeight = fontSize * 0.352 * 1.5;
+            doc.setFont('times', 'normal');
+            doc.setFontSize(fontSize);
+            const lines = doc.splitTextToSize(rawText, state.contentWidth);
+            const estimatedHeight = lines.length * lineHeight;
+            const remainingSpace = (state.pageHeight - state.marginBottom) - state.y;
+
+            if (estimatedHeight > remainingSpace && remainingSpace < lineHeight * 2.5) {
+                doc.addPage();
+                state.y = state.marginTop;
+            }
+        }
     }
 
     // --- List handling ---
@@ -609,17 +627,35 @@ function renderHtmlNodeToPDF(doc, node, fmt, state) {
     if (tag === 'BLOCKQUOTE') {
         const savedX = state.x;
         const savedContentWidth = state.contentWidth;
-        state.x = state.baseX + 10;
-        state.contentWidth = savedContentWidth - 15;
+        const startY = state.y;
+        const startPage = doc.internal.getCurrentPageInfo().pageNumber;
+
+        state.x = state.baseX + 8;
+        state.contentWidth = savedContentWidth - 12;
 
         const newFmt = { ...fmt, italic: true };
         for (const child of node.childNodes) {
             renderHtmlNodeToPDF(doc, child, newFmt, state);
         }
 
+        const endY = state.y;
+        const endPage = doc.internal.getCurrentPageInfo().pageNumber;
+
+        if (startPage === endPage && endY > startY) {
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(1);
+            doc.line(state.baseX + 3, startY, state.baseX + 3, endY);
+        }
+
         state.x = savedX;
         state.contentWidth = savedContentWidth;
         state.y += 3;
+        return;
+    }
+
+    // --- Table handling ---
+    if (tag === 'TABLE') {
+        renderTableToPDF(doc, el, fmt, state);
         return;
     }
 
@@ -775,4 +811,75 @@ function renderReferencesToPDF(doc, refEl, state) {
 
         state.y += 1; // Small gap between entries
     });
+}
+
+/**
+ * Render an HTML table into the PDF natively.
+ */
+function renderTableToPDF(doc, tableEl, fmt, state) {
+    const rows = Array.from(tableEl.querySelectorAll('tr'));
+    if (rows.length === 0) return;
+
+    // Calculate column widths
+    let numCols = 0;
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('td, th');
+        numCols = Math.max(numCols, cols.length);
+    });
+    if (numCols === 0) return;
+
+    const colWidth = state.contentWidth / numCols;
+    const padding = 3;
+    const fontSize = 10;
+    const lineHeight = fontSize * 0.352 * 1.5;
+
+    state.y += 5; // space before table
+
+    rows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td, th'));
+        let maxRowHeight = lineHeight + (padding * 2);
+
+        // Pre-calculate heights
+        const cellData = cells.map(cell => {
+            const isHeader = cell.tagName.toUpperCase() === 'TH';
+            doc.setFont('times', isHeader ? 'bold' : 'normal');
+            doc.setFontSize(fontSize);
+            const textLines = doc.splitTextToSize(cell.textContent.trim(), colWidth - (padding * 2));
+            const h = (textLines.length * lineHeight) + (padding * 2);
+            maxRowHeight = Math.max(maxRowHeight, h);
+            return { textLines, isHeader };
+        });
+
+        // Page break if row doesn't fit
+        if (state.y + maxRowHeight > state.pageHeight - state.marginBottom) {
+            doc.addPage();
+            state.y = state.marginTop;
+        }
+
+        let currentX = state.x;
+        cellData.forEach((cell) => {
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.2);
+            if (cell.isHeader) {
+                doc.setFillColor(245, 245, 245);
+                doc.rect(currentX, state.y, colWidth, maxRowHeight, 'FD');
+            } else {
+                doc.rect(currentX, state.y, colWidth, maxRowHeight, 'S');
+            }
+
+            doc.setFont('times', cell.isHeader ? 'bold' : 'normal');
+            doc.setFontSize(fontSize);
+            doc.setTextColor(30, 30, 30);
+            let textY = state.y + padding + (lineHeight * 0.75); // baseline adjustment
+            cell.textLines.forEach(line => {
+                doc.text(line, currentX + padding, textY);
+                textY += lineHeight;
+            });
+            currentX += colWidth;
+        });
+
+        state.y += maxRowHeight;
+    });
+
+    state.y += 5; // space after table
 }
