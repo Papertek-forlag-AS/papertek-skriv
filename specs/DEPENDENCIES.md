@@ -1,6 +1,6 @@
 # Dependencies
 
-> Last updated: 2026-08-22
+> Last updated: 2026-08-23
 
 Skriv has no package manager, build step, or runtime CDN dependency. Third-party browser distributions are pinned, checked into `public/`, and included in the service-worker inventory.
 
@@ -48,9 +48,17 @@ app/document-list.js
 ├── app/document-search.js
 ├── app/word-count-stats.js
 ├── app/sidebar.js
+├── app/cleanup-desk.js
 ├── app/folder-picker.js
 ├── app/folder-store.js
 └── shared/{html-escape,word-counter,in-page-modal,toast-notification,i18n,theme}.js
+
+app/cleanup-desk.js
+├── app/document-store.js
+├── app/trash-store.js
+├── app/folder-store.js
+├── app/folder-picker.js
+└── shared/{i18n,html-escape,in-page-modal,toast-notification,aria-live}.js
 
 app/sidebar.js
 ├── app/folder-store.js

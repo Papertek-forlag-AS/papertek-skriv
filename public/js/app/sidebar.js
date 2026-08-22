@@ -30,6 +30,7 @@ const CHEVRON_SVG = '<svg class="w-3 h-3 transition-transform" fill="none" strok
  * @param {string} options.schoolYear - Active school year label
  * @param {Function} options.onFilterChange - Called with new filter value
  * @param {Function} options.onSchoolYearChange - Called with new school year label
+ * @param {Function} [options.onLibraryChanged] - Called after a folder mutation changes document membership
  * @returns {{ destroy: Function, update: Function }}
  */
 export function createSidebar(container, options) {
@@ -499,6 +500,7 @@ export function createSidebar(container, options) {
                     state.activeFilter = 'all';
                     state.onFilterChange('all');
                 }
+                await state.onLibraryChanged?.({ type: 'folder-deleted', folderId: folder.id });
                 render();
             }
         }, true);

@@ -25,14 +25,42 @@ test('portable editor shortcuts do not retain a hidden advanced mode', async () 
     assert.doesNotMatch(source, /isAdvancedMode|formatBlock\('h3'\)/);
 });
 
-test('home uses one document list and an accessible mobile folder drawer', async () => {
+test('home restores the cleanup desk without duplicating the canonical document list', async () => {
     const source = await readSource('../public/js/app/document-list.js');
 
-    assert.doesNotMatch(source, /layout\.appendChild\(cleanupDeskEl\)/);
+    assert.match(source, /initCleanupDesk\(/);
+    assert.match(source, /layout\.appendChild\(cleanupDesk\.desktopElement\)/);
+    assert.match(source, /listEl\.appendChild\(cleanupDesk\.compactElement\)/);
+    assert.match(source, /getCleanupDocuments\(docs, currentSchoolYear\)/);
+    assert.doesNotMatch(source, /getCleanupDocuments\(filtered/);
     assert.match(source, /aria-controls="mobile-folder-navigation"/);
     assert.match(source, /mobileSidebar\.inert = true/);
     assert.match(source, /event\.key === 'Escape'/);
     assert.match(source, /return \{ destroy: destroyScreen \}/);
+});
+
+test('cleanup title work and trash navigation preserve focus and screen ownership', async () => {
+    const [cleanup, list, main, writer, sidebar] = await Promise.all([
+        readSource('../public/js/app/cleanup-desk.js'),
+        readSource('../public/js/app/document-list.js'),
+        readSource('../public/js/app/main.js'),
+        readSource('../public/js/app/standalone-writer.js'),
+        readSource('../public/js/app/sidebar.js'),
+    ]);
+
+    assert.match(cleanup, /onOpenDocument\(doc\.id, \{ focusTitle: needsTitle \}\)/);
+    assert.match(main, /\?focus=title/);
+    assert.match(writer, /options\.initialFocus === 'title'/);
+    assert.match(writer, /titleInput\.focus\(\)/);
+
+    assert.match(list, /window\.location\.hash = '#\/trash'/);
+    assert.match(main, /hash === '#\/trash'/);
+    assert.match(main, /renderTrashView\(app/);
+    assert.match(list, /owner\.destroyed \|\| renderVersion !== owner\.version/);
+    assert.match(list, /if \(!isStale\(\)\) await refresh\(\)/);
+    assert.match(list, /fileDragController\.abort\(\)/);
+    assert.match(list, /onLibraryChanged:/);
+    assert.match(sidebar, /state\.onLibraryChanged\?\./);
 });
 
 test('limited assistance is never presented as a secure exam environment', () => {

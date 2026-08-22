@@ -4,7 +4,7 @@
  */
 
 const CACHE_PREFIX = 'skriv-v';
-const CACHE_NAME = 'skriv-v77';
+const CACHE_NAME = 'skriv-v78';
 const ASSETS = [
     '/',
     '/index.html',
@@ -19,6 +19,7 @@ const ASSETS = [
     '/js/app/standalone-writer.js',
     '/js/app/document-store.js',
     '/js/app/document-list.js',
+    '/js/app/cleanup-desk.js',
     '/js/app/document-search.js',
     '/js/app/trash-store.js',
     '/js/app/word-count-stats.js',

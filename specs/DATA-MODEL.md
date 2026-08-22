@@ -1,6 +1,6 @@
 # Data Model
 
-> Last updated: 2026-08-22
+> Last updated: 2026-08-23
 
 Skriv is local-first. Documents, trash, folders, and version snapshots remain in the browser unless the student explicitly downloads a backup or an export. There is no account or server-side copy.
 
@@ -178,5 +178,5 @@ The current minimal editor does not mount progress or tour modules automatically
 
 ## Other local storage
 
-- **Service Worker cache:** current static cache is `skriv-v77`. Critical shell/modules/frames are precached atomically. Vendored Leksihjelp code, styles, metadata, and the compact NB fallback are best-effort precached; larger language data is cache-on-use through the same-origin cache-first fetch handler.
+- **Service Worker cache:** current static cache is `skriv-v78`. Critical shell/modules/frames are precached atomically. Vendored Leksihjelp code, styles, metadata, and the compact NB fallback are best-effort precached; larger language data is cache-on-use through the same-origin cache-first fetch handler.
 - **Images:** compressed images are stored as base64 data URIs inside document HTML; there is no separate image store.

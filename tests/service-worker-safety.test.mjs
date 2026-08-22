@@ -77,16 +77,16 @@ test('service worker install waits without forcing activation', async () => {
 
 test('service worker activation deletes only older Skriv caches and claims clients', async () => {
     const worker = await loadWorker({
-        cacheNames: ['skriv-v75', 'skriv-v76', 'skriv-v77', 'another-app-cache'],
+        cacheNames: ['skriv-v75', 'skriv-v76', 'skriv-v77', 'skriv-v78', 'another-app-cache'],
     });
 
     await dispatchExtendable(worker.handlers.get('activate'));
-    assert.deepEqual(worker.deletedCaches, ['skriv-v75', 'skriv-v76']);
+    assert.deepEqual(worker.deletedCaches, ['skriv-v75', 'skriv-v76', 'skriv-v77']);
     assert.equal(worker.claimCalls, 1);
 });
 
 test('service worker serves pinned release assets from cache before the network', async () => {
-    const cachedResponse = { source: 'skriv-v77' };
+    const cachedResponse = { source: 'skriv-v78' };
     const worker = await loadWorker({ cachedResponse });
     let responsePromise;
 

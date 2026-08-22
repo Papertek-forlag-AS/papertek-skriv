@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-08-22
+> Last updated: 2026-08-23
 
 ## Product boundary
 
@@ -31,7 +31,7 @@ public/
 ├── index.html                  SPA shell
 ├── whitepaper.html             transparency and portability notes
 ├── manifest.json               PWA manifest
-├── sw.js                       Service Worker, current cache `skriv-v77`
+├── sw.js                       Service Worker, current cache `skriv-v78`
 ├── css/main.css                app/editor CSS and responsive rules
 ├── icons/                      install icon
 ├── vendor/                     pinned Tailwind and jsPDF distributions
@@ -56,6 +56,7 @@ public/
 ```text
 app/main.js
 ├── app/document-list.js
+│   └── app/cleanup-desk.js
 ├── app/german-exam-route.js
 └── app/standalone-writer.js
     ├── editor-core/student/*
@@ -80,7 +81,7 @@ The dependency graph is a DAG. Storage access to `skriv-documents` is centralize
 
 ## PWA and update safety
 
-The current cache is `skriv-v77`.
+The current cache is `skriv-v78`.
 
 1. The service worker atomically precaches the critical app shell and full ES-module graph.
 2. Vendored Leksihjelp code, styles, metadata, and the compact NB fallback are cached best-effort per file. Larger language data is cached on first use by the same-origin fetch handler so installing the word processor does not eagerly download every language.
@@ -104,5 +105,6 @@ The current cache is `skriv-v77`.
 | Route | Screen | Entry point |
 |---|---|---|
 | `#/` | Document library | `document-list.js` |
+| `#/trash` | Recoverable trash | `document-list.js` |
 | `#/doc/{id}` | Editor | `standalone-writer.js` |
 | `#/tysk` | German task spinner | `german-exam-route.js` |

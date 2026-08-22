@@ -77,8 +77,9 @@ const WRITING_LANGUAGE_TAGS = {
  * @param {HTMLElement} container - The app container element
  * @param {string} docId - The document ID to load
  * @param {Function} onBack - Called when user navigates back to document list
+ * @param {{initialFocus?: 'title'|'editor'}} [options] - Initial caret target
  */
-export async function launchEditor(container, docId, onBack) {
+export async function launchEditor(container, docId, onBack, options = {}) {
     const doc = await getDocument(docId);
     if (!doc) {
         console.error('Document not found:', docId);
@@ -989,8 +990,13 @@ export async function launchEditor(container, docId, onBack) {
     `;
     document.head.appendChild(style);
 
-    // Focus the editor
-    editor.focus();
+    // Cleanup-desk title work opens at the title; normal document opens put the
+    // caret straight into the writing surface.
+    if (options.initialFocus === 'title') {
+        titleInput.focus();
+    } else {
+        editor.focus();
+    }
 
     return {
         destroy: destroyScreen

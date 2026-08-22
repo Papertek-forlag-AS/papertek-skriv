@@ -6,7 +6,7 @@
 import { getCurrentLanguage, initI18n, t } from '../editor-core/shared/i18n.js';
 import { initTheme } from '../editor-core/shared/theme.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
-import { renderDocumentList } from './document-list.js';
+import { renderDocumentList, renderTrashView } from './document-list.js';
 import { launchEditor } from './standalone-writer.js';
 import { purgeExpired } from './trash-store.js';
 import { initServiceWorker } from './sw-manager.js';
@@ -78,19 +78,27 @@ async function init() {
         const hash = window.location.hash || '#/';
 
         if (hash.startsWith('#/doc/')) {
-            const docId = hash.slice(6);
+            const [docId, queryString = ''] = hash.slice(6).split('?');
+            const routeParams = new URLSearchParams(queryString);
             const screen = await launchEditor(app, docId, () => {
                 window.location.hash = '#/';
-            });
+            }, { initialFocus: routeParams.get('focus') === 'title' ? 'title' : 'editor' });
             currentScreen = screen;
             renderedHash = hash;
         } else if (hash === '#/tysk') {
             const screen = await renderGermanExamScreen(app);
             currentScreen = screen;
             renderedHash = hash;
+        } else if (hash === '#/trash') {
+            const screen = await renderTrashView(app, () => {
+                window.location.hash = '#/';
+            });
+            currentScreen = screen;
+            renderedHash = hash;
         } else {
-            const screen = await renderDocumentList(app, (docId) => {
-                window.location.hash = `#/doc/${docId}`;
+            const screen = await renderDocumentList(app, (docId, options = {}) => {
+                const focus = options.focusTitle ? '?focus=title' : '';
+                window.location.hash = `#/doc/${docId}${focus}`;
             });
             currentScreen = screen;
             renderedHash = hash;

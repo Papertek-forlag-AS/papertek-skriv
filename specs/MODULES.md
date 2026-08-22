@@ -1,6 +1,6 @@
 # Module Registry
 
-> Last updated: 2026-08-22
+> Last updated: 2026-08-23
 
 This registry covers every authored ES module, classic-script integration, vendored module group, locale, and writing frame. Mounted feature and screen initializers return a teardown-capable API unless a row explicitly describes a one-shot action or pure data helper. App-wide boot initializers such as i18n, theme, and service-worker registration are one-shot.
 
@@ -8,8 +8,9 @@ This registry covers every authored ES module, classic-script integration, vendo
 
 | Module | Public exports | Direct dependencies | Purpose |
 | --- | --- | --- | --- |
+| `cleanup-desk.js` | `getCleanupReasons`, `getCleanupDocuments`, `initCleanupDesk` | document/folder/trash stores, folder picker, shared i18n/escaping/modal/toast/ARIA live | Responsive pedagogical workspace for documents missing a title or folder, with explicit open/assign/trash actions and drag enhancement |
 | `db.js` | `DB_NAME`, `DB_VERSION`, `normalizeFolderName`, `getSchoolYearLabel`, `upgradeSkrivDatabase`, `openSkrivDatabase`, `closeSkrivDatabase` | none | Single opener, migration/repair path, blocked/version-change safety for `skriv-documents` |
-| `document-list.js` | `renderDocumentList` | document/trash/search/stats/sidebar/folder modules; shared UI/i18n/theme helpers | Two-column library, search, trash, mobile folder drawer, interface language, create/open actions |
+| `document-list.js` | `renderDocumentList`, `renderTrashView` | cleanup desk, document/trash/search/stats/sidebar/folder modules; shared UI/i18n/theme helpers | Responsive library with three-column desktop layout, one canonical list, routed trash screen, mobile folder drawer, interface language, and create/open actions |
 | `document-search.js` | `createSearchBar`, `filterDocuments` | i18n | Debounced library search and keyboard shortcut |
 | `document-store.js` | `DOCUMENT_WRITING_LANGUAGES`, `normalizeWritingLanguage`, `getDocumentWritingLanguage`, `createDocument`, `getDocument`, `saveDocument`, `listDocuments`, `deleteDocument` | `db`, `folder-store`, i18n | Document CRUD and per-document writing-language compatibility |
 | `folder-picker.js` | `createFolderPicker`, `createFolderBadges` | `folder-store`, `school-level`, i18n, HTML escaping | Multi-folder assignment picker and badges |

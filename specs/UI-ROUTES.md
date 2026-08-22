@@ -1,6 +1,6 @@
 # UI & Routes
 
-> Last updated: 2026-08-22
+> Last updated: 2026-08-23
 
 ## Routing
 
@@ -9,6 +9,7 @@
 | Hash | Screen | Module | Notes |
 |---|---|---|---|
 | `#/` | Document library | `document-list.js` | Default route |
+| `#/trash` | Recoverable trash | `document-list.js` | Soft-deleted documents and permanent-delete controls |
 | `#/doc/{id}` | Editor | `standalone-writer.js` | One local document |
 | `#/tysk` | German task spinner | `german-exam-route.js` | Tysk 1/2 practice prompts; not a locked exam environment |
 
@@ -19,7 +20,8 @@ App start
 #/
 ├── new text → create in IndexedDB → #/doc/{id}
 ├── document card → #/doc/{id}
-├── trash button → inline trash view
+├── cleanup title action → #/doc/{id}?focus=title → title field focused
+├── trash button → #/trash → back → #/
 └── German practice → #/tysk → pick task → German document → #/doc/{id}
 
 #/doc/{id}
@@ -29,7 +31,7 @@ App start
 
 ## Document library (`#/`)
 
-The desktop layout has two columns: folder sidebar and one canonical document list. The former cleanup-desk/duplicate orphan column is not rendered. Unfiled documents stay in the main list and are reachable through the “Uten mappe” sidebar filter.
+At 1024 px and wider, the desktop layout has three columns: folder sidebar, a narrow cleanup desk, and one canonical document list. The cleanup desk is a pedagogical workspace rather than a second library: it shows every document in the selected school year that has a blank title or no folder. Search and folder filters never hide cleanup work. Unfiled documents also stay in the main list and remain reachable through the folder-specific “Uten mappe” sidebar filter.
 
 ### Header
 
@@ -64,9 +66,19 @@ System folders are filtered by selected school level unless they contain documen
 - Cards may be dragged to a sidebar folder
 - Soft-delete action moves a document to the 30-day trash
 
+### Cleanup desk
+
+- A document remains on the desk while its title is blank/whitespace or its folder list is empty
+- Each card states “Mangler tittel”, “Mangler mappe”, or both; color is not the only signal
+- Opening the document is the title-fixing path; missing folders have an explicit picker
+- Each card has an explicit, confirmed soft-delete action; dragging to a folder or trash is an enhancement
+- The count and contents come from all documents in the selected school year, independently of library search/folder filters
+- Resolving the final item leaves a persistent green “Alt ryddig!” reward state instead of hiding the desk
+- Actions are real keyboard-operable buttons, changes use a polite live announcement, and touch targets are at least 44 px
+
 ### Mobile
 
-Below 768 px the sidebar becomes an overlay navigation drawer. The hamburger exposes `aria-expanded`/`aria-controls`; the background becomes inert while open; Escape, selection, or backdrop closes it and restores focus.
+Below 768 px the sidebar becomes an overlay navigation drawer. The hamburger exposes `aria-expanded`/`aria-controls`; the background becomes inert while open; Escape, selection, or backdrop closes it and restores focus. Below 1024 px the cleanup desk becomes an expandable section above search and the canonical list; its all-tidy reward remains visible as a compact strip.
 
 ## Editor (`#/doc/{id}`)
 
