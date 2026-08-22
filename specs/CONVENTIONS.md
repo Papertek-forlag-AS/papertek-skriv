@@ -1,100 +1,102 @@
 # Conventions
 
-> Last updated: 2026-02-23
+> Last updated: 2026-08-22
 
-## Module pattern
+## Feature lifecycle
 
-Every feature module follows this pattern:
+Editor features expose a named `init*()` function and return an API containing `destroy()`:
 
 ```js
-// student/my-feature.js
-
-import { t } from '../shared/i18n.js';
-
-/**
- * Initialize the feature.
- * @param {HTMLElement} editor - The contenteditable element
- * @param {Object} [options] - Optional callbacks
- * @returns {{ destroy: Function, ...api }}
- */
 export function initMyFeature(editor, options = {}) {
-    // Setup: attach listeners, create DOM elements
-
     function destroy() {
-        // Teardown: remove listeners, remove DOM elements
+        // remove owned DOM, listeners, timers, observers, and pending work
     }
 
-    return { destroy, /* ...public API */ };
+    return { destroy };
 }
 ```
 
-**Rules:**
-1. Export a named `init*()` function (not default export)
-2. Return an object with at least `destroy()`
-3. `destroy()` must fully clean up: remove listeners, remove injected DOM, clear timers
-4. Accept the editor element as first param
-5. Accept an options object for callbacks (`onSave`, `onInsert`, etc.)
+- One feature lives in one kebab-case file.
+- `destroy()` is idempotent where practical and owns every resource created by `init*()`.
+- Screen APIs may have an asynchronous `destroy()`. The router must `await` it before replacing the screen.
+- A failed final editor save rejects teardown; navigation is cancelled and the original URL/screen remains active.
+- Pure data/storage modules may export direct functions instead of an initializer.
 
 ## Naming
 
-| Thing            | Convention         | Example                      |
-|----------------- |------------------- |----------------------------- |
-| Files            | kebab-case         | `word-frequency.js`          |
-| Export functions  | camelCase          | `initWordFrequency`          |
-| Init functions   | `init` + PascalCase| `initEditorToolbar`          |
-| Constants        | UPPER_SNAKE        | `EDITOR_SEL`, `DB_NAME`     |
-| CSS classes      | Tailwind utilities  | `text-stone-500 px-4 py-2`  |
-| i18n keys        | dot.separated      | `radar.button`, `skriv.saved`|
-| Frame files      | kebab-case .md     | `droefting.md`               |
+| Thing | Convention | Example |
+|---|---|---|
+| File | kebab-case | `word-frequency.js` |
+| Export | camelCase | `openSkrivDatabase` |
+| Initializer | `init` + PascalCase | `initEditorToolbar` |
+| Constant | UPPER_SNAKE_CASE | `DB_VERSION` |
+| CSS class | Tailwind utility or `skriv-*` custom class | `text-stone-500`, `skriv-sidebar` |
+| i18n key | dot-separated namespace | `review.feedbackDesc` |
+| Frame | kebab-case Markdown | `reflekterende-tekst.md` |
 
-## Import rules
+## Import boundaries
 
-1. **shared/ never imports from student/ or app/.** This is a hard boundary.
-2. **student/ may import from shared/ and from other student/ modules.**
-3. **app/ may import from anywhere** below it.
-4. **No circular imports.** The dependency graph must remain a DAG.
-5. **CDN globals** (jsPDF, FloatingUI) are accessed via `window` — never imported.
-6. **Vendored leksihjelp code** (`public/js/leksihjelp/`) is loaded as classic
-   `<script>` tags in `index.html`, not via ES module imports. It publishes
-   to `window.__lexi*` and Skriv's modules read those globals through
-   `app/leksihjelp-bridge.js` — never directly. **Do not hand-edit anything
-   under `public/js/leksihjelp/`** — changes happen upstream in
-   `Papertek-forlag-AS/leksihjelp` and are pulled in via a sync script
-   (see `docs/leksihjelp-integration.md`).
+1. `editor-core/shared/` never imports from `student/` or `app/`.
+2. `editor-core/student/` may import from `shared/`, its own layer, `config.js`, and `editor-core/vendor/`.
+3. `app/` may orchestrate every lower layer.
+4. Circular imports are forbidden; update `DEPENDENCIES.md` when an edge changes.
+5. Optional editor review tools use literal dynamic imports so the service-worker asset audit can discover them.
+6. Floating UI is imported from local ESM files. The locally vendored jsPDF UMD exposes `window.jspdf`; guard that global before use.
+7. `public/js/leksihjelp/` is generated from the upstream Leksihjelp repository. Do not hand-edit it. It is loaded as ordered classic scripts and accessed through `app/leksihjelp-bridge.js` plus `leksihjelp-loader.js`.
 
-## i18n
+## Localization and language
 
-- All user-visible strings must use `t('key')` from `shared/i18n.js`
-- Translation keys are nested: `section.key` (e.g., `skriv.saved`, `radar.button`)
-- New keys must be added to all three locale files: `nb.js`, `nn.js`, `en.js`
-- Pluralization uses `t('key', { count: n })` — rules defined per language
+- Every visible string uses `t('key')`; add each key to `nb.js`, `nn.js`, and `en.js`.
+- Bokmål is the predictable first-run interface language. A visible selector persists explicit changes under `skriv_language`.
+- Interface language and document writing language are separate concepts.
+- A document writing-language change must update the editor `lang`, native spellcheck, Leksihjelp bridge, special characters, frame language, and persisted document state.
+- Plural strings use `t(key, { count })` and plural objects in locale files.
+- Pedagogical metrics must use cautious language: observations/support, not grading or authoritative assessment.
+- “Limited assistance” must never be presented as a secure exam mode or locked browser.
 
-## Service Worker updates
+## Storage safety
 
-When adding or removing a JS module or static asset:
-1. Add/remove the path from the `ASSETS` array in `sw.js`
-2. Bump the cache version (e.g. `skriv-v17` → `skriv-v18`)
+- All `skriv-documents` access goes through `app/db.js`; never add a second `indexedDB.open('skriv-documents', ...)` implementation.
+- Schema migrations and post-open repairs must be idempotent and preserve recoverable legacy associations.
+- Autosaves are serialized. A feature calls `schedule()` after content changes and awaits `flush()`/`destroy()` before destructive lifecycle events.
+- A database `versionchange` participates in the same awaited editor-flush event as an app update before closing the connection.
+- Soft delete keeps version snapshots. Permanent delete, empty trash, and expiry purge remove the associated snapshots.
+- Backup restore is merge-only: it must validate before writes, never overwrite a local collision, remap relationships, and be safe to retry.
+- Browser-profile IndexedDB is not durable backup media. UI and documentation must continue to disclose the `.skriv` backup option.
 
-## Styling
+## Service-worker changes
 
-- Use Tailwind utility classes for all new UI
-- Custom CSS goes in `<style>` block in `index.html` only when Tailwind can't express it
-- Color palette: emerald (#059669) primary, stone grays for text/borders
-- Responsive breakpoints: 768px (tablet), 480px (phone)
+When adding, removing, or renaming a runtime asset:
 
-## Accessibility (a11y)
+1. Update `ASSETS` or the managed Leksihjelp inventory in `sw.js`.
+2. Bump `CACHE_NAME`.
+3. Update the current cache version in `ARCHITECTURE.md` and `DATA-MODEL.md`.
+4. Run the offline closure test so all static and dynamic module imports exist in the cache.
 
-- **Modals:** All modals must have `role="dialog"`, `aria-modal="true"`, `aria-labelledby` pointing to a title element, focus trap (Tab/Shift+Tab cycle), and Escape to close. Focus is restored to the triggering element on close.
-- **Toolbars:** Use `role="toolbar"` with `aria-label`. Each button needs `aria-label` describing its action. Toggle buttons use `aria-pressed="true/false"`.
-- **Lists:** Document card lists use `role="list"` / `role="listitem"`. Each card gets an `aria-label` summarizing title, word count, and last edit time.
-- **Announcements:** Use `announce(message)` from `aria-live.js` for dynamic status updates (saves, search results, toast content) so screen readers pick them up.
-- **Skip link:** `index.html` has a skip-to-content link targeting `#app` (visible on focus).
-- **Landmarks:** `<main id="app" role="main">` wraps the application content.
-- **Delete buttons:** Always visible (not hover-only `opacity-0`) to remain keyboard-accessible. Use subtle color (`text-stone-300`) instead of hiding.
+Never call `skipWaiting()` during install. A worker waits until an explicit update action completes all registered `skriv:before-app-reload` promises. Fetches for pinned same-origin release assets are cache-first.
 
-## Frame Markdown format
+## Styling and responsive UI
 
-Writing frames in `public/frames/` follow this structure:
+- Use Tailwind utilities for local layout; put reusable or stateful rules in `public/css/main.css`.
+- Primary palette: emerald with stone neutrals.
+- Main breakpoints: 768 px and 480 px.
+- Pointer targets on coarse/touch devices should be at least 44 px.
+- Respect `prefers-reduced-motion`.
+- The mobile frame guide overlays the editor; it must not leave a desktop-width content offset.
+
+## Accessibility
+
+- Modals: `role="dialog"`, `aria-modal="true"`, labelled title, Escape, focus trap, and focus restoration.
+- Toolbars: `role="toolbar"`, localized labels, roving tab stop, arrow/Home/End navigation, Escape back to the editor.
+- Drawers: expose expanded state, make hidden content inert, and restore a usable focus target when closed.
+- Save status uses a polite live status region.
+- Document cards use list semantics and keyboard activation.
+- Delete actions stay visible and have document-specific accessible names.
+- The skip link targets the `#app` main landmark.
+
+## Frame Markdown
+
+Frames under `public/frames/{nb,nn}/` use front matter followed by sections:
 
 ```markdown
 ---
@@ -105,19 +107,10 @@ sections: 4
 
 # Section title
 
-> Instruction text for the student
+> Instruction for the student
 
-- Bullet point guidance
+- Guidance or sentence starter
 ```
 
-Parsed by `frame-parser.js` into: `{ name, metadata, sections[] }`.
-
-## Screen routing lifecycle
-
-App-level screens (e.g. `standalone-writer.js`, `document-list.js`, `german-exam-route.js`) loaded by the router in `main.js` must implement the destroy lifecycle to prevent memory leaks and duplicate global listeners (e.g. `document` or `window` event listeners).
-
-When a screen is initialized, it must return a `{ destroy: Function }` interface (or an API containing it). The router will:
-1. Track the current active screen instance.
-2. Call `currentScreen.destroy()` before transitioning to a new route.
-3. Clean up all global timers, event listeners, and sub-modules inside `destroy()`.
+The registry in `frame-selector.js` owns broad level recommendations (`barneskole`, `ungdomsskole`, `vgs`). Recommendations reorder/group choices; they never hide the remaining frames.
 

@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Whitepaper — Skriv by Papertek</title>
-    <meta name="description" content="Whitepaper for Skriv by Papertek. Åpenhet, sikkerhet og langsiktighet for norske skoler.">
+    <meta name="description" content="Whitepaper for Skriv by Papertek. Lokal-først lagring, personvern, portabilitet og langsiktighet for norske skoler.">
     <meta name="theme-color" content="#059669">
+    <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml">
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS, lokalt versjonslåst for offline-bruk -->
+    <script src="/vendor/tailwindcss-3.4.17.js"></script>
 
     <style>
         /* Smooth scroll for anchor links */
@@ -31,7 +32,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 Tilbake til Skriv
             </a>
-            <span class="text-xs text-stone-400">Whitepaper v1.0 &middot; Februar 2026</span>
+            <span class="text-xs text-stone-400">Whitepaper v1.1 &middot; August 2026</span>
         </div>
     </nav>
 
@@ -42,13 +43,13 @@
             Skriv by Papertek
         </h1>
         <p class="text-xl text-stone-500 leading-relaxed max-w-2xl">
-            Et gratis skriveverktøy for norske skoler &mdash; bygget på åpenhet,
-            langsiktighet og personvern.
+            Et gratis, lokal-først skriveverktøy for norske skoler &mdash; bygget på åpenhet,
+            portabilitet og redusert dataeksponering.
         </p>
         <div class="flex items-center gap-4 mt-8 text-sm text-stone-400">
             <span>Papertek Forlag AS</span>
             <span>&middot;</span>
-            <span>Februar 2026</span>
+            <span>August 2026</span>
         </div>
     </header>
 
@@ -64,7 +65,7 @@
                 <li><a href="#apenhet" class="text-emerald-700 hover:text-emerald-800 hover:underline">5. Åpenhet uten tradisjonell open source</a></li>
                 <li><a href="#personvern" class="text-emerald-700 hover:text-emerald-800 hover:underline">6. Personvern</a></li>
                 <li><a href="#langsiktighet" class="text-emerald-700 hover:text-emerald-800 hover:underline">7. Langsiktighet og abandonment-klausul</a></li>
-                <li><a href="#sky" class="text-emerald-700 hover:text-emerald-800 hover:underline">8. Når Skriv går til skyen</a></li>
+                <li><a href="#portabilitet" class="text-emerald-700 hover:text-emerald-800 hover:underline">8. Portabilitet først</a></li>
                 <li><a href="#for-skoler" class="text-emerald-700 hover:text-emerald-800 hover:underline">9. Hva dette betyr for skoler</a></li>
             </ol>
         </div>
@@ -80,16 +81,18 @@
                 <p>
                     <strong>Skriv by Papertek</strong> er et gratis, nettbasert skriveverktøy laget for elever i norske skoler.
                     Verktøyet er en Progressive Web App (PWA) som fungerer i nettleseren, kan installeres på enheten,
-                    og virker uten nettilkobling.
+                    og virker uten nettilkobling etter at appfilene er lastet inn og mellomlagret.
                 </p>
                 <p>
                     Dette whitepaperet beskriver de tekniske og organisatoriske valgene bak Skriv, med særlig vekt på
-                    tre temaer som er viktige for skoler: <strong>åpenhet</strong>, <strong>personvern</strong> og
-                    <strong>langsiktighet</strong>.
+                    fire temaer som er viktige for skoler: <strong>åpenhet</strong>, <strong>personvern</strong>,
+                    <strong>portabilitet</strong> og <strong>langsiktighet</strong>.
                 </p>
                 <p>
-                    Papertek forplikter seg til at Skriv forblir gratis og tilgjengelig. Dersom Papertek Forlag AS
-                    skulle opphøre, sikrer en abandonment-klausul at kode og drift overtas av en uavhengig stiftelse.
+                    Dokumentene lagres i den aktuelle nettleserprofilen. En nedlastbar <strong>.skriv</strong>-fil
+                    lar brukeren sikkerhetskopiere hele biblioteket og gjenopprette det i en annen profil. Dette er
+                    viktig fordi sletting av nettleserdata, tilbakestilling av profilen eller tap av enheten ellers
+                    kan føre til tap av lokale dokumenter.
                 </p>
             </div>
         </section>
@@ -134,22 +137,23 @@
                     <div class="bg-white border border-stone-200 rounded-xl p-5">
                         <div class="text-2xl mb-2">&#128190;</div>
                         <h3 class="font-semibold text-stone-900 mb-1">Automatisk lagring</h3>
-                        <p class="text-sm text-stone-500">Dokumentene lagres automatisk lokalt på enheten. Ingenting sendes til en server.</p>
+                        <p class="text-sm text-stone-500">Dokumentene lagres automatisk i IndexedDB i den aktive nettleserprofilen, uten automatisk opplasting til en Papertek-tjeneste.</p>
                     </div>
                     <div class="bg-white border border-stone-200 rounded-xl p-5">
                         <div class="text-2xl mb-2">&#128196;</div>
-                        <h3 class="font-semibold text-stone-900 mb-1">Eksporter til PDF</h3>
-                        <p class="text-sm text-stone-500">Last ned dokumentet som PDF eller ren tekst, klar til innlevering.</p>
+                        <h3 class="font-semibold text-stone-900 mb-1">Eksporter og sikkerhetskopier</h3>
+                        <p class="text-sm text-stone-500">Last ned ett dokument som PDF eller ren tekst, eller hele biblioteket som en portabel .skriv-sikkerhetskopi.</p>
                     </div>
                     <div class="bg-white border border-stone-200 rounded-xl p-5">
                         <div class="text-2xl mb-2">&#128246;</div>
                         <h3 class="font-semibold text-stone-900 mb-1">Fungerer offline</h3>
-                        <p class="text-sm text-stone-500">PWA-teknologi gjør at appen virker uten nett etter første besøk.</p>
+                        <p class="text-sm text-stone-500">PWA-teknologi gjør at appen virker uten nett etter en vellykket første innlasting. Nye versjoner må hentes når enheten er på nett.</p>
                     </div>
                 </div>
 
                 <p>
-                    Skriv krever ingen innlogging, ingen lisens og ingen oppsett. Eleven åpner nettleseren og begynner å skrive.
+                    Skriv krever ingen innlogging eller lisens for å begynne å skrive. Skoler bør likevel ha rutiner
+                    for elevens nettleserprofil, lokale sikkerhetskopier og behandling av eksporterte filer.
                 </p>
             </div>
         </section>
@@ -159,30 +163,37 @@
             <h2 class="text-2xl font-bold text-stone-900 mb-4">4. Arkitektur og teknologi</h2>
             <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
                 <p>
-                    Skriv er bevisst bygget med en enkel og gjennomsiktig arkitektur. Det finnes ingen skjulte
-                    serverkomponenter, ingen datainnsamling og ingen avhengigheter som krever tillit til tredjeparter.
+                    Skriv er bevisst bygget med en enkel og gjennomsiktig arkitektur. Appen leveres som statiske
+                    filer og har ingen egen applikasjonsserver for dokumentinnhold. Tredjepartsbibliotekene som
+                    brukes ved kjøring, er versjonslåst og distribuert lokalt sammen med appen.
                 </p>
 
                 <div class="bg-stone-100 rounded-xl p-6 my-6 font-mono text-sm leading-loose text-stone-700">
                     <div class="text-stone-400 mb-3">&lt;!-- Hele teknologistabelen --&gt;</div>
-                    <div><span class="text-emerald-700 font-semibold">Frontend:</span> HTML, CSS (Tailwind), JavaScript (vanilla)</div>
-                    <div><span class="text-emerald-700 font-semibold">Lagring:</span> IndexedDB (lokal i nettleseren)</div>
+                    <div><span class="text-emerald-700 font-semibold">Frontend:</span> HTML, CSS og JavaScript (vanilla)</div>
+                    <div><span class="text-emerald-700 font-semibold">UI:</span> Tailwind CSS 3.4.17 og Floating UI DOM 1.7.5 (lokale filer)</div>
+                    <div><span class="text-emerald-700 font-semibold">Lagring:</span> IndexedDB (lokal i nettleserprofilen)</div>
                     <div><span class="text-emerald-700 font-semibold">Offline:</span> Service Worker (PWA)</div>
-                    <div><span class="text-emerald-700 font-semibold">PDF:</span> jsPDF (klientside)</div>
-                    <div><span class="text-emerald-700 font-semibold">Backend:</span> Ingen</div>
+                    <div><span class="text-emerald-700 font-semibold">PDF:</span> jsPDF 2.5.1 (lokal fil, kjøres i nettleseren)</div>
+                    <div><span class="text-emerald-700 font-semibold">Dokument-backend:</span> Ingen</div>
                 </div>
 
                 <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Frontend-only</h3>
                 <p>
-                    Skriv er en ren frontend-applikasjon. All kode kjører i elevens nettleser. Det er ingen
-                    backend-server, ingen database i skyen, og ingen API-kall. Dette betyr at:
+                    Skriv er en ren frontend-applikasjon. Redigering, automatisk lagring, sikkerhetskopiering og
+                    PDF-generering skjer i nettleseren. Appen har ingen dokumentdatabase i skyen og gjør ingen
+                    runtime-kall til CDN-er. Dette betyr at:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-stone-700 ml-2">
-                    <li>Ingen elevdata forlater enheten</li>
-                    <li>Ingen tredjeparter har tilgang til innholdet</li>
-                    <li>Appen fungerer uten internettilkobling etter installasjon</li>
+                    <li>Dokumentinnhold lastes ikke automatisk opp til Papertek</li>
+                    <li>Tailwind, jsPDF og Floating UI hentes ikke fra tredjeparts-CDN-er ved kjøring</li>
+                    <li>Appen fungerer uten internettilkobling etter vellykket mellomlagring</li>
                     <li>Koden kan inspiseres direkte i nettleseren</li>
                 </ul>
+                <p>
+                    Første besøk og senere oppdateringer krever at de statiske appfilene lastes ned fra nettstedet.
+                    Service Workeren mellomlagrer deretter appskallet og de lokale avhengighetene for offline-bruk.
+                </p>
 
                 <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Delt kodebase</h3>
                 <p>
@@ -209,7 +220,7 @@
                     <ul class="space-y-3 text-stone-700">
                         <li class="flex items-start gap-3">
                             <span class="text-emerald-600 font-bold mt-0.5">&#10003;</span>
-                            <span><strong>Full innsyn:</strong> Kildekoden er åpent tilgjengelig. Skoler, kommuner og IT-avdelinger kan inspisere nøyaktig hva koden gjør.</span>
+                            <span><strong>Fullt innsyn:</strong> Kildekoden er åpent tilgjengelig. Skoler, kommuner og IT-avdelinger kan inspisere nøyaktig hva koden gjør.</span>
                         </li>
                         <li class="flex items-start gap-3">
                             <span class="text-emerald-600 font-bold mt-0.5">&#10003;</span>
@@ -217,7 +228,7 @@
                         </li>
                         <li class="flex items-start gap-3">
                             <span class="text-emerald-600 font-bold mt-0.5">&#10003;</span>
-                            <span><strong>Ingen skjulte komponenter:</strong> Det er ingen server-side kode, ingen skjulte prosesser, og ingen datainnsamling som ikke er synlig i kildekoden.</span>
+                            <span><strong>Ingen skjult dokument-backend:</strong> Dokumentbehandlingen skjer i den leverte klientkoden, uten en separat Papertek-tjeneste for lagring av teksten.</span>
                         </li>
                         <li class="flex items-start gap-3">
                             <span class="text-stone-400 font-bold mt-0.5">&#9679;</span>
@@ -227,7 +238,7 @@
                 </div>
 
                 <p>
-                    Denne modellen gir skoler den tryggheten som følger med åpenhet &mdash; full innsyn i hva
+                    Denne modellen gir skoler den tryggheten som følger med åpenhet &mdash; fullt innsyn i hva
                     verktøyet gjør &mdash; uten at kodebasen fritt kan kopieres av kommersielle konkurrenter.
                 </p>
             </div>
@@ -238,7 +249,8 @@
             <h2 class="text-2xl font-bold text-stone-900 mb-4">6. Personvern</h2>
             <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
                 <p>
-                    Personvern er ikke en funksjon i Skriv &mdash; det er en konsekvens av arkitekturen.
+                    Skriv er laget for å begrense automatisk dataflyt og sentral lagring. Det reduserer én viktig
+                    eksponeringsflate, men er ikke i seg selv en garanti for personvern eller regelverksetterlevelse.
                 </p>
 
                 <div class="overflow-x-auto my-6">
@@ -256,36 +268,43 @@
                             </tr>
                             <tr>
                                 <td class="p-3 text-stone-600">Datalagring</td>
-                                <td class="p-3"><span class="text-emerald-700 font-semibold">Lokalt på enheten (IndexedDB)</span></td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">I aktiv nettleserprofil (IndexedDB)</span></td>
                             </tr>
                             <tr>
-                                <td class="p-3 text-stone-600">Skylagring</td>
-                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen</span></td>
+                                <td class="p-3 text-stone-600">Skysynkronisering</td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ikke en del av denne versjonen</span></td>
                             </tr>
                             <tr>
                                 <td class="p-3 text-stone-600">Sporing / analyse</td>
-                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen</span></td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ikke bygget inn i appen</span></td>
                             </tr>
                             <tr>
-                                <td class="p-3 text-stone-600">Tredjepartstilgang</td>
-                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen</span></td>
+                                <td class="p-3 text-stone-600">Runtime-avhengigheter</td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Lokalt versjonslåst; ingen CDN-kall</span></td>
                             </tr>
                             <tr>
-                                <td class="p-3 text-stone-600">Data sendt til server</td>
-                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingenting</span></td>
+                                <td class="p-3 text-stone-600">Automatisk opplasting av dokumenter</td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen Papertek-dokumenttjeneste</span></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
                 <p>
-                    Fordi Skriv ikke har noen backend, finnes det rett og slett ingen mekanisme for å samle inn
-                    eller sende elevdata. Det er ingen cookies, ingen sporingspiksler, ingen analyse-tjenester.
-                    Elevens tekst eksisterer kun på elevens egen enhet.
+                    Skriv har ingen applikasjons-backend for dokumentinnhold, og appen inneholder ikke analyseverktøy,
+                    sporingspiksler eller innebygd annonsering. Dokumentet lagres i nettleserprofilen og sendes ikke
+                    automatisk til Papertek. Eksport til PDF eller tekst og nedlasting av en .skriv-sikkerhetskopi
+                    skjer først når brukeren velger det.
                 </p>
                 <p>
-                    Dette gjør Skriv til det tryggeste alternativet for skoler som er opptatt av GDPR-etterlevelse
-                    og elevenes personvern: <em>det er umulig å lekke data som aldri forlater enheten</em>.
+                    Lokal lagring betyr samtidig at tilgang til nettleserprofilen, administrasjon av enheten,
+                    utvidelser, skadevare, delte profiler og sletting av nettleserdata er en del av risikobildet.
+                    En eksportert .skriv-fil inneholder elevens faktiske innhold og må lagres og deles deretter.
+                </p>
+                <p>
+                    Arkitekturen kan redusere dataflyt og leverandøreksponering, men den avgjør ikke alene om en
+                    konkret bruk er i tråd med GDPR eller andre krav. Skolen må vurdere formål, behandlingsgrunnlag,
+                    enhets- og profilforvaltning, tilgang, sikkerhetskopiering og innleveringsrutiner i sin kontekst.
                 </p>
             </div>
         </section>
@@ -312,7 +331,7 @@
                         </div>
                         <div class="flex items-start gap-3">
                             <span class="bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
-                            <p>Stiftelsen sikrer at Skriv <strong class="text-white">forblir gratis og tilgjengelig</strong> for skoler i Norge.</p>
+                            <p>Stiftelsen skal etter klausulen videreføre målet om at Skriv <strong class="text-white">forblir gratis og tilgjengelig</strong> for skoler i Norge.</p>
                         </div>
                         <div class="flex items-start gap-3">
                             <span class="bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
@@ -322,63 +341,66 @@
                 </div>
 
                 <p>
-                    Dette gir skoler en juridisk garanti: verktøyet de investerer tid i vil ikke forsvinne,
-                    uansett hva som skjer med Papertek som selskap. Kombinert med den åpne kildekoden betyr
-                    det at enhver kompetent utvikler kan drifte og vedlikeholde Skriv videre.
+                    Klausulen, den inspiserbare klientkoden og den enkle statiske driftsmodellen er tiltak som
+                    reduserer leverandøravhengigheten. .skriv-sikkerhetskopien gir i tillegg brukeren en kopi av
+                    biblioteket som ikke er bundet til en Papertek-konto eller en skytjeneste.
                 </p>
             </div>
         </section>
 
-        <!-- 8. Når Skriv går til skyen -->
-        <section id="sky" class="mb-16 print-break">
-            <h2 class="text-2xl font-bold text-stone-900 mb-4">8. Når Skriv går til skyen</h2>
+        <!-- 8. Portabilitet -->
+        <section id="portabilitet" class="mb-16 print-break">
+            <h2 class="text-2xl font-bold text-stone-900 mb-4">8. Portabilitet først</h2>
             <div class="prose prose-stone max-w-none space-y-4 leading-relaxed">
                 <p>
-                    Skriv er i dag en ren offline-applikasjon der alt lagres lokalt på elevens enhet. Men vi
-                    har planer om å tilby <strong>skylagring</strong> i fremtiden, slik at elever kan få tilgang
-                    til dokumentene sine på tvers av enheter.
+                    Lokal-først er et bevisst valg i denne versjonen. Dokumentene tilhører ikke en konto i en
+                    Papertek-sky; de ligger i den nettleserprofilen eleven bruker. Derfor er en tydelig vei ut av
+                    profilen like viktig som lokal automatisk lagring.
                 </p>
 
-                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Finansiering og tidslinje</h3>
+                <div class="grid sm:grid-cols-2 gap-4 my-6">
+                    <div class="bg-white border border-stone-200 rounded-xl p-5">
+                        <h3 class="font-semibold text-stone-900 mb-2">Én fil for hele biblioteket</h3>
+                        <p class="text-sm text-stone-600">
+                            En .skriv-sikkerhetskopi inneholder dokumenter, papirkurv, mapper, versjonshistorikk
+                            og relevante innstillinger. Gjenoppretting fletter inn data og overskriver ikke hele
+                            det eksisterende biblioteket.
+                        </p>
+                    </div>
+                    <div class="bg-white border border-stone-200 rounded-xl p-5">
+                        <h3 class="font-semibold text-stone-900 mb-2">Brukerstyrt flytting</h3>
+                        <p class="text-sm text-stone-600">
+                            Filen kan flyttes til en annen nettleserprofil gjennom en kanal skolen godkjenner.
+                            Den kan inneholde personopplysninger og bør behandles som annet elevarbeid.
+                        </p>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Nettleserprofilen er lagringsstedet</h3>
                 <p>
-                    Skylagring medfører løpende kostnader for serverdrift og lagring. Når &mdash; og hvor raskt &mdash;
-                    denne funksjonen kommer, avhenger av inntektene Papertek Forlag AS får fra
-                    <strong>Papertek &ndash; skriveprøve</strong>, som er selskapets kommersielle produkt.
-                </p>
-                <p>
-                    Papertek Forlag AS er også åpen for <strong>eksterne støttespillere</strong> som ønsker å
-                    bidra til oppdraget om å gi norske elever et skriveverktøy som er perfekt tilpasset
-                    norsk skole. Med ekstern støtte kan skylagring bli en realitet i nær fremtid.
+                    Sletting av nettstedsdata, en tilbakestilt eller midlertidig profil, bytte av enhet og tap eller
+                    skade på enheten kan gjøre lokale dokumenter utilgjengelige. Skriv kan be nettleseren om varig
+                    lagring når nettleseren støtter det, men dette er ikke en erstatning for sikkerhetskopiering.
+                    På delte enheter må skolen også sørge for at elever ikke bruker samme ubeskyttede profil.
                 </p>
 
-                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Innlogging med Feide</h3>
+                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Fremtidige tjenester må bevare valgfriheten</h3>
                 <p>
-                    Når skylagring innføres, vil innlogging skje via <strong>Feide</strong> &mdash; den nasjonale
-                    innloggingsløsningen for norsk utdanning. Skriv er laget utelukkende for norske skoler,
-                    og Feide er det naturlige valget for sikker og enkel autentisering.
-                </p>
-
-                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Teknisk infrastruktur: Supabase</h3>
-                <p>
-                    Skyløsningen vil bygges på <strong>Supabase</strong>, en åpen kildekode-plattform for
-                    backend-tjenester basert på PostgreSQL. Fordi Supabase er open source og kan selvhostes,
-                    betyr dette at Papertek når som helst kan flytte hele infrastrukturen til <strong>norske
-                    servere</strong> dersom det blir ønskelig eller nødvendig.
-                </p>
-                <p>
-                    Denne fleksibiliteten gjør oss mindre sårbare for internasjonale hendelser og endringer
-                    i politiske eller juridiske rammeverk. Datasuverenitet er viktig for norske skoler, og
-                    med en selvhostbar løsning beholder vi full kontroll over hvor elevdata lagres.
+                    Dette whitepaperet lover ikke en bestemt skyløsning, identitetsleverandør eller tidslinje.
+                    Dersom synkronisering eller andre serverbaserte tjenester vurderes senere, krever det en egen
+                    vurdering av personvern, sikkerhet, avtaler og forvaltning. Lokal bruk og dokumentert eksport
+                    bør fortsatt være grunnlaget, slik at elevens arbeid ikke låses til én leverandør.
                 </p>
 
                 <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 my-6">
                     <h3 class="font-semibold text-stone-900 mb-3 flex items-center gap-2">
-                        <span class="text-lg">&#127758;</span> Internasjonal ekspansjon
+                        <span class="text-lg">&#128221;</span> Avgrensning mot sikre prøvemiljøer
                     </h3>
                     <p class="text-stone-700">
-                        Dersom Skriv i fremtiden skal brukes utenfor Norge, vil dette skje på en
-                        <strong>separat infrastruktur</strong>, fullstendig adskilt fra den norske løsningen.
-                        Norske elevers data vil aldri blandes med internasjonale brukere.
+                        Skriv er et verktøy for daglig skriving og øving. Oppgavesett, prøveforberedelse eller
+                        innstillinger som begrenser enkelte hjelpemidler gjør ikke Skriv til en låst nettleser,
+                        en sikker eksamensklient eller et kontrollsystem. Formelle prøver krever et miljø og
+                        rutiner som er godkjent for det aktuelle formålet.
                     </p>
                 </div>
             </div>
@@ -395,18 +417,29 @@
                             <span class="text-emerald-600 text-xl">&#128176;</span> Ingen kostnad
                         </h3>
                         <p class="text-stone-600 text-sm">
-                            Skriv er og forblir gratis. Det er ingen lisenskostnader, ingen brukerbetaling,
-                            og ingen skjulte avgifter. Skoler kan ta det i bruk umiddelbart.
+                            Denne versjonen av Skriv kan brukes uten lisenskostnad, brukerbetaling eller konto.
+                            Skoler kan prøve verktøyet uten en anskaffelse av skylagring eller brukerlisenser.
                         </p>
                     </div>
 
                     <div class="bg-white border border-stone-200 rounded-xl p-6">
                         <h3 class="font-semibold text-stone-900 mb-2 flex items-center gap-2">
-                            <span class="text-emerald-600 text-xl">&#128272;</span> Trygg for elever
+                            <span class="text-emerald-600 text-xl">&#128272;</span> Redusert dataeksponering
                         </h3>
                         <p class="text-stone-600 text-sm">
-                            Ingen data forlater elevens enhet. Ingen innlogging betyr ingen brukerdata
-                            å administrere. Skoler slipper databehandleravtaler for Skriv.
+                            Skriv har ingen konto eller dokument-backend og laster ikke automatisk opp elevteksten.
+                            Skolen må fortsatt vurdere nettleserprofil, enhet, eksportfiler, innlevering og eget
+                            ansvar etter gjeldende regler.
+                        </p>
+                    </div>
+
+                    <div class="bg-white border border-stone-200 rounded-xl p-6">
+                        <h3 class="font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                            <span class="text-emerald-600 text-xl">&#128230;</span> Portabelt bibliotek
+                        </h3>
+                        <p class="text-stone-600 text-sm">
+                            Hele biblioteket kan lastes ned som en .skriv-fil og flettes inn i en annen profil.
+                            Skolen bør gjøre sikkerhetskopiering til en tydelig elevrutine.
                         </p>
                     </div>
 
@@ -425,8 +458,8 @@
                             <span class="text-emerald-600 text-xl">&#127919;</span> Langsiktig trygghet
                         </h3>
                         <p class="text-stone-600 text-sm">
-                            Abandonment-klausulen garanterer at verktøyet ikke forsvinner.
-                            Frontend-only-arkitekturen gjør fortsatt drift rimelig og enkelt.
+                            Abandonment-klausulen, den statiske arkitekturen og eksportformatet reduserer
+                            leverandøravhengighet og gjør videre drift og migrering mer praktisk.
                         </p>
                     </div>
 
@@ -435,8 +468,8 @@
                             <span class="text-emerald-600 text-xl">&#9889;</span> Null oppsett
                         </h3>
                         <p class="text-stone-600 text-sm">
-                            Ingen installasjon, ingen kontoer, ingen IT-støtte nødvendig. Eleven åpner
-                            en nettadresse og begynner å skrive. Ferdig.
+                            Eleven kan åpne en nettadresse og begynne uten konto. Første innlasting og oppdateringer
+                            krever nett, og skolen bør avklare støttede profiler, lokal lagring og backup-rutiner.
                         </p>
                     </div>
                 </div>
@@ -450,7 +483,7 @@
                 <div>
                     <p class="font-semibold text-stone-900">Papertek Forlag AS</p>
                     <p class="text-sm text-stone-400 mt-1">
-                        Whitepaper v1.0 &middot; Februar 2026
+                        Whitepaper v1.1 &middot; August 2026
                     </p>
                 </div>
                 <div class="flex items-center gap-4 text-sm">

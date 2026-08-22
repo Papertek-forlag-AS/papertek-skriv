@@ -8,7 +8,6 @@ import { t } from '../shared/i18n.js';
  * @param {Object} options
  * @param {Function} [options.onSave] - Called on Ctrl/Cmd+S
  * @param {Function} [options.onFocusMode] - Called on Ctrl/Cmd+Enter
- * @param {Function} [options.isAdvancedMode] - Returns boolean for H3 availability
  * @returns {{ destroy: Function, toggleHelp: Function }}
  */
 export function initKeyboardShortcuts(editor, options = {}) {
@@ -29,9 +28,6 @@ export function initKeyboardShortcuts(editor, options = {}) {
         } else if (e.key === '2') {
             e.preventDefault();
             formatBlock('h2');
-        } else if (e.key === '3' && options.isAdvancedMode?.()) {
-            e.preventDefault();
-            formatBlock('h3');
         } else if (e.key === '0') {
             e.preventDefault();
             formatBlock('p');

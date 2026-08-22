@@ -1,7 +1,7 @@
 /**
  * Submission Checklist — genre-aware pre-export checklist.
  *
- * Shown when the student clicks "Last ned PDF" or "Last ned .txt".
+ * Shown before PDF, text, or Word-compatible export.
  * Not a blocker — the student can always proceed.
  *
  * Two kinds of items:
@@ -29,7 +29,7 @@ import { getModalParent } from '../shared/dom-helpers.js';
  * @param {number} options.wordCount - Current word count
  * @param {boolean} options.hasReferences - Whether references exist
  * @param {boolean} options.hasHeadings - Whether H1/H2 headings exist
- * @param {'pdf'|'txt'} options.exportType - Which export was clicked
+ * @param {'pdf'|'txt'|'doc'} options.exportType - Which export was clicked
  * @returns {Promise<boolean>} true if student wants to proceed, false if cancelled
  */
 export function showSubmissionChecklist(options) {
@@ -120,9 +120,11 @@ export function showSubmissionChecklist(options) {
             }
         }).join('');
 
-        const exportLabel = exportType === 'pdf'
-            ? t('checklist.proceed') + ' PDF'
-            : t('checklist.proceed') + ' .txt';
+        const exportLabel = {
+            pdf: t('skriv.downloadPdf'),
+            txt: t('skriv.downloadTxt'),
+            doc: t('skriv.downloadDocx'),
+        }[exportType] || t('checklist.proceed');
 
         // --- Create modal ---
         const overlay = document.createElement('div');
@@ -130,10 +132,10 @@ export function showSubmissionChecklist(options) {
         overlay.className = 'fixed inset-0 bg-black/70 flex items-center justify-center p-4';
         overlay.style.zIndex = '100';
         overlay.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" role="dialog" aria-modal="true" aria-labelledby="submission-checklist-title">
                 <div class="flex items-center gap-2 mb-4">
-                    <span class="text-xl">📋</span>
-                    <h3 class="text-lg font-bold text-stone-900">${escapeHtml(t('checklist.title'))}</h3>
+                    <span class="text-xl" aria-hidden="true">📋</span>
+                    <h3 id="submission-checklist-title" class="text-lg font-bold text-stone-900">${escapeHtml(t('checklist.title'))}</h3>
                 </div>
                 <div class="space-y-0.5 mb-6 max-h-[60vh] overflow-y-auto">
                     ${itemsHtml}
@@ -152,34 +154,55 @@ export function showSubmissionChecklist(options) {
         `;
 
         getModalParent().appendChild(overlay);
+        const previouslyFocused = document.activeElement;
+
+        function finish(result) {
+            document.removeEventListener('keydown', handleKeyDown);
+            overlay.remove();
+            if (previouslyFocused?.isConnected) previouslyFocused.focus();
+            resolve(result);
+        }
 
         // --- Wire buttons ---
         overlay.querySelector('[data-checklist-proceed]').addEventListener('click', () => {
-            overlay.remove();
-            resolve(true);
+            finish(true);
         });
 
         overlay.querySelector('[data-checklist-cancel]').addEventListener('click', () => {
-            overlay.remove();
-            resolve(false);
+            finish(false);
         });
 
         // Click outside to cancel
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
-                overlay.remove();
-                resolve(false);
+                finish(false);
             }
         });
 
-        // Escape key to cancel
+        // Escape cancels; Tab stays inside the modal.
         function handleKeyDown(e) {
             if (e.key === 'Escape') {
-                document.removeEventListener('keydown', handleKeyDown);
-                overlay.remove();
-                resolve(false);
+                e.preventDefault();
+                finish(false);
+                return;
+            }
+            if (e.key === 'Tab') {
+                const controls = [...overlay.querySelectorAll('button, input')]
+                    .filter((element) => !element.disabled);
+                if (controls.length === 0) return;
+                const first = controls[0];
+                const last = controls[controls.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
             }
         }
         document.addEventListener('keydown', handleKeyDown);
+
+        overlay.querySelector('input, [data-checklist-cancel], [data-checklist-proceed]')?.focus();
     });
 }

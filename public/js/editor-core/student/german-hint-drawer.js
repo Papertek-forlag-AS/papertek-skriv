@@ -73,9 +73,8 @@ export function initGermanHintDrawer(host, hint, options = {}) {
 
     const drawer = document.createElement('aside');
     // Non-modal: no backdrop, editor stays interactive while the drawer is open.
-    // pointer-events is set via inline style (not Tailwind class) — Tailwind
-    // CDN sometimes misses utilities that are added at runtime via classList,
-    // and we never want the close button to be unclickable due to a missed JIT.
+    // pointer-events is set inline so a runtime class change can never leave
+    // the close button unclickable.
     drawer.className = 'german-hint-drawer fixed top-0 right-0 h-full w-full max-w-md bg-white dark:bg-stone-800 shadow-2xl border-l border-stone-200 dark:border-stone-700 z-40 flex flex-col transform translate-x-full transition-transform duration-200 ease-out';
     drawer.style.pointerEvents = 'none';
     drawer.setAttribute('role', 'complementary');

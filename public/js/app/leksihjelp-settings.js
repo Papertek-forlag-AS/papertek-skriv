@@ -2,7 +2,7 @@
  * Leksihjelp settings drawer (Skriv-side).
  *
  * Slide-in right panel with the four leksihjelp controls:
- *   - Eksamensmodus (toggle)
+ *   - Limited assistance (toggle)
  *   - Skrivespråk (drives spell-check + special-chars)
  *   - Oppslagsspråk (drives dictionary)
  *   - Grammatikknivå — placeholder until vendored grammar-features-section.js arrives
@@ -19,18 +19,11 @@
 import { t } from '../editor-core/shared/i18n.js';
 import { escapeHtml } from '../editor-core/shared/html-escape.js';
 
-const LANGS = [
-    { id: 'nb', label: 'Bokmål' },
-    { id: 'nn', label: 'Nynorsk' },
-    { id: 'en', label: 'Engelsk' },
-    { id: 'de', label: 'Tysk' },
-    { id: 'es', label: 'Spansk' },
-    { id: 'fr', label: 'Fransk' },
-];
+const LANGS = ['nb', 'nn', 'en', 'de', 'es', 'fr'];
 
 function langOptions(activeId) {
-    return LANGS.map(l =>
-        `<option value="${l.id}" ${l.id === activeId ? 'selected' : ''}>${escapeHtml(l.label)}</option>`
+    return LANGS.map(id =>
+        `<option value="${id}" ${id === activeId ? 'selected' : ''}>${escapeHtml(t(`language.${id}`))}</option>`
     ).join('');
 }
 
@@ -285,7 +278,7 @@ export function initLeksihjelpSettings(host, bridge) {
 
                 <p class="text-xs text-stone-500 dark:text-stone-400" data-status-hint></p>
 
-                <!-- Eksamensmodus -->
+                <!-- Limited assistance -->
                 <section>
                     <label class="flex items-start gap-3 cursor-pointer">
                         <input type="checkbox" data-exam-mode
@@ -383,7 +376,7 @@ export function initLeksihjelpSettings(host, bridge) {
     function refreshSearchHint() {
         if (!searchHintEl) return;
         const lang = bridge.getLookupLang();
-        const langName = (LANGS.find(l => l.id === lang) || {}).label || lang;
+        const langName = t(`language.${lang}`);
         searchHintEl.textContent = t('leksihjelp.searchHint', { lang: langName });
     }
     refreshSearchHint();

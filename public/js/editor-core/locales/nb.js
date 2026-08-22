@@ -15,6 +15,11 @@ export default {
         ok: 'OK',
         back: 'Tilbake',
         delete: 'Slett',
+        close: 'Lukk',
+    },
+
+    a11y: {
+        skipToContent: 'Hopp til innhold',
     },
 
     export: {
@@ -124,6 +129,21 @@ export default {
         forceRefreshHint: 'Tøm cache og last på nytt',
     },
 
+    backup: {
+        download: 'Last ned sikkerhetskopi',
+        downloaded: 'Sikkerhetskopien er lastet ned',
+        restore: 'Gjenopprett sikkerhetskopi',
+        restored: 'Dokumenter gjenopprettet: {{count}}',
+        error: 'Kunne ikke lage sikkerhetskopi',
+        tooLarge: 'Sikkerhetskopien er for stor (maks 100 MB)',
+        restoreConfirmTitle: 'Gjenopprett sikkerhetskopi?',
+        restoreConfirmMessage: 'Dokumentene i sikkerhetskopien legges til i biblioteket ditt. Eksisterende dokumenter beholdes.',
+        invalid: 'Filen er ikke en gyldig Skriv-sikkerhetskopi',
+        partial: 'Deler ble gjenopprettet, men ikke alt. Velg den samme filen igjen for å fullføre.',
+        restoreError: 'Sikkerhetskopien kunne ikke gjenopprettes. Eksisterende dokumenter er ikke overskrevet.',
+        localHint: 'Dokumentene lagres bare i denne nettleserprofilen. Ta en sikkerhetskopi jevnlig.',
+    },
+
     level: {
         choose: 'Velg trinn',
         title: 'Hvilket trinn går du på?',
@@ -143,6 +163,14 @@ export default {
 
     language: {
         label: 'Språk',
+        writing: 'Skrivespråk',
+        writingHint: 'Lagres i dokumentet og styrer stavekontroll, spesialtegn og skriverammer.',
+        nb: 'Bokmål',
+        nn: 'Nynorsk',
+        en: 'Engelsk',
+        de: 'Tysk',
+        es: 'Spansk',
+        fr: 'Fransk',
     },
 
 
@@ -240,8 +268,8 @@ export default {
         statusHintEmbedded: 'Leksihjelp kjører innebygd i Skriv. Du kan også installere utvidelsen for full funksjonalitet på alle nettsider.',
         statusHintExtension: 'Leksihjelp-utvidelsen er aktiv — bruk innstillingene i utvidelsens popup.',
         openPanelHint: 'Leksihjelp-utvidelsen er aktiv. Åpne den fra utvidelsesikonet i nettleseren.',
-        examMode: 'Eksamensmodus',
-        examModeHint: 'Skjuler funksjoner som ikke er tillatt under eksamen (f.eks. ordforslag og pedagogiske forklaringer).',
+        examMode: 'Begrenset hjelp',
+        examModeHint: 'Slår av noen forslag og forklaringer. Dette er ikke en sikker eksamensmodus eller en låst nettleser.',
         writingLang: 'Skrivespråk',
         writingLangHint: 'Bestemmer stavekontroll og hvilke spesialtegn som vises.',
         lookupLang: 'Oppslagsspråk',
@@ -296,7 +324,24 @@ export default {
         close: 'Lukk',
     },
 
+    editorToolbar: {
+        label: 'Formateringsverktøy',
+        bold: 'Fet skrift',
+        italic: 'Kursiv',
+        underline: 'Understreking',
+        bulletList: 'Punktliste',
+        numberedList: 'Nummerert liste',
+        heading1: 'Overskrift 1',
+        heading2: 'Overskrift 2',
+    },
+
     progress: {
+        title: 'Skriveøkt',
+        openLabel: 'Vis skriveøkt. {{count}} ord skrevet denne økten',
+        triggerText: '{{count}} ord',
+        thisSession: 'Denne økten',
+        sessionSummary: '{{count}} ord · {{minutes}} min',
+        paceLabel: 'Skrivetempo',
         sessionWords: '{{count}} ord denne økten',
         sessionTime: '{{minutes}} min',
         wordsPerMin: '{{count}} ord/min',
@@ -337,9 +382,21 @@ export default {
         restore: 'Gjenopprett',
         restoreConfirm: 'Erstatte nåværende tekst med denne versjonen?',
         restored: 'Versjon gjenopprettet',
-        preview: 'Forhåndsvisning',
+        preview: 'Tidslinjeavspilling',
         close: 'Lukk',
         empty: 'Ingen lagrede versjoner ennå',
+        playTimeline: 'Spill av hele tidslinjen',
+        openVersion: 'Åpne versjon fra {{time}}, {{count}} ord',
+        previous: 'Forrige versjon',
+        next: 'Neste versjon',
+        play: 'Spill av',
+        pause: 'Pause',
+        snapshotPosition: 'Versjon {{current}} av {{total}}',
+        timelineSlider: 'Velg versjon på tidslinjen',
+        jumpCurrent: 'Gå til nåværende versjon av dokumentet',
+        timeLabel: 'Tid',
+        wordChange: 'Ordendring: {{change}} · totalt: {{total}}',
+        previewContent: 'Tekstendringer i valgt versjon',
     },
 
     lix: {
@@ -405,6 +462,22 @@ export default {
     skriv: {
         appName: 'Papertek Skriv',
         tagline: 'Ditt personlige skriveverksted',
+        titleLabel: 'Dokumenttittel',
+        editorLabel: 'Tekstområde for dokumentet',
+        searchDocument: 'Søk i dokumentet',
+        searchPlaceholder: 'Søk i teksten...',
+        searchPrevious: 'Forrige treff',
+        searchNext: 'Neste treff',
+        savedLocally: 'Lagret lokalt i denne nettleserprofilen',
+        offline: 'Uten nett',
+        toolLoadError: 'Verktøyet kunne ikke lastes. Prøv igjen.',
+        databaseBlocked: 'Lukk andre Skriv-faner, slik at lokal lagring kan fullføre oppdateringen.',
+        slashHeading1: 'Overskrift 1',
+        slashHeading2: 'Overskrift 2',
+        slashBulletList: 'Punktliste',
+        slashNumberedList: 'Nummerert liste',
+        slashTable: 'Tabell',
+        slashLiteral: 'Sett inn /',
         newDocument: 'Ny tekst',
         untitled: 'Uten tittel',
         lastEdited: 'Sist endret',
@@ -427,19 +500,11 @@ export default {
             other: '{{count}} dokumenter',
         },
         exportTitle: 'Eksporter',
-        toolsMenu: 'Verktøy',
         insightsTitle: 'Gjennomgang',
         insightsTools: 'Verktøy',
         insightsAnalysis: 'Analyse',
 
-        // Advanced toggle + TOC
-        advancedToggle: 'Avansert',
-        advancedOn: 'Avansert modus på',
-        advancedOff: 'Avansert modus av',
-        advancedDisableConfirmTitle: 'Slå av avansert modus?',
-        advancedDisableConfirmMessage: 'Overskrifter beholdes som fet tekst og kan gjenopprettes. Lister beholdes.',
-        advancedDisableConfirmYes: 'Ja, slå av',
-        strukturComingSoon: 'Kommer snart',
+        // Table of contents
         tocTitle: 'Innholdsfortegnelse',
         tocEmpty: 'Legg til overskrifter (H1/H2) for å bygge innholdsfortegnelsen.',
 
@@ -464,6 +529,9 @@ export default {
         // Writing frames (Skriverammer)
         strukturTooltip: 'Velg skriveramme',
         frameSelectorTitle: 'Velg skriveramme',
+        frameRecommendedForLevel: 'Anbefalt for trinnet ditt',
+        frameMoreOptions: 'Flere skriverammer',
+        frameLanguageFallback: 'Skriverammer finnes foreløpig på bokmål og nynorsk. Bokmål vises for dette språket.',
         frameDroefting: 'Drøfting',
         frameDroeftingDesc: 'Argumenter for og mot med trestegsmetoden',
         frameAnalyse: 'Analyse',
@@ -512,6 +580,11 @@ export default {
         frameGuideMoreSuggestions: '🎲 Flere forslag',
         frameGuideNoMoreSuggestions: 'Ingen flere forslag',
         frameGuideParagraphSuffix: 'avsnitt',
+        frameGuideLabel: 'Skriverammeguide',
+        frameGuideClose: 'Lukk skriverammeguiden',
+        frameGuideProgressLabel: 'Ferdige avsnitt',
+        frameGuideProgressText: '{{completed}}/{{total}} avsnitt',
+        frameGuideInsertStarter: 'Sett inn setningsstarter',
 
         // Trash
         trashButton: 'Papirkurv',
@@ -543,6 +616,34 @@ export default {
             one: '{{count}} i papirkurven',
             other: '{{count}} i papirkurven',
         },
+    },
+
+    review: {
+        search: 'Søk i teksten',
+        searchDesc: 'Finn ord eller uttrykk i dokumentet',
+        focus: 'Fokusmodus',
+        focusDesc: 'Skjul sidepaneler og skriv med færre forstyrrelser',
+        spinner: 'Ordspinner',
+        spinnerDesc: 'Få ord og setningsstartere som idéhjelp',
+        feedback: 'Tekstobservasjoner',
+        feedbackDesc: 'Vis tekstobservasjoner laget lokalt i nettleseren – ikke en vurdering eller karakter',
+        versions: 'Versjonshistorikk',
+        versionsDesc: 'Se og gjenopprett lokalt lagrede tekstversjoner',
+        repetition: 'Gjentakelser',
+        repetitionDesc: 'Finn ord som brukes ofte i teksten',
+        sentences: 'Setningslengde',
+        sentencesDesc: 'Se variasjon i setningslengde',
+        paragraphs: 'Avsnittskart',
+        paragraphsDesc: 'Se en visuell oversikt over avsnittene',
+        lix: 'LIX-lesbarhet',
+        lixDesc: 'Se et grovt lesbarhetssignal basert på ord- og setningslengde',
+        arguments: 'Argumentflyt',
+        argumentsDesc: 'Vis mønstre som kan støtte arbeid med argumentflyt – ikke en vurdering av argumentasjonen',
+    },
+
+    dragHandle: {
+        label: 'Flytt tekstblokk',
+        keyboardHint: 'Flytt med pil opp eller pil ned. I teksten kan du bruke Alt + pil opp eller Alt + pil ned.',
     },
 
     image: {

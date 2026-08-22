@@ -15,6 +15,11 @@ export default {
         ok: 'OK',
         back: 'Back',
         delete: 'Delete',
+        close: 'Close',
+    },
+
+    a11y: {
+        skipToContent: 'Skip to content',
     },
 
     export: {
@@ -133,6 +138,21 @@ export default {
         forceRefreshHint: 'Clear cache and reload',
     },
 
+    backup: {
+        download: 'Download backup',
+        downloaded: 'Backup downloaded',
+        restore: 'Restore backup',
+        restored: 'Documents restored: {{count}}',
+        error: 'Could not create the backup',
+        tooLarge: 'The backup is too large (maximum 100 MB)',
+        restoreConfirmTitle: 'Restore backup?',
+        restoreConfirmMessage: 'Documents from the backup will be added to your library. Existing documents will be kept.',
+        invalid: 'This is not a valid Skriv backup file',
+        partial: 'Part of the backup was restored, but not all of it. Choose the same file again to finish.',
+        restoreError: 'The backup could not be restored. Existing documents were not overwritten.',
+        localHint: 'Documents are stored only in this browser profile. Download a backup regularly.',
+    },
+
     level: {
         choose: 'Choose level',
         title: 'What grade level are you in?',
@@ -152,6 +172,14 @@ export default {
 
     language: {
         label: 'Language',
+        writing: 'Writing language',
+        writingHint: 'Saved with the document and used for spell-check, special characters, and writing frames.',
+        nb: 'Norwegian Bokmål',
+        nn: 'Norwegian Nynorsk',
+        en: 'English',
+        de: 'German',
+        es: 'Spanish',
+        fr: 'French',
     },
 
 
@@ -249,8 +277,8 @@ export default {
         statusHintEmbedded: 'Leksihjelp is running inside Skriv. You can also install the browser extension for full features on every site.',
         statusHintExtension: 'The Leksihjelp extension is active — change settings in its popup.',
         openPanelHint: 'The Leksihjelp extension is active. Open it from the extension icon in your browser.',
-        examMode: 'Exam mode',
-        examModeHint: 'Hides features that are not allowed in exams (e.g. word predictions and pedagogical explanations).',
+        examMode: 'Limited assistance',
+        examModeHint: 'Disables some suggestions and explanations. This is not a secure exam mode or a locked browser.',
         writingLang: 'Writing language',
         writingLangHint: 'Drives spell-check and which special characters appear.',
         lookupLang: 'Lookup language',
@@ -305,7 +333,24 @@ export default {
         close: 'Close',
     },
 
+    editorToolbar: {
+        label: 'Formatting tools',
+        bold: 'Bold',
+        italic: 'Italic',
+        underline: 'Underline',
+        bulletList: 'Bulleted list',
+        numberedList: 'Numbered list',
+        heading1: 'Heading 1',
+        heading2: 'Heading 2',
+    },
+
     progress: {
+        title: 'Writing session',
+        openLabel: 'Show writing session. {{count}} words written this session',
+        triggerText: '{{count}} words',
+        thisSession: 'This session',
+        sessionSummary: '{{count}} words · {{minutes}} min',
+        paceLabel: 'Writing pace',
         sessionWords: '{{count}} words this session',
         sessionTime: '{{minutes}} min',
         wordsPerMin: '{{count}} words/min',
@@ -342,13 +387,31 @@ export default {
     versions: {
         title: 'Version History',
         snapshot: 'Saved {{time}}',
-        words: '{{count}} words',
+        words: {
+            one: '{{count}} word',
+            other: '{{count}} words',
+        },
         restore: 'Restore',
         restoreConfirm: 'Replace current text with this version?',
         restored: 'Version restored',
-        preview: 'Preview',
+        preview: 'Timeline playback',
         close: 'Close',
         empty: 'No saved versions yet',
+        playTimeline: 'Play full timeline',
+        openVersion: {
+            one: 'Open version from {{time}}, {{count}} word',
+            other: 'Open version from {{time}}, {{count}} words',
+        },
+        previous: 'Previous version',
+        next: 'Next version',
+        play: 'Play',
+        pause: 'Pause',
+        snapshotPosition: 'Version {{current}} of {{total}}',
+        timelineSlider: 'Choose a version on the timeline',
+        jumpCurrent: 'Go to the document\'s current version',
+        timeLabel: 'Time',
+        wordChange: 'Word change: {{change}} · total: {{total}}',
+        previewContent: 'Text changes in the selected version',
     },
 
     lix: {
@@ -414,6 +477,22 @@ export default {
     skriv: {
         appName: 'Papertek Skriv',
         tagline: 'Your personal writing workshop',
+        titleLabel: 'Document title',
+        editorLabel: 'Document writing area',
+        searchDocument: 'Search the document',
+        searchPlaceholder: 'Search in the text...',
+        searchPrevious: 'Previous match',
+        searchNext: 'Next match',
+        savedLocally: 'Saved locally in this browser profile',
+        offline: 'Offline',
+        toolLoadError: 'The tool could not be loaded. Try again.',
+        databaseBlocked: 'Close other Skriv tabs so local storage can finish updating.',
+        slashHeading1: 'Heading 1',
+        slashHeading2: 'Heading 2',
+        slashBulletList: 'Bulleted list',
+        slashNumberedList: 'Numbered list',
+        slashTable: 'Table',
+        slashLiteral: 'Insert /',
         newDocument: 'New text',
         untitled: 'Untitled',
         lastEdited: 'Last edited',
@@ -439,19 +518,11 @@ export default {
             other: '{{count}} documents',
         },
         exportTitle: 'Export',
-        toolsMenu: 'Tools',
         insightsTitle: 'Insights',
         insightsTools: 'Tools',
         insightsAnalysis: 'Analysis',
 
-        // Advanced toggle + TOC
-        advancedToggle: 'Advanced',
-        advancedOn: 'Advanced mode on',
-        advancedOff: 'Advanced mode off',
-        advancedDisableConfirmTitle: 'Turn off advanced mode?',
-        advancedDisableConfirmMessage: 'Headings are kept as bold text and can be restored. Lists are kept.',
-        advancedDisableConfirmYes: 'Yes, turn off',
-        strukturComingSoon: 'Coming soon',
+        // Table of contents
         tocTitle: 'Table of Contents',
         tocEmpty: 'Add headings (H1/H2) to build the table of contents.',
 
@@ -476,6 +547,9 @@ export default {
         // Writing frames
         strukturTooltip: 'Choose writing frame',
         frameSelectorTitle: 'Choose writing frame',
+        frameRecommendedForLevel: 'Recommended for your level',
+        frameMoreOptions: 'More writing frames',
+        frameLanguageFallback: 'Writing frames are currently available in Bokmål and Nynorsk. Bokmål is shown for this language.',
         frameDroefting: 'Discussion',
         frameDroeftingDesc: 'Arguments for and against with structured reasoning',
         frameAnalyse: 'Analysis',
@@ -524,6 +598,11 @@ export default {
         frameGuideMoreSuggestions: '🎲 More suggestions',
         frameGuideNoMoreSuggestions: 'No more suggestions',
         frameGuideParagraphSuffix: 'paragraph',
+        frameGuideLabel: 'Writing frame guide',
+        frameGuideClose: 'Close the writing frame guide',
+        frameGuideProgressLabel: 'Completed sections',
+        frameGuideProgressText: '{{completed}}/{{total}} sections',
+        frameGuideInsertStarter: 'Insert sentence starter',
 
         // Trash
         trashButton: 'Trash',
@@ -555,6 +634,34 @@ export default {
             one: '{{count}} in trash',
             other: '{{count}} in trash',
         },
+    },
+
+    review: {
+        search: 'Search the text',
+        searchDesc: 'Find words or phrases in the document',
+        focus: 'Focus mode',
+        focusDesc: 'Hide side panels and write with fewer distractions',
+        spinner: 'Word spinner',
+        spinnerDesc: 'Get words and sentence starters as idea prompts',
+        feedback: 'Text observations',
+        feedbackDesc: 'Show text observations created locally in the browser – not a grade or assessment',
+        versions: 'Version history',
+        versionsDesc: 'View and restore locally saved text versions',
+        repetition: 'Repetition',
+        repetitionDesc: 'Find words used frequently in the text',
+        sentences: 'Sentence length',
+        sentencesDesc: 'See variation in sentence length',
+        paragraphs: 'Paragraph map',
+        paragraphsDesc: 'See a visual overview of the paragraphs',
+        lix: 'LIX readability',
+        lixDesc: 'See a rough readability signal based on word and sentence length',
+        arguments: 'Argument flow',
+        argumentsDesc: 'Show patterns that may support work on argument flow – not an assessment of the argument',
+    },
+
+    dragHandle: {
+        label: 'Move text block',
+        keyboardHint: 'Move with Arrow Up or Arrow Down. In the text, use Alt + Arrow Up or Alt + Arrow Down.',
     },
 
     image: {

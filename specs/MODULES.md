@@ -1,115 +1,146 @@
 # Module Registry
 
-> Last updated: 2026-05-11
+> Last updated: 2026-08-22
 
-Every module in the codebase. When you add, remove, or rename a module — update this file.
+This registry covers every authored ES module, classic-script integration, vendored module group, locale, and writing frame. Mounted feature and screen initializers return a teardown-capable API unless a row explicitly describes a one-shot action or pure data helper. App-wide boot initializers such as i18n, theme, and service-worker registration are one-shot.
 
-## app/ — Application layer
+## `app/` — product wiring and storage
 
-| Module                 | Exports                                          | Depends on                          | Purpose                                |
-|----------------------- |------------------------------------------------- |------------------------------------ |--------------------------------------- |
-| `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store, sw-manager, school-level, onboarding-modal, german-exam-route | Hash router, app init, onboarding gate |
-| `german-exam-route.js` | `renderGermanExamScreen`                         | editor-core/student/german-exam-spinner, document-store, folder-store, i18n, html-escape, in-page-modal | Route + screen wiring for `#/tysk`; ensures "Tysk" folder, creates document on pick; attaches `germanHint: { simple, rich }` metadata to the document instead of seeding draft content into the HTML |
-| `leksihjelp-bridge.js` | `initLeksihjelpBridge`                           | (none)                              | Detects whether the leksihjelp Chrome extension is active on the page (via `window.__lexiPresent` / `window.__lexiVocab`). Brokers Skrivespråk + Oppslagsspråk + Eksamensmodus. Single source of truth for special-chars panel and future spell-check / dictionary modules. Returned API also exposes `requestExtensionPanel()` — fires the `skriv:leksihjelp:openPanel` window message so the extension can open its side panel. |
-| `leksihjelp-settings.js`| `initLeksihjelpSettings`                         | i18n, html-escape, `__lexiVocab` (runtime) | Slide-in right panel. Top section: dictionary search box (bidirectional match against `entry.word` OR `entry.translation`, debounced 120ms, top 8 results). Bottom: Eksamensmodus toggle, Skrivespråk picker, Oppslagsspråk picker, Grammatikknivå placeholder. Hidden when bridge.status === 'extension' |
-| `leksihjelp-dictionary.js`| `initLeksihjelpDictionary`                     | (chrome.* shim, `__lexiVocab`)      | Click any word in the editor → floating popup with translation, part-of-speech, gender, and base-form lookup. Uses `caretRangeFromPoint` for word-boundary detection and `__lexiVocab.getWordList()` / `getVerbInfinitive()` for entry resolution. Yields entirely when bridge.status === 'extension' |
-| `js/leksihjelp-loader.js` (classic `<script>`) | `window.__skrivLeksihjelpShim` | (none)              | Sits at `public/js/leksihjelp-loader.js`. Provides a minimal `chrome.runtime` + `chrome.storage` shim so the vendored leksihjelp content scripts run in Skriv's plain-page context. `bindBridge(api)` wires two-way sync between the bridge's settings (writingLang / lookupLang / examMode) and the `lang.spellcheck` / `lang.dictionary` / `examMode` keys leksihjelp's renderer reads. Loaded as a classic `<script>` BEFORE the vendored bundle in index.html |
-| `js/leksihjelp/**` (vendored)              | `window.__lexi*` globals       | (chrome.* shim)            | Vendored from `Papertek-forlag-AS/leksihjelp` v3.0.7 (commit `ddeaf33fc6`). Synced by `scripts/sync-leksihjelp.js` — **do not hand-edit**. Includes `i18n/strings.js`, `exam-registry.js`, `content/vocab-seam{,-core}.js`, `content/spell-check-{core,engine,renderer}.js`, `content/lang-detect.js`, `content/spell-rules/*.js` (78 rules), `popup/dict-state-builder.js`, `popup/grammar-features-section.js`, `styles/leksihjelp.css` (scoped under `.skriv-leksihjelp`), and `data/*.json` vocab bundles |
-| `document-store.js`    | `createDocument`, `getDocument`, `saveDocument`, `listDocuments`, `deleteDocument` | folder-store | IndexedDB CRUD for documents           |
-| `trash-store.js`       | `trashDocument`, `restoreDocument`, `listTrashedDocuments`, `permanentlyDelete`, `emptyTrash`, `getTrashCount`, `purgeExpired`, `getRetentionDays` | (none) | Soft-delete with 30-day retention |
-| `document-list.js`     | `renderDocumentList`                             | document-store, trash-store, word-count-stats, document-search, sidebar, folder-picker, folder-store, i18n, html-escape, in-page-modal, toast-notification, theme | Dashboard/home screen UI with sidebar   |
-| `document-search.js`  | `createSearchBar`, `filterDocuments`              | i18n                                | Search bar with debounced filtering and Ctrl/Cmd+K shortcut |
-| `standalone-writer.js` | `launchEditor`                                   | 13 student modules, 5 shared modules, document-store, folder-picker, folder-store | Editor orchestrator |
-| `word-count-stats.js`  | `showWordCountStats`                             | folder-store, html-escape, i18n     | Statistics overlay with monthly chart  |
-| `folder-store.js`      | `PERSONAL_FOLDER_NAME`, `MAX_FOLDER_DEPTH`, `PERSONAL_SUBJECT`, `getSchoolYear`, `getCurrentSchoolYear`, `setCurrentSchoolYear`, `getAvailableSchoolYears`, `createFolder`, `renameFolder`, `deleteFolder`, `moveFolder`, `getAllFolders`, `getRootFolders`, `getChildren`, `getFolderById`, `getFolderPath`, `getFolderDepth`, `buildFolderTree`, `flattenTree`, `addDocToFolder`, `removeDocFromFolder`, `setDocFolders`, `isPersonalFolder`, `isSystemFolder` | school-level | Folder CRUD, tree helpers, doc-folder assignment, school year logic |
-| `sidebar.js`           | `createSidebar` (returns `{ destroy, update, setDragActive }`) | folder-store, school-level, onboarding-modal, i18n, html-escape, toast-notification, in-page-modal | Collapsible folder tree navigation + change level button + drag-drop cues |
-| `school-level.js`      | `SCHOOL_LEVELS`, `LEVEL_SUBJECTS`, `getSchoolLevel`, `setSchoolLevel`, `hasSchoolLevel`, `getSubjectsForLevel` | (none) | School level data + localStorage persistence |
-| `onboarding-modal.js`  | `showOnboardingModal`                            | school-level, i18n, html-escape, dom-helpers | First-time school level selection modal |
-| `folder-picker.js`     | `createFolderPicker`, `createFolderBadges`       | folder-store, school-level, i18n, html-escape | Multi-select folder assignment dropdown + badges. Picker filters system folders by current school level (matches sidebar logic) so previous-curriculum folders don't pollute the list |
-| `sw-manager.js`        | `initServiceWorker`                              | i18n, toast-notification            | SW registration, update prompt, dev-mode disable |
+| Module | Public exports | Direct dependencies | Purpose |
+| --- | --- | --- | --- |
+| `db.js` | `DB_NAME`, `DB_VERSION`, `normalizeFolderName`, `getSchoolYearLabel`, `upgradeSkrivDatabase`, `openSkrivDatabase`, `closeSkrivDatabase` | none | Single opener, migration/repair path, blocked/version-change safety for `skriv-documents` |
+| `document-list.js` | `renderDocumentList` | document/trash/search/stats/sidebar/folder modules; shared UI/i18n/theme helpers | Two-column library, search, trash, mobile folder drawer, interface language, create/open actions |
+| `document-search.js` | `createSearchBar`, `filterDocuments` | i18n | Debounced library search and keyboard shortcut |
+| `document-store.js` | `DOCUMENT_WRITING_LANGUAGES`, `normalizeWritingLanguage`, `getDocumentWritingLanguage`, `createDocument`, `getDocument`, `saveDocument`, `listDocuments`, `deleteDocument` | `db`, `folder-store`, i18n | Document CRUD and per-document writing-language compatibility |
+| `folder-picker.js` | `createFolderPicker`, `createFolderBadges` | `folder-store`, `school-level`, i18n, HTML escaping | Multi-folder assignment picker and badges |
+| `folder-store.js` | `PERSONAL_FOLDER_NAME`, `PERSONAL_SUBJECT`, `MAX_FOLDER_DEPTH`, `getSchoolYear`, `getCurrentSchoolYear`, `setCurrentSchoolYear`, `getAvailableSchoolYears`, `createFolder`, `renameFolder`, `deleteFolder`, `moveFolder`, `getAllFolders`, `getRootFolders`, `getChildren`, `getFolderById`, `getFolderPath`, `getFolderDepth`, `buildFolderTree`, `flattenTree`, `addDocToFolder`, `removeDocFromFolder`, `setDocFolders`, `isPersonalFolder`, `isSystemFolder` | `db`, `school-level` | Folder tree CRUD, school-year helpers, and document membership |
+| `german-exam-route.js` | `renderGermanExamScreen` | German spinner, document/folder stores, shared i18n/modal/escaping | `#/tysk` screen and creation of German-language task documents |
+| `leksihjelp-bridge.js` | `initLeksihjelpBridge` | runtime loader globals | Two-way language, lookup, limited-assistance, and extension/embedded state seam |
+| `leksihjelp-dictionary.js` | `initLeksihjelpDictionary` | runtime `__lexiVocab` and browser selection APIs | In-editor word lookup; yields when the extension owns the surface |
+| `leksihjelp-settings.js` | `initLeksihjelpSettings` | i18n, HTML escaping, runtime Leksihjelp data | Embedded dictionary/settings drawer |
+| `library-backup.js` | `buildLibraryRestorePlan`, `buildVersionRestorePlan`, `serializeLibraryBackup`, `parseLibraryBackup`, `LibraryRestorePartialError`, `initLibraryBackup` | `db`, version-history | Validated whole-library `.skriv` backup and deterministic merge-only restore |
+| `main.js` | self-executing entry | i18n, theme, toast, document list, writer, trash, SW manager, school onboarding, German route | Initialization and awaited hash-route teardown |
+| `onboarding-modal.js` | `showOnboardingModal` | `school-level`, i18n, HTML escaping, DOM helpers | First-run/change-school-level dialog |
+| `school-level.js` | `SCHOOL_LEVELS`, `LEVEL_SUBJECTS`, `SCHOOL_LEVEL_BANDS`, `getSchoolLevelBand`, `getSchoolLevel`, `setSchoolLevel`, `hasSchoolLevel`, `getSubjectsForLevel` | none | Norwegian school-level data and persisted selection |
+| `sidebar.js` | `createSidebar` | folders, school level, onboarding, backup, shared i18n/modal/toast/escaping | Desktop folder navigation, year/level controls, backup/restore, drag/drop |
+| `standalone-writer.js` | `launchEditor` | app stores/Leksihjelp; shared editor utilities; student features | Editor composition, document-language binding, safe autosave/teardown, lazy review tools |
+| `sw-manager.js` | `initServiceWorker` | i18n, toast | Registration, waiting-worker prompt, explicit flush-before-update, development disable |
+| `trash-store.js` | `trashDocument`, `restoreDocument`, `listTrashedDocuments`, `permanentlyDelete`, `emptyTrash`, `getTrashCount`, `purgeExpired`, `getRetentionDays` | `db`, version-history | Atomic soft delete/restore and snapshot-aware permanent cleanup |
+| `word-count-stats.js` | `showWordCountStats` | `folder-store`, i18n, HTML escaping | Library word-count overlay |
 
-## editor-core/shared/ — Cross-product utilities
+### Classic-script application integration
 
-| Module                    | Exports                                       | Depends on       | Purpose                           |
-|-------------------------- |---------------------------------------------- |----------------- |---------------------------------- |
-| `i18n.js`                 | `initI18n`, `t`, `setLanguage`, `getLanguage`, `getDateLocale` | locales/*  | i18n with pluralization (nb, nn, en) |
-| `html-escape.js`          | `escapeHtml`, `escapeAttr`                    | (none)           | XSS prevention                    |
-| `dom-helpers.js`          | `getModalParent`                              | (none)           | DOM utility helpers               |
-| `frame-elements.js`       | `FRAME_SELECTORS`, `ALL_FRAME_SCAFFOLD`, `isFrameElement`, `isInsideNonEditableBlock`, `getCleanEditorText`, `removeFrameScaffold`, `isImageBlock` | (none) | Editor element selectors & utils |
-| `auto-save.js`            | `createAutoSave`                              | (none)           | Debounced save with status display |
-| `word-counter.js`         | `attachWordCounter`, `countWords`             | frame-elements   | Real-time word/char counting      |
-| `in-page-modal.js`        | `showInPageConfirm`, `showInPagePrompt`, `showInPageContent`, `showInPageAlert` | html-escape, dom-helpers | Dialog system               |
-| `toast-notification.js`   | `showToast`                                   | html-escape, dom-helpers | Toast alerts                |
-| `theme.js`                | `initTheme`, `setTheme`, `getTheme`, `cycleTheme`, `isDark`, `getThemeIcon` | (none) | Dark/light/system theme toggle |
-| `aria-live.js`            | `announce`                                        | (none)           | Screen reader announcements via aria-live region |
+| File/group | Publishes | Depends on | Purpose |
+| --- | --- | --- | --- |
+| `js/leksihjelp-loader.js` | `window.__skrivLeksihjelpShim` | none | Narrow `chrome.runtime`/`chrome.storage` shim and bridge binder; loaded before Leksihjelp |
+| `js/leksihjelp/**` | generated `window.__lexi*` globals | loader shim and ordered sibling scripts | Vendored Leksihjelp 3.0.9 snapshot; generated by `scripts/sync-leksihjelp.js`, never hand-edited |
 
-## editor-core/student/ — Feature modules
+## `editor-core/config.js`
 
-Each exports an `init*()` function that returns `{ destroy(), ...api }`.
+| Module | Exports | Purpose |
+| --- | --- | --- |
+| `config.js` | `SPECIAL_CHAR_GROUPS` | Portable special-character groups by writing language |
 
-| Module                    | Init function           | Depends on (shared)            | Purpose                              |
-|-------------------------- |------------------------ |------------------------------- |------------------------------------- |
-| `editor-toolbar.js`       | `initEditorToolbar`     | i18n, frame-elements, Floating UI (CDN) | Floating formatting bar (B/I/U/lists/H1/H2). Accepts `{ skipAutoDetectAdvanced }` to opt out of auto-enabling advanced mode from existing headings/lists. The special-chars panel was moved out into standalone-writer.js so it can be driven by the leksihjelp bridge directly |
-| `matte.js`                | `initMatte`             | i18n                           | Superscript/subscript math formatting |
-| `frame-parser.js`         | `parseFrameMarkdown`    | (none)                         | Markdown → structured frame object (incl. spinner-bucket per section/subsection) |
-| `frame-guide.js`          | `initFrameGuide`        | i18n, toast-notification, spinner-data-nb/nn (dynamic) | Eager-scaffolding sidebar guide: section/paragraph markers in editor, "Mark as done" toggle, "+ New paragraph", "🎲 More suggestions" spinner integration |
-| `frame-manager.js`        | `initFrameManager`      | frame-parser, frame-elements, i18n | Frame insertion & rendering      |
-| `frame-selector.js`       | `initFrameSelector`     | frame-manager, i18n            | Frame picker dialog                  |
-| `toc-manager.js`          | `initTOC`               | frame-elements, i18n           | Auto-generated Table of Contents     |
-| `reference-manager.js`    | `initReferences`        | html-escape, dom-helpers, frame-elements, i18n | Inline citations + bibliography |
-| `writing-spinner.js`      | `initWritingSpinner`    | i18n, spinner-data-nb/nn       | Random word suggestions              |
-| `word-frequency.js`       | `initWordFrequency`     | frame-elements, i18n           | Repetition radar (highlights)        |
-| `sentence-length.js`      | `initSentenceLength`    | frame-elements, i18n           | Rhythm bar visualization             |
-| `paragraph-map.js`        | `initParagraphMap`      | frame-elements, i18n           | Document minimap overlay             |
-| `image-manager.js`        | `initImageManager`      | frame-elements, i18n           | Image upload, resize, captions       |
-| `submission-checklist.js` | `showSubmissionChecklist`| in-page-modal, i18n            | Pre-export checklist dialog          |
-| `text-export.js`          | `downloadText`, `downloadPDF` | frame-elements, word-counter, i18n, jsPDF (CDN) | TXT/PDF export        |
-| `find-replace.js`         | `initFindReplace`       | i18n                           | In-editor search bar logic (CSS Highlight API) |
-| `special-chars-panel.js`  | `initSpecialCharsPanel` | (none)                         | Floating column of special chars (ä ö ü ß / é è ê / ñ ¿ ¡ …) anchored to the caret. Driven externally via `setActiveLanguage(lang)` — the embedded leksihjelp bridge in `standalone-writer.js` calls it. The previous self-rendered "Annet språk?" picker was removed (Skrivespråk is now owned by the bridge) |
-| `spinner-data-nb.js`      | `SPINNER_DATA_NB`       | (none)                         | Bokmål word suggestion data          |
-| `spinner-data-nn.js`      | `SPINNER_DATA_NN`       | (none)                         | Nynorsk word suggestion data         |
-| `german-exam-data.js`     | `writingTasks`, `examTasks`, `tasks`, `LEVELS`, `MODES` | lazy `german-exam-svg/*.js`    | Static task corpus for German exam spinner; exam mode includes 9 Tysk I and 9 Tysk II tasks from Udir/exam examples; each task ships `modelAnswers: { simple, rich }` (no glossary) |
-| `german-exam-spinner.js`  | `initGermanExamSpinner` | i18n, html-escape, ./german-exam-data | Portable spinner UI; deck logic in localStorage; emits onPickTask callback; preview uses `modelAnswers.simple` |
-| `german-hint-drawer.js`   | `initGermanHintDrawer`  | i18n, html-escape              | Slide-in drawer that shows the simple+rich Norwegian drafts; mounted in the editor when doc has `germanHint` metadata |
-| `insights-drawer.js`      | `initInsightsDrawer`    | i18n                           | Slide-in drawer for tools/analysis (replaces the old tools dropdown menu) |
-| `german-exam-svg/*.js`    | `default`               | (none)                         | 16 standalone SVG string modules used as optional visuals for German writing/exam tasks |
+## `editor-core/shared/` — portable utilities
 
-## editor-core/locales/ — Translation files
+| Module | Public exports | Direct dependencies | Purpose |
+| --- | --- | --- | --- |
+| `aria-live.js` | `announce` | none | Shared screen-reader live announcements |
+| `auto-save.js` | `createAutoSave` | none | Serialized, coalesced, retryable debounced saves with `flush()`/async teardown |
+| `dom-helpers.js` | `getModalParent` | none | Chooses a safe overlay parent |
+| `frame-elements.js` | `FRAME_SELECTORS`, `ALL_FRAME_SCAFFOLD`, `isFrameElement`, `isInsideNonEditableBlock`, `getCleanEditorText`, `removeFrameScaffold`, `isImageBlock` | none | Identifies/removes non-writing editor scaffold |
+| `html-escape.js` | `escapeHtml`, `escapeAttr` | none | Text and attribute escaping |
+| `i18n.js` | `PLURAL_RULES`, `initI18n`, `t`, `getCurrentLanguage`, `getDateLocale`, `getSupportedLanguages`, `setLanguage`, `onLanguageChange`, `renderLanguageSelector` | locale modules | Bokmål/Nynorsk/English localization and visible language selector |
+| `in-page-modal.js` | `showInPageConfirm`, `showInPagePrompt`, `showInPageContent`, `showInPageAlert` | HTML escaping, DOM helpers | Promise-based accessible dialogs |
+| `theme.js` | `getTheme`, `setTheme`, `cycleTheme`, `isDark`, `initTheme`, `getThemeIcon` | none | Light/dark/system preference and media-query binding |
+| `toast-notification.js` | `showToast` | HTML escaping, DOM helpers | Short non-blocking feedback |
+| `word-counter.js` | `countWords`, `attachWordCounter` | i18n, frame-elements | Scaffold-aware word/character counting |
 
-| File    | Language         | Exports           |
-|-------- |----------------- |------------------ |
-| `nb.js` | Norsk Bokmål     | `default` (object)|
-| `nn.js` | Norsk Nynorsk    | `default` (object)|
-| `en.js` | English          | `default` (object)|
+`shared/` has no import from `student/` or `app/`.
 
-## frames/ — Writing templates (Markdown)
+## `editor-core/student/` — one feature per module
 
-| File              | Genre         | Language |
-|------------------ |-------------- |--------- |
-| `analyse.md`      | Analyse       | nb (legacy path) |
-| `droefting.md`    | Drøfting      | nb (legacy path) |
-| `kronikk.md`      | Kronikk       | nb (legacy path) |
-| `nb/analyse.md`   | Analyse       | Bokmål   |
-| `nb/droefting.md` | Drøfting      | Bokmål   |
-| `nb/kronikk.md`   | Kronikk       | Bokmål   |
-| `nb/kaaseri.md`   | Kåseri        | Bokmål   |
-| `nb/fagartikkel.md` | Fagartikkel | Bokmål   |
-| `nb/leserinnlegg.md` | Leserinnlegg | Bokmål |
-| `nb/novelle.md`   | Novelle       | Bokmål   |
-| `nb/retorisk-analyse.md` | Retorisk analyse | Bokmål |
-| `nb/kortsvar.md` | Kortsvar | Bokmål |
-| `nb/kreativ-tekst.md` | Kreativ tekst | Bokmål |
-| `nb/reflekterende-tekst.md` | Reflekterende tekst | Bokmål |
-| `nb/sammenligning.md` | Sammenlignende tekst | Bokmål |
-| `nn/analyse.md`   | Analyse       | Nynorsk  |
-| `nn/droefting.md` | Drøfting      | Nynorsk  |
-| `nn/kronikk.md`   | Kronikk       | Nynorsk  |
-| `nn/kaaseri.md`   | Kåseri        | Nynorsk  |
-| `nn/fagartikkel.md` | Fagartikkel | Nynorsk  |
-| `nn/leserinnlegg.md` | Lesarinnlegg | Nynorsk |
-| `nn/novelle.md`   | Novelle       | Nynorsk  |
-| `nn/retorisk-analyse.md` | Retorisk analyse | Nynorsk |
-| `nn/kortsvar.md` | Kortsvar | Nynorsk |
-| `nn/kreativ-tekst.md` | Kreativ tekst | Nynorsk |
-| `nn/reflekterende-tekst.md` | Reflekterande tekst | Nynorsk |
-| `nn/sammenligning.md` | Samanliknande tekst | Nynorsk |
+| Module | Public exports | Direct dependencies | Purpose / default state |
+| --- | --- | --- | --- |
+| `argument-flow.js` | `initArgumentFlow` | i18n, frame-elements | Local argument-marker overview; lazy review tool |
+| `drag-handle.js` | `initDragHandle` | i18n | Pointer and keyboard paragraph-block reordering with owned listener cleanup |
+| `editor-toolbar.js` | `initEditorToolbar` | local Floating UI, i18n, modal, frame-elements | Selection formatting toolbar with roving keyboard navigation |
+| `find-replace.js` | `initFindReplace` | i18n | In-document find/replace surface |
+| `focus-mode.js` | `initFocusMode` | i18n | Distraction-reduced writing view; lazy |
+| `frame-guide.js` | `initFrameGuide` | i18n, toast; lazy spinner data | Responsive writing-frame guide and paragraph prompts |
+| `frame-manager.js` | `initFrameManager` | frame-elements | Portable scaffold-in-editor frame implementation; currently not mounted by Skriv |
+| `frame-parser.js` | `parseFrameMarkdown` | none | Parses Markdown frame definitions |
+| `frame-selector.js` | `DEFAULT_FRAME_REGISTRY`, `resolveFrameLanguage`, `resolveFramePath`, `partitionFramesByLevel`, `initFrameSelector` | i18n, modal, frame-parser | Language/level-aware frame picker; non-NB/NN documents explicitly fall back to Bokmål frames |
+| `german-exam-data.js` | `writingTasks`, `examTasks`, `tasks`, `LEVELS`, `MODES` | lazy German SVG modules | German task corpus and model-draft metadata |
+| `german-exam-spinner.js` | `initGermanExamSpinner` | i18n, HTML escaping, German data | Non-repeating Tysk 1/Tysk 2 task spinner |
+| `german-hint-drawer.js` | `initGermanHintDrawer` | i18n, HTML escaping | Simple/rich Norwegian planning-hint drawer for German tasks |
+| `image-manager.js` | `initImageManager` | i18n, toast, frame-elements | Local image upload/compression, caption, resize, scoped undo |
+| `insights-drawer.js` | `initInsightsDrawer` | i18n | Entry surface for explicitly opened review tools |
+| `keyboard-shortcuts.js` | `initKeyboardShortcuts` | i18n | Editor shortcuts and shortcut help |
+| `lix-score.js` | `calculateLix`, `getLixCategory`, `isAppropriateForLevel`, `initLixScore` | i18n | Rough readability observation; lazy and not grading |
+| `matte.js` | `initMatte` | i18n | Superscript/subscript formatting; portable but currently not mounted |
+| `onboarding-tour.js` | `initOnboardingTour` | none | Explicit opt-in tour; never auto-started by the default editor |
+| `paragraph-map.js` | `initParagraphMap` | i18n, frame-elements | Document minimap; lazy |
+| `reference-manager.js` | `initReferences` | i18n, escaping, DOM/modal helpers, frame-elements | Inline citations and bibliography |
+| `sentence-length.js` | `initSentenceLength` | i18n, frame-elements | Sentence-rhythm visualization; lazy |
+| `slash-menu.js` | `initSlashMenu` | i18n, HTML escaping | Slash-command insertion menu |
+| `special-chars-panel.js` | `initSpecialCharsPanel` | none | Caret-aware characters for the active document language |
+| `spinner-data-nb.js` | `starters`, `synonyms`, `stopwords`, `stem` | none | Bokmål suggestion/repetition language data |
+| `spinner-data-nn.js` | `synonyms`, `starters`, `stopwords`, `stem` | none | Nynorsk suggestion/repetition language data |
+| `submission-checklist.js` | `showSubmissionChecklist` | i18n, HTML escaping, DOM helpers | One-shot accessible pre-export checklist for PDF/TXT/Word-compatible DOC |
+| `table-manager.js` | `initTableManager` | i18n | Simple table insertion/editing; lazy |
+| `text-export.js` | `downloadText`, `downloadPDF`, `downloadDocx` | word-counter, modal, frame-elements, i18n, local jsPDF global | TXT, PDF, and Word-compatible HTML `.doc` downloads |
+| `toc-manager.js` | `initTOC` | i18n, frame-elements | Heading-derived table of contents |
+| `version-history.js` | `VERSION_HISTORY_POLICY`, `VERSION_HISTORY_STORE_NAME`, `openVersionHistoryDatabase`, `deleteSnapshotsForDocuments`, `deleteSnapshotsForDocument`, `initVersionHistory` | i18n, word-counter, toast | Bounded local snapshots, timeline, restore, deletion helpers |
+| `word-frequency.js` | `initWordFrequency` | i18n, frame-elements; lazy spinner data | Repetition observation/highlights; lazy |
+| `writing-feedback.js` | `initWritingFeedback` | i18n, frame-elements | Rule-based local writing observations; lazy and not grading |
+| `writing-progress.js` | `initWritingProgress` | i18n, word-counter | Optional goal/streak/progress UI; not mounted by default |
+| `writing-spinner.js` | `initWritingSpinner` | i18n, frame-elements; lazy spinner data | Contextual writing suggestions; lazy |
+
+### German SVG leaf modules
+
+Each file exports one default SVG string and imports nothing:
+
+`berlin.js`, `birthday.js`, `city.js`, `environment.js`, `friends.js`, `future.js`, `hotel-complaints.js`, `journey.js`, `lost-bag.js`, `multicultural.js`, `poster-choice.js`, `school.js`, `social-media.js`, `summer-job.js`, `vacation-photos.js`, and `youth-center-poster.js`.
+
+## `editor-core/vendor/` — pinned Floating UI 1.7.5
+
+| Module | Upstream exports/dependencies | Purpose |
+| --- | --- | --- |
+| `floating-ui-dom.js` | `arrow`, `autoPlacement`, `autoUpdate`, `computePosition`, `detectOverflow`, `flip`, `getOverflowAncestors`, `hide`, `inline`, `limitShift`, `offset`, `platform`, `shift`, `size`; imports core, utils, DOM utils | Browser positioning entry used by toolbar |
+| `floating-ui-core.js` | `arrow`, `autoPlacement`, `computePosition`, `detectOverflow`, `flip`, `hide`, `inline`, `limitShift`, `offset`, `rectToClientRect`, `shift`, `size`; imports utils | Platform-neutral positioning engine |
+| `floating-ui-utils-dom.js` | `getComputedStyle`, `getContainingBlock`, `getDocumentElement`, `getFrameElement`, `getNearestOverflowAncestor`, `getNodeName`, `getNodeScroll`, `getOverflowAncestors`, `getParentNode`, `getWindow`, `isContainingBlock`, `isElement`, `isHTMLElement`, `isLastTraversableNode`, `isNode`, `isOverflowElement`, `isShadowRoot`, `isTableElement`, `isTopLayer`, `isWebKit`; leaf | DOM-specific primitives |
+| `floating-ui-utils.js` | `alignments`, `clamp`, `createCoords`, `evaluate`, `expandPaddingObject`, `floor`, `getAlignment`, `getAlignmentAxis`, `getAlignmentSides`, `getAxisLength`, `getExpandedPlacements`, `getOppositeAlignmentPlacement`, `getOppositeAxis`, `getOppositeAxisPlacements`, `getOppositePlacement`, `getPaddingObject`, `getSide`, `getSideAxis`, `max`, `min`, `placements`, `rectToClientRect`, `round`, `sides`; leaf | Shared positioning math/utilities |
+
+These are distribution files and are not hand-edited.
+
+## `editor-core/locales/`
+
+| File | Language | Export |
+| --- | --- | --- |
+| `nb.js` | Norsk Bokmål | default translation object |
+| `nn.js` | Norsk Nynorsk | default translation object |
+| `en.js` | English | default translation object |
+
+All three objects must have matching key paths. Every visible application string uses `t('key')`.
+
+## `frames/` — writing definitions
+
+The picker uses the per-language paths. The three root files (`analyse.md`, `droefting.md`, `kronikk.md`) are retained only for compatibility.
+
+| ID / file stem | Genre | Available languages | Recommended school bands |
+| --- | --- | --- | --- |
+| `droefting` | Drøfting | nb, nn | ungdomsskole, vgs |
+| `analyse` | Analyse | nb, nn | ungdomsskole, vgs |
+| `kronikk` | Kronikk | nb, nn | vgs |
+| `kaaseri` | Kåseri | nb, nn | ungdomsskole, vgs |
+| `fagartikkel` | Fagartikkel | nb, nn | ungdomsskole, vgs |
+| `leserinnlegg` | Leser-/lesarinnlegg | nb, nn | barneskole, ungdomsskole, vgs |
+| `novelle` | Novelle | nb, nn | barneskole, ungdomsskole, vgs |
+| `retorisk-analyse` | Retorisk analyse | nb, nn | ungdomsskole, vgs |
+| `kortsvar` | Kortsvar | nb, nn | vgs |
+| `kreativ-tekst` | Kreativ tekst | nb, nn | barneskole, ungdomsskole, vgs |
+| `reflekterende-tekst` | Reflekterende tekst | nb, nn | ungdomsskole, vgs |
+| `sammenligning` | Sammenlignende/samanliknande tekst | nb, nn | ungdomsskole, vgs |
+
+Frames outside the selected level remain available under additional choices; level metadata recommends rather than prohibits. Document writing language selects NB or NN independently of interface language.

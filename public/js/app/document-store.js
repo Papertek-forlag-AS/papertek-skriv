@@ -2,193 +2,46 @@
  * Document storage using IndexedDB.
  * Stores documents locally in the browser — no server, no login.
  *
- * Each document: { id, title, html, plainText, wordCount, createdAt, updatedAt, subject, schoolYear }
+ * Each document: { id, title, html, plainText, wordCount, writingLanguage, createdAt, updatedAt, subject, schoolYear }
  */
 
-import { getSchoolYear, getCurrentSchoolYear } from './folder-store.js';
+import { getCurrentSchoolYear } from './folder-store.js';
+import { getCurrentLanguage } from '../editor-core/shared/i18n.js';
+import { openSkrivDatabase } from './db.js';
 
-const DB_NAME = 'skriv-documents';
-const DB_VERSION = 4;               // v4: folders store + folderIds on documents
 const STORE_NAME = 'documents';
-const PERSONAL_FOLDER_NAME = '__personal__';
 
-let _db = null;
+/** Languages supported by Skriv's per-document writing-language setting. */
+export const DOCUMENT_WRITING_LANGUAGES = Object.freeze(['nb', 'nn', 'en', 'de', 'es', 'fr']);
 
 /**
- * Open (or create) the IndexedDB database.
+ * Return a supported document language, falling back predictably.
+ * Kept as a small pure helper so imports and older IndexedDB records can use
+ * the same compatibility rule without requiring a database migration.
  */
-function openDB() {
-    if (_db) return Promise.resolve(_db);
-
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-        // If blocked for more than 3s, reload to clear stale connections
-        let blockedTimer = null;
-        request.onblocked = () => {
-            console.warn('[document-store] DB upgrade blocked — closing stale connections');
-            if (_db) { _db.close(); _db = null; }
-            blockedTimer = setTimeout(() => {
-                console.warn('[document-store] DB still blocked after 3s — reloading');
-                window.location.reload();
-            }, 3000);
-        };
-
-        request.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            const tx = e.target.transaction;
-
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                store.createIndex('updatedAt', 'updatedAt', { unique: false });
-            }
-            // v2: trash store (also created in trash-store.js)
-            if (!db.objectStoreNames.contains('trash')) {
-                const trashStore = db.createObjectStore('trash', { keyPath: 'id' });
-                trashStore.createIndex('trashedAt', 'trashedAt', { unique: false });
-            }
-            // v3: subject + schoolYear fields on documents
-            if (e.oldVersion < 3) {
-                const store = tx.objectStore(STORE_NAME);
-                if (!store.indexNames.contains('subject')) {
-                    store.createIndex('subject', 'subject', { unique: false });
-                }
-                if (!store.indexNames.contains('schoolYear')) {
-                    store.createIndex('schoolYear', 'schoolYear', { unique: false });
-                }
-                // Backfill existing documents
-                store.openCursor().onsuccess = (event) => {
-                    const cursor = event.target.result;
-                    if (cursor) {
-                        const doc = cursor.value;
-                        let changed = false;
-                        if (doc.subject === undefined) {
-                            doc.subject = null;
-                            changed = true;
-                        }
-                        if (!doc.schoolYear) {
-                            doc.schoolYear = getSchoolYear(new Date(doc.createdAt)).label;
-                            changed = true;
-                        }
-                        if (changed) cursor.update(doc);
-                        cursor.continue();
-                    }
-                };
-            }
-            // v4: folders store + folderIds on documents
-            if (e.oldVersion < 4) {
-                _runV4Migration(db, tx);
-            }
-        };
-
-        request.onsuccess = (e) => {
-            if (blockedTimer) clearTimeout(blockedTimer);
-            _db = e.target.result;
-            // Close this connection if another tab/module requests a version upgrade
-            _db.onversionchange = () => {
-                _db.close();
-                _db = null;
-            };
-            resolve(_db);
-        };
-
-        request.onerror = (e) => {
-            if (blockedTimer) clearTimeout(blockedTimer);
-            console.error('IndexedDB open failed:', e.target.error);
-            reject(e.target.error);
-        };
-    });
+export function normalizeWritingLanguage(value, fallback = 'nb') {
+    if (DOCUMENT_WRITING_LANGUAGES.includes(value)) return value;
+    if (DOCUMENT_WRITING_LANGUAGES.includes(fallback)) return fallback;
+    return 'nb';
 }
 
 /**
- * DB v4 migration — creates folders store, seeds folders, sets folderIds on documents.
- * Duplicated in document-store.js, trash-store.js, and folder-store.js because
- * any of the three may open the DB first.
+ * Resolve the language for a document, including records created before the
+ * writingLanguage field existed. Legacy German-task documents have a strong
+ * language signal; other records use the supplied fallback.
  */
-function _runV4Migration(db, tx) {
-    const now = new Date().toISOString();
-    const nameToId = new Map();
+export function getDocumentWritingLanguage(doc, fallback = 'nb') {
+    const legacyGerman = !!(doc?.germanHint && (doc.germanHint.simple || doc.germanHint.rich));
+    const inferred = doc?.writingLanguage || (legacyGerman ? 'de' : fallback);
+    return normalizeWritingLanguage(inferred, fallback);
+}
 
-    function normName(n) {
-        return n.toLowerCase()
-            .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
-            .replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-    }
-
-    // 1. Create folders store
-    if (!db.objectStoreNames.contains('folders')) {
-        const fs = db.createObjectStore('folders', { keyPath: 'id' });
-        fs.createIndex('parentId', 'parentId', { unique: false });
-        fs.createIndex('schoolYear', 'schoolYear', { unique: false });
-    }
-
-    // 2. folderIds multiEntry index on documents
-    const docStore = tx.objectStore(STORE_NAME);
-    if (!docStore.indexNames.contains('folderIds')) {
-        docStore.createIndex('folderIds', 'folderIds', { unique: false, multiEntry: true });
-    }
-
-    // 3. Seed folders
-    const foldersStore = tx.objectStore('folders');
-
-    function addFolder(id, name, isSystem, sortOrder) {
-        nameToId.set(name, id);
-        const req = foldersStore.add({
-            id, name, parentId: null, isSystem,
-            schoolYear: null, sortOrder, createdAt: now,
-        });
-        req.onerror = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
-    }
-
-    addFolder('sys___personal__', PERSONAL_FOLDER_NAME, true, 0);
-
-    const SUBJECTS = [
-        'Engelsk', 'Fremmedspråk', 'Geografi', 'Historie', 'IT', 'KRLE',
-        'Kroppsøving', 'Kunst og håndverk', 'Matematikk', 'Musikk',
-        'Naturfag', 'Norsk', 'Religion og etikk', 'Samfunnsfag', 'Samfunnskunnskap',
-    ];
-    SUBJECTS.forEach((name, i) => addFolder('sys_' + normName(name), name, true, i + 1));
-
-    try {
-        const raw = localStorage.getItem('skriv_custom_subjects');
-        const customs = raw ? JSON.parse(raw) : [];
-        customs.forEach((name, i) => {
-            if (!nameToId.has(name)) {
-                addFolder('cust_' + normName(name), name, false, 100 + i);
-            }
-        });
-    } catch (_) { /* ignore */ }
-
-    // 4. Walk documents → set folderIds
-    docStore.openCursor().onsuccess = (ev) => {
-        const cursor = ev.target.result;
-        if (!cursor) return;
-        try {
-            const doc = cursor.value;
-            if (doc.folderIds !== undefined) { cursor.continue(); return; }
-            const fid = doc.subject ? nameToId.get(doc.subject) : null;
-            doc.folderIds = fid ? [fid] : [];
-            cursor.update(doc);
-        } catch (_) { /* skip */ }
-        cursor.continue();
+function withDocumentDefaults(doc) {
+    if (!doc) return doc;
+    return {
+        ...doc,
+        writingLanguage: getDocumentWritingLanguage(doc),
     };
-
-    // 5. Walk trash → set folderIds
-    if (db.objectStoreNames.contains('trash')) {
-        const trashStore = tx.objectStore('trash');
-        trashStore.openCursor().onsuccess = (ev) => {
-            const cursor = ev.target.result;
-            if (!cursor) return;
-            try {
-                const doc = cursor.value;
-                if (doc.folderIds !== undefined) { cursor.continue(); return; }
-                const fid = doc.subject ? nameToId.get(doc.subject) : null;
-                doc.folderIds = fid ? [fid] : [];
-                cursor.update(doc);
-            } catch (_) { /* skip */ }
-            cursor.continue();
-        };
-    }
 }
 
 /**
@@ -200,9 +53,11 @@ function generateId() {
 
 /**
  * Create a new document. Returns the document object.
+ * @param {string} title
+ * @param {{ writingLanguage?: string }} [options]
  */
-export async function createDocument(title = '') {
-    const db = await openDB();
+export async function createDocument(title = '', options = {}) {
+    const db = await openSkrivDatabase();
     const now = new Date().toISOString();
 
     const doc = {
@@ -211,6 +66,7 @@ export async function createDocument(title = '') {
         html: '',
         plainText: '',
         wordCount: 0,
+        writingLanguage: normalizeWritingLanguage(options.writingLanguage, getCurrentLanguage()),
         subject: null,
         folderIds: [],
         schoolYear: getCurrentSchoolYear(),
@@ -230,12 +86,12 @@ export async function createDocument(title = '') {
  * Get a document by ID.
  */
 export async function getDocument(id) {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
 
     return new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const request = tx.objectStore(STORE_NAME).get(id);
-        request.onsuccess = () => resolve(request.result || null);
+        request.onsuccess = () => resolve(withDocumentDefaults(request.result || null));
         request.onerror = (e) => reject(e.target.error);
     });
 }
@@ -244,7 +100,7 @@ export async function getDocument(id) {
  * Save (update) a document. Merges provided fields with existing doc.
  */
 export async function saveDocument(id, updates) {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     const existing = await getDocument(id);
     if (!existing) throw new Error(`Document ${id} not found`);
 
@@ -267,7 +123,7 @@ export async function saveDocument(id, updates) {
  * List all documents, sorted by updatedAt descending (newest first).
  */
 export async function listDocuments() {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
 
     return new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readonly');
@@ -275,7 +131,7 @@ export async function listDocuments() {
         const request = store.getAll();
 
         request.onsuccess = () => {
-            const docs = request.result || [];
+            const docs = (request.result || []).map(withDocumentDefaults);
             docs.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
             resolve(docs);
         };
@@ -287,7 +143,7 @@ export async function listDocuments() {
  * Delete a document by ID.
  */
 export async function deleteDocument(id) {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
 
     return new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readwrite');

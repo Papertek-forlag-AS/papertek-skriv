@@ -3,14 +3,19 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v75';
+const CACHE_PREFIX = 'skriv-v';
+const CACHE_NAME = 'skriv-v76';
 const ASSETS = [
     '/',
     '/index.html',
     '/whitepaper.html',
     '/manifest.json',
+    '/css/main.css',
+    '/vendor/tailwindcss-3.4.17.js',
+    '/vendor/jspdf-2.5.1.umd.min.js',
     '/icons/icon-192.svg',
     '/js/app/main.js',
+    '/js/app/db.js',
     '/js/app/standalone-writer.js',
     '/js/app/document-store.js',
     '/js/app/document-list.js',
@@ -27,7 +32,12 @@ const ASSETS = [
     '/js/app/leksihjelp-bridge.js',
     '/js/app/leksihjelp-settings.js',
     '/js/app/leksihjelp-dictionary.js',
+    '/js/app/library-backup.js',
     '/js/editor-core/config.js',
+    '/js/editor-core/vendor/floating-ui-utils.js',
+    '/js/editor-core/vendor/floating-ui-core.js',
+    '/js/editor-core/vendor/floating-ui-utils-dom.js',
+    '/js/editor-core/vendor/floating-ui-dom.js',
     '/js/editor-core/shared/i18n.js',
     '/js/editor-core/shared/in-page-modal.js',
     '/js/editor-core/shared/toast-notification.js',
@@ -70,6 +80,8 @@ const ASSETS = [
     '/js/editor-core/student/german-exam-spinner.js',
     '/js/editor-core/student/german-hint-drawer.js',
     '/js/editor-core/student/insights-drawer.js',
+    '/js/editor-core/student/slash-menu.js',
+    '/js/editor-core/student/drag-handle.js',
     '/js/editor-core/student/german-exam-svg/birthday.js',
     '/js/editor-core/student/german-exam-svg/city.js',
     '/js/editor-core/student/german-exam-svg/berlin.js',
@@ -266,47 +278,46 @@ self.addEventListener('install', (event) => {
             );
         })
     );
-    self.skipWaiting();
 });
 
-// Activate: clean up old caches
+// Activate only after the open page explicitly accepts the waiting update.
+// Clean up Skriv's old caches without touching unrelated origin caches.
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((names) => {
-            return Promise.all(
+        caches.keys().then(async (names) => {
+            await Promise.all(
                 names
-                    .filter((name) => name !== CACHE_NAME)
+                    .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
                     .map((name) => caches.delete(name))
             );
+            await self.clients.claim();
         })
     );
-    self.clients.claim();
 });
 
-// Fetch: network first, fall back to cache
+// Fetch: serve this release's pinned local assets from its versioned cache.
+// A newly deployed release becomes visible only after its service worker has
+// installed completely and the student accepts the waiting update. This avoids
+// mixing a new HTML shell with old modules while a document is open.
 self.addEventListener('fetch', (event) => {
-    // Skip non-GET requests
     if (event.request.method !== 'GET') return;
 
-    // Skip CDN requests (Tailwind, jsPDF, Floating UI) — let browser handle
     const url = new URL(event.request.url);
     if (url.origin !== self.location.origin) return;
 
     event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                // Cache successful responses
+        caches.match(event.request).then((cached) => {
+            if (cached) return cached;
+
+            return fetch(event.request).then((response) => {
                 if (response.ok) {
                     const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, clone);
-                    });
+                    event.waitUntil(
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+                    );
                 }
                 return response;
-            })
-            .catch(() => {
-                // Network failed — try cache
-                return caches.match(event.request);
-            })
+            });
+        })
     );
 });

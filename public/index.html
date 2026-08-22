@@ -4,28 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Papertek Skriv</title>
-    <meta name="description" content="Gratis skriveverksted for elever. Skriv, formater, eksporter til PDF.">
+    <meta name="description" content="Minimalistisk, lokal-først skriveverksted for elever i norsk skole.">
     <meta name="theme-color" content="#059669">
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icons/icon-192.svg">
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Pinned local dependencies: the editor must start without network access. -->
+    <script src="/vendor/tailwindcss-3.4.17.js"></script>
     <script>tailwind.config = { darkMode: 'class' }</script>
 
     <!-- jsPDF for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="/vendor/jspdf-2.5.1.umd.min.js"></script>
 
     <!-- Leksihjelp scoped CSS (must come before any leksihjelp DOM renders) -->
     <link rel="stylesheet" href="/js/leksihjelp/styles/leksihjelp.css">
 
-    <link rel="stylesheet" href="/css/main.css?v=74">
+    <link rel="stylesheet" href="/css/main.css">
 
     <script>
         // Init theme early to prevent flash
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        const skrivTheme = localStorage.getItem('skriv_theme') || 'system';
+        if (skrivTheme === 'dark' || (skrivTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
@@ -39,7 +41,8 @@
     <!-- <body>, so the wrapper has to live on <body>. The scoped CSS only -->
     <!-- targets leksihjelp-specific selectors (#lexi-*, .lh-*) so it -->
     <!-- doesn't bleed onto Skriv's own UI. -->
-    <a href="#app" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold" id="skip-to-content">Hopp til innhold</a>
+    <!-- Safe Bokmål fallback; main.js replaces it with a11y.skipToContent after i18n initializes. -->
+    <a href="#app" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold" id="skip-to-content" data-i18n-key="a11y.skipToContent">Hopp til innhold</a>
     <main id="app" role="main"></main>
 
     <!--

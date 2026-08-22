@@ -1,0 +1,2 @@
+# Keep reviewed third-party distributions byte-for-byte identical upstream.
+public/vendor/*.js -whitespace

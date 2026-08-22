@@ -16,9 +16,10 @@
  *      The shim is in-memory only (no IndexedDB); persistence is the
  *      bridge's responsibility (localStorage).
  *
- *   2. Expose `window.__skrivLeksihjelpShim.bindBridge(bridgeApi)` for
- *      `app/leksihjelp-bridge.js` to wire two-way sync between the
- *      bridge's settings (writingLang / lookupLang / examMode) and the
+ *   2. Expose `window.__skrivLeksihjelpShim.bindBridge(bridgeApi)` and
+ *      `unbindBridge(bridgeApi)` for `app/leksihjelp-bridge.js` to wire
+ *      lifecycle-safe two-way sync between the bridge's settings
+ *      (writingLang / lookupLang / examMode) and the
  *      keys the vendored renderer reads (`lang.spellcheck` /
  *      `lang.dictionary` / `examMode`).
  *
@@ -207,10 +208,35 @@
     //   bridge.writingLang  ↔ store['lang.spellcheck']
     //   bridge.lookupLang   ↔ store['lang.dictionary']
     //   bridge.examMode     ↔ store['examMode']
-    let _bound = false;
+    let _boundBridge = null;
+    let _bridgeUnsubscribers = [];
+    let _storeToBridgeListener = null;
+
+    function unbindBridge(bridge) {
+        if (bridge && bridge !== _boundBridge) return;
+
+        for (const unsubscribe of _bridgeUnsubscribers) {
+            try { unsubscribe(); } catch (_) { /* bridge may already be destroyed */ }
+        }
+        _bridgeUnsubscribers = [];
+
+        if (_storeToBridgeListener) {
+            const index = _storageListeners.indexOf(_storeToBridgeListener);
+            if (index !== -1) _storageListeners.splice(index, 1);
+            _storeToBridgeListener = null;
+        }
+
+        _boundBridge = null;
+    }
+
     function bindBridge(bridge) {
-        if (_bound || !bridge) return;
-        _bound = true;
+        if (!bridge || bridge === _boundBridge) return;
+
+        // Each editor owns its own bridge instance. Rebind when navigation
+        // opens another document so the embedded spell-check follows that
+        // document's language instead of the first document opened this page.
+        unbindBridge();
+        _boundBridge = bridge;
 
         // Initial sync: bridge → shim. The shim was seeded with 'nb'
         // defaults; replace with the bridge's localStorage-persisted
@@ -232,31 +258,31 @@
         });
 
         // Bridge → shim
-        bridge.onWritingLangChange((lang) => {
+        _bridgeUnsubscribers.push(bridge.onWritingLangChange((lang) => {
             _writeStore({
                 'lang.spellcheck': lang,
                 'lang.prediction': lang,
                 'lang.widget':     lang,
                 'language':        lang,
             });
-        });
-        bridge.onLookupLangChange((lang) => {
+        }));
+        _bridgeUnsubscribers.push(bridge.onLookupLangChange((lang) => {
             _writeStore({ 'lang.dictionary': lang });
-        });
-        bridge.onExamModeChange((on) => {
+        }));
+        _bridgeUnsubscribers.push(bridge.onExamModeChange((on) => {
             _writeStore({ 'examMode': !!on });
-        });
-        bridge.onStatusChange((status) => {
+        }));
+        _bridgeUnsubscribers.push(bridge.onStatusChange((status) => {
             // Embedded renderer stays live in 'absent' (no leksihjelp anywhere
             // — Skriv IS leksihjelp here) and 'embedded' (Skriv's own copy).
             // It only stands down when the Chrome extension takes over.
             _writeStore({ 'spellCheckEnabled': status !== 'extension' });
-        });
+        }));
 
         // Shim → bridge. The renderer's lang-detect can write back to
         // lang.spellcheck on auto-detect; mirror that into the bridge so
         // it persists across reloads.
-        _storageListeners.push((changes) => {
+        _storeToBridgeListener = (changes) => {
             if (changes['lang.spellcheck'] && changes['lang.spellcheck'].newValue) {
                 bridge.setWritingLang(changes['lang.spellcheck'].newValue);
             }
@@ -266,13 +292,15 @@
             if (changes['examMode']) {
                 bridge.setExamMode(!!changes['examMode'].newValue);
             }
-        });
+        };
+        _storageListeners.push(_storeToBridgeListener);
     }
 
     // Public surface — keep small.
     window.__skrivLeksihjelpShim = Object.freeze({
         bindBridge,
-        get isBound() { return _bound; },
+        unbindBridge,
+        get isBound() { return !!_boundBridge; },
         // Expose for debugging/tests; do not document for general use.
         _store,
     });

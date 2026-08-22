@@ -1,105 +1,108 @@
 # Architecture
 
-> Last updated: 2026-05-11
+> Last updated: 2026-08-22
 
-## What is this?
+## Product boundary
 
-Papertek Skriv is a privacy-first PWA for student writing in Norwegian schools. No server, no login, no tracking. All data stays in the browser (IndexedDB).
+Papertek Skriv is a local-first, deliberately small word processor for school writing. It has no account, document server, analytics, or tracking. Documents live in the active browser profile; portability is provided by normal document exports and a whole-library `.skriv` backup.
+
+Local-first reduces data exposure but does not make Skriv a locked browser, a secure exam client, or a complete GDPR assessment on behalf of a school.
 
 ## Tech stack
 
-| Layer        | Choice                  | Notes                          |
-|------------- |------------------------ |------------------------------- |
-| Language     | Vanilla JS (ES6 modules)| No framework, no bundler       |
-| CSS          | Tailwind CSS (CDN)      | `https://cdn.tailwindcss.com`  |
-| Storage      | IndexedDB               | Databases: `skriv-documents` v4, `skriv-versions` v1 |
-| PDF export   | jsPDF 2.5.1 (CDN)       | cdnjs.cloudflare.com           |
-| Positioning  | Floating UI 1.7.5 (CDN) | For toolbar popover            |
-| PWA          | Service Worker + manifest| Offline-first, installable     |
-| i18n         | Custom module            | nb, nn, en with pluralization  |
-| Build system | None                    | Served as-is, no compilation   |
-| Backend      | None                    | 100% client-side               |
+| Layer | Choice | Notes |
+|---|---|---|
+| Language | Vanilla JavaScript, ES modules | No framework or bundler |
+| CSS | Tailwind browser build 3.4.17 + `css/main.css` | Pinned and served locally |
+| Document storage | IndexedDB `skriv-documents` v4 | Documents, trash, folders |
+| Version storage | IndexedDB `skriv-versions` v1 | Bounded document snapshots |
+| PDF export | jsPDF 2.5.1 UMD | Pinned local vendor file |
+| Positioning | Floating UI DOM 1.7.5 | Vendored local ES modules |
+| PWA | Manifest + Service Worker | Versioned, atomic offline release cache |
+| i18n | Custom module | Bokmål, Nynorsk, English |
+| Backend/build | None | Static files served as-is |
+
+The application makes no runtime request to a third-party CDN. Same-origin files are cached by the service worker. Leksihjelp is a locally vendored browser bundle.
 
 ## Directory structure
 
-```
+```text
 public/
-├── index.html              ← Single entry point (SPA)
-├── manifest.json           ← PWA manifest
-├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v72)
-├── icons/                  ← PWA icon (192)
-├── frames/                 ← Writing frame templates (Markdown)
-│   ├── analyse.md          (legacy)
-│   ├── droefting.md        (legacy)
-│   ├── kronikk.md          (legacy)
-│   ├── nb/                 ← Bokmål (12 frames)
-│   └── nn/                 ← Nynorsk (12 frames)
+├── index.html                  SPA shell
+├── whitepaper.html             transparency and portability notes
+├── manifest.json               PWA manifest
+├── sw.js                       Service Worker, current cache `skriv-v76`
+├── css/main.css                app/editor CSS and responsive rules
+├── icons/                      install icon
+├── vendor/                     pinned Tailwind and jsPDF distributions
+├── frames/
+│   ├── nb/                     12 Bokmål writing frames
+│   ├── nn/                     12 Nynorsk writing frames
+│   └── *.md                    three legacy Bokmål paths
 └── js/
-    ├── app/                ← App-level orchestration
-    │   ├── main.js         ← Router, init
-    │   ├── document-store.js
-    │   ├── document-list.js
-    │   ├── document-search.js
-    │   ├── trash-store.js
-    │   ├── standalone-writer.js  ← Editor orchestrator
-    │   ├── word-count-stats.js
-    │   ├── folder-store.js       ← Folder CRUD, tree helpers, school year logic
-    │   ├── sidebar.js            ← Collapsible folder tree navigation
-    │   ├── folder-picker.js      ← Multi-select folder assignment dropdown
-    │   ├── school-level.js       ← School level data + persistence
-    │   ├── onboarding-modal.js   ← First-time level selection modal
-    │   ├── german-exam-route.js  ← Route + screen wiring for #/tysk
-    │   ├── leksihjelp-bridge.js  ← Brokers leksihjelp status + Skrivespråk/Oppslagsspråk
-    │   └── leksihjelp-settings.js ← Slide-in drawer with the four leksihjelp controls
+    ├── app/                    routing, storage, screens, backup
     ├── editor-core/
-    │   ├── config.js       ← Constants (special chars)
-    │   ├── shared/         ← Cross-product utilities (10 modules)
-    │   ├── student/        ← Student editor features
-    │   │   └── german-exam-svg/  ← Hand-written SVG modules for image-based German tasks (one file per image)
-    │   └── locales/        ← Translation files (nb, nn, en)
-    └── leksihjelp/         ← Vendored from Papertek-forlag-AS/leksihjelp (managed by sync script; do not hand-edit)
+    │   ├── config.js
+    │   ├── shared/             portable utilities
+    │   ├── student/            one editor feature per module
+    │   ├── locales/            nb, nn, en
+    │   └── vendor/             Floating UI ESM graph
+    ├── leksihjelp-loader.js    browser-extension API shim
+    └── leksihjelp/             generated upstream vendor snapshot; do not hand-edit
 ```
 
-## Module layers
+## Layers and boundaries
 
+```text
+app/main.js
+├── app/document-list.js
+├── app/german-exam-route.js
+└── app/standalone-writer.js
+    ├── editor-core/student/*
+    └── editor-core/shared/*
 ```
-┌─────────────────────────────────────────┐
-│  app/main.js  (router)                  │
-│    ├── document-list.js   (home screen) │
-│    └── standalone-writer.js (editor)    │
-│         ├── editor-core/student/*       │
-│         └── editor-core/shared/*        │
-└─────────────────────────────────────────┘
-```
 
-**Three layers, strict top-down dependency:**
+1. `app/` owns screens, routes, browser storage, and product wiring.
+2. `editor-core/student/` owns portable editor features and imports only its own layer or `shared/`.
+3. `editor-core/shared/` never imports upward from `student/` or `app/`.
+4. `editor-core/` must remain copyable into Papertek Skriveprøve without implicit app state.
 
-1. **app/** — Orchestration. Knows about routes, screens, and storage. Imports from `editor-core/`.
-2. **editor-core/student/** — Feature modules (toolbar, spinner, radar, etc.). Imports from `shared/` only.
-3. **editor-core/shared/** — Zero-dependency utilities (i18n, escaping, DOM helpers). Never imports upward.
+The dependency graph is a DAG. Storage access to `skriv-documents` is centralized in `app/db.js`; the historical v4 data repair runs after open without forcing a new schema version while an older editor tab may be dirty.
+
+## Runtime model
+
+- `main.js` initializes theme, service-worker updates, interface language, school-level onboarding, and the hash router.
+- Screen teardown is awaited. The editor flushes its latest state before route changes, database upgrades, or an accepted app update.
+- Autosaves are serialized and coalesced; only one IndexedDB write runs at once.
+- The default editor mounts the writing essentials plus the review drawer, find/replace, and bounded version storage. Scan-heavy optional review modules are dynamically imported only when the student opens them.
+- Writing language belongs to each document and drives native `lang`/spellcheck, Leksihjelp, special characters, and frame language independently of interface language.
+- Version history keeps at most 50 snapshots per document, taken no more often than five minutes unless the text grows by 100 words.
+
+## PWA and update safety
+
+The current cache is `skriv-v76`.
+
+1. The service worker atomically precaches the critical app shell and full ES-module graph.
+2. The larger vendored Leksihjelp inventory is cached best-effort per file so a vendor inventory issue cannot prevent the word processor from installing.
+3. Same-origin release assets are cache-first, preventing mixed old/new module graphs.
+4. A new worker remains waiting. The student explicitly accepts the update.
+5. Every mounted editor registers an awaited flush before `SKIP_WAITING` and reload.
+6. Activation removes only older `skriv-v*` caches, never unrelated origin caches.
 
 ## Design principles
 
-1. **One feature = one file.** Every module is self-contained.
-2. **Portable.** Modules will be copied into Papertek Skriveprove — no hidden coupling allowed.
-3. **init/destroy lifecycle.** Every feature module exports `init*()` returning an API object with a `destroy()` method.
-4. **No globals.** All modules use named ES6 exports. No window pollution.
-5. **No build step.** Files are served directly. CDN for third-party libs.
-6. **Privacy by architecture.** No server calls, no analytics, no cookies. IndexedDB only.
+1. One feature equals one file.
+2. Writing and recovery take priority over convenience features.
+3. The first view is quiet: no automatic tour, streak, pace, or progress overlay.
+4. Pedagogical analysis is described as local observations and support, never as grading.
+5. No build step; pinned third-party distributions are checked in under `public/vendor/` or `editor-core/vendor/`.
+6. All visible strings use i18n and all interactive UI is keyboard-operable.
+7. Browser-profile storage is not a backup; the product exposes `.skriv` library export/merge restore.
 
-## Screens
+## Routes
 
-| Route           | Screen         | Entry point             |
-|---------------- |--------------- |------------------------ |
-| `#/`            | Document list  | `document-list.js`      |
-| `#/doc/{id}`    | Editor         | `standalone-writer.js`  |
-| `#/tysk`        | German exam spinner | `german-exam-route.js` |
-
-## CDN dependencies
-
-| Library          | Version | CDN URL                                                      |
-|----------------- |-------- |------------------------------------------------------------- |
-| Tailwind CSS     | latest  | `https://cdn.tailwindcss.com`                                |
-| jsPDF            | 2.5.1   | `https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js` |
-| Floating UI DOM  | 1.7.5   | `https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.5/`      |
+| Route | Screen | Entry point |
+|---|---|---|
+| `#/` | Document library | `document-list.js` |
+| `#/doc/{id}` | Editor | `standalone-writer.js` |
+| `#/tysk` | German task spinner | `german-exam-route.js` |

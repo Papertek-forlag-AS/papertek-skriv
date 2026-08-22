@@ -1,6 +1,45 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 import { initLeksihjelpBridge } from '../public/js/app/leksihjelp-bridge.js';
+
+function createFakeBridge(writingLang) {
+  let currentWritingLang = writingLang;
+  const writingListeners = new Set();
+  const lookupListeners = new Set();
+  const examListeners = new Set();
+  const statusListeners = new Set();
+
+  return {
+    getWritingLang: () => currentWritingLang,
+    getLookupLang: () => 'nb',
+    getExamMode: () => false,
+    getStatus: () => 'embedded',
+    setWritingLang(lang) {
+      currentWritingLang = lang;
+      for (const listener of writingListeners) listener(lang);
+    },
+    setLookupLang() {},
+    setExamMode() {},
+    onWritingLangChange(listener) {
+      writingListeners.add(listener);
+      return () => writingListeners.delete(listener);
+    },
+    onLookupLangChange(listener) {
+      lookupListeners.add(listener);
+      return () => lookupListeners.delete(listener);
+    },
+    onExamModeChange(listener) {
+      examListeners.add(listener);
+      return () => examListeners.delete(listener);
+    },
+    onStatusChange(listener) {
+      statusListeners.add(listener);
+      return () => statusListeners.delete(listener);
+    },
+  };
+}
 
 test('requestExtensionPanel posts the cross-repo open-panel message', () => {
   const posted = [];
@@ -22,6 +61,28 @@ test('requestExtensionPanel posts the cross-repo open-panel message', () => {
       source: 'skriv',
     });
     assert.equal(posted[0].origin, 'https://skriv.papertek.app');
+  } finally {
+    delete globalThis.window;
+  }
+});
+
+test('destroy releases the active bridge from the embedded shim', () => {
+  let boundBridge = null;
+  let unboundBridge = null;
+  globalThis.window = {
+    location: { origin: 'https://skriv.papertek.app' },
+    addEventListener() {},
+    removeEventListener() {},
+    __skrivLeksihjelpShim: {
+      bindBridge: (bridge) => { boundBridge = bridge; },
+      unbindBridge: (bridge) => { unboundBridge = bridge; },
+    },
+  };
+  try {
+    const bridge = initLeksihjelpBridge({ detectGraceMs: 1 });
+    assert.equal(boundBridge, bridge);
+    bridge.destroy();
+    assert.equal(unboundBridge, bridge);
   } finally {
     delete globalThis.window;
   }
@@ -49,4 +110,29 @@ test('detectStatus reports embedded (not extension) when DOM attribute absent bu
     assert.equal(bridge.getStatus(), 'embedded', 'standalone Skriv (no extension attribute) stays embedded');
     bridge.destroy();
   } finally { delete globalThis.window; delete globalThis.document; }
+});
+
+test('embedded shim rebinds to each document bridge instead of keeping stale language state', () => {
+  const source = readFileSync(new URL('../public/js/leksihjelp-loader.js', import.meta.url), 'utf8');
+  const context = vm.createContext({ window: {}, console, queueMicrotask });
+  vm.runInContext(source, context);
+
+  const shim = context.window.__skrivLeksihjelpShim;
+  const firstDocument = createFakeBridge('nn');
+  const secondDocument = createFakeBridge('en');
+
+  shim.bindBridge(firstDocument);
+  assert.equal(shim._store['lang.spellcheck'], 'nn');
+
+  shim.bindBridge(secondDocument);
+  assert.equal(shim._store['lang.spellcheck'], 'en');
+
+  firstDocument.setWritingLang('de');
+  assert.equal(shim._store['lang.spellcheck'], 'en', 'old document must be detached');
+
+  secondDocument.setWritingLang('es');
+  assert.equal(shim._store['lang.spellcheck'], 'es');
+
+  shim.unbindBridge(secondDocument);
+  assert.equal(shim.isBound, false);
 });

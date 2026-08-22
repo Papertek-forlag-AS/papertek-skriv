@@ -269,8 +269,17 @@ export function initImageManager(editor, container, options = {}) {
         }
     }
 
+    // Whole-editor snapshots are only safe until the next native edit. Once
+    // the student types (or the browser performs any contenteditable input),
+    // discard them and let the browser's granular undo history take over.
+    function handleNativeEditorInput() {
+        undoStack.length = 0;
+        redoStack.length = 0;
+    }
+
     function handleUndoRedo(e) {
-        const isMac = navigator.platform.toUpperCase().includes('MAC');
+        const platform = navigator.userAgentData?.platform || navigator.platform || '';
+        const isMac = platform.toUpperCase().includes('MAC');
         const cmd = isMac ? e.metaKey : e.ctrlKey;
         if (!cmd) return false;
 
@@ -280,6 +289,7 @@ export function initImageManager(editor, container, options = {}) {
                 // Redo
                 if (redoStack.length > 0) {
                     e.preventDefault();
+                    e.stopImmediatePropagation();
                     undoStack.push(editor.innerHTML);
                     editor.innerHTML = redoStack.pop();
                     deselectAll();
@@ -290,6 +300,7 @@ export function initImageManager(editor, container, options = {}) {
                 // Undo
                 if (undoStack.length > 0) {
                     e.preventDefault();
+                    e.stopImmediatePropagation();
                     redoStack.push(editor.innerHTML);
                     editor.innerHTML = undoStack.pop();
                     deselectAll();
@@ -301,6 +312,7 @@ export function initImageManager(editor, container, options = {}) {
             // Redo on Windows/Linux (Ctrl+Y)
             if (redoStack.length > 0) {
                 e.preventDefault();
+                e.stopImmediatePropagation();
                 undoStack.push(editor.innerHTML);
                 editor.innerHTML = redoStack.pop();
                 deselectAll();
@@ -1841,7 +1853,7 @@ export function initImageManager(editor, container, options = {}) {
     }
     // Register in capture phase on editor so Enter is intercepted BEFORE native contenteditable split
     editor.addEventListener('keydown', handleKeyDown, true);
-    document.addEventListener('keydown', handleKeyDown);
+    editor.addEventListener('input', handleNativeEditorInput);
     
     function handleFocus(e) {
         if (e.target.classList && e.target.classList.contains('skriv-image-block')) {
@@ -1978,7 +1990,7 @@ export function initImageManager(editor, container, options = {}) {
         document.removeEventListener('mousedown', handleDocumentClick);
         hidePaperTekContextMenu();
         editor.removeEventListener('keydown', handleKeyDown, true);
-        document.removeEventListener('keydown', handleKeyDown);
+        editor.removeEventListener('input', handleNativeEditorInput);
         document.removeEventListener('mousemove', handleResizeMove);
         document.removeEventListener('mouseup', handleResizeEnd);
         document.removeEventListener('mousemove', handleDragMove);

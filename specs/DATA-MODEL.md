@@ -1,117 +1,182 @@
 # Data Model
 
-> Last updated: 2026-05-11
+> Last updated: 2026-08-22
 
-## IndexedDB
+Skriv is local-first. Documents, trash, folders, and version snapshots remain in the browser unless the student explicitly downloads a backup or an export. There is no account or server-side copy.
+
+## IndexedDB: `skriv-documents`
 
 - **Database name:** `skriv-documents`
-- **Version:** 4
+- **Current version:** 4
+- **Canonical opener:** `public/js/app/db.js`
+
+Every feature opens this database through `openSkrivDatabase()`. The opener owns the complete schema upgrade chain and performs a post-open repair for records affected by older v4 builds whose competing migration cursors could leave `folderIds` or `schoolYear` unset. The repair preserves a legacy `subject` association by matching it to an existing folder name.
+
+When another tab requests a schema change, the connection dispatches `skriv:before-app-reload` and waits for registered editor flushes before closing. If a flush fails, Skriv keeps the connection open instead of reloading with unsaved writing. A blocked open emits `skriv:database-blocked` so the UI can ask the student to close another Skriv tab.
 
 ### Object store: `documents`
 
 Key path: `id`
 
-| Field        | Type     | Required | Index    | Notes                             |
-|------------- |--------- |--------- |--------- |---------------------------------- |
-| `id`         | string   | yes      | keyPath  | UUID via `crypto.randomUUID()`    |
-| `title`      | string   | yes      |          | User-entered document title       |
-| `html`       | string   | yes      |          | Full editor innerHTML             |
-| `plainText`  | string   | yes      |          | Stripped text (for search/count)  |
-| `wordCount`  | number   | yes      |          | Cached word count                 |
-| `createdAt`  | string   | yes      |          | ISO 8601 timestamp                |
-| `updatedAt`  | string   | yes      | yes      | ISO 8601, sorted descending       |
-| `references` | array    | no       |          | Array of citation objects          |
-| `tags`       | array    | no       |          | **Legacy.** No longer written by UI. May exist on older documents. |
-| `frameType`  | string   | no       |          | Active writing frame (`analyse`, `droefting`, `kronikk`, or `null`) |
-| `subject`    | string   | no       | yes      | **Legacy.** Subject name or `null`. Kept for backward compat; no longer written by UI. Use `folderIds` instead. Added in v3. |
-| `schoolYear` | string   | no       | yes      | School year label e.g. `'2025/2026'`. Aug 1 – Jul 31. Added in v3. |
-| `folderIds`  | array    | no       | yes (multiEntry) | Array of folder IDs the document belongs to (default `[]`). Orphan = empty array. Added in v4. |
-| `germanHint` | object   | no       |          | German exam draft pair `{ simple: string, rich: string }`. Set by `german-exam-route.js` when seeding a Tysk task; read by `german-hint-drawer.js` in the editor. Absent on non-German docs. Schemaless — no DB version bump required. |
+| Field | Type | Required | Index | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | string | yes | keyPath | `crypto.randomUUID()` with a local fallback |
+| `title` | string | yes | | Student-entered title |
+| `html` | string | yes | | Full editor HTML, including inline images |
+| `plainText` | string | yes | | Text used for search and counts |
+| `wordCount` | number | yes | | Cached count |
+| `writingLanguage` | string | yes for new records | | One of `nb`, `nn`, `en`, `de`, `es`, `fr`; belongs to the document, not the interface |
+| `createdAt` | string | yes | | ISO 8601 timestamp |
+| `updatedAt` | string | yes | yes | ISO 8601; document lists sort descending |
+| `references` | array | no | | Citation objects |
+| `frameType` | string/null | no | | Active writing-frame ID |
+| `schoolYear` | string | no | yes | Label such as `2026/2027` (Aug 1–Jul 31) |
+| `folderIds` | string[] | no | yes, multiEntry | Folder membership; an empty array is unfiled |
+| `germanHint` | object | no | | `{ simple, rich }` draft pair for German tasks |
+| `subject` | string/null | legacy | yes | Retained for compatibility; new UI uses `folderIds` |
+| `tags` | array | legacy | | May exist on older records; no longer written |
+
+New documents take their initial `writingLanguage` from the current interface language when supported. Older records are read as Bokmål unless they contain `germanHint`, in which case Skriv infers German. The editor writes the resolved value on the next save.
 
 ### Object store: `trash`
 
 Key path: `id`
 
-| Field        | Type     | Required | Index    | Notes                             |
-|------------- |--------- |--------- |--------- |---------------------------------- |
-| `id`         | string   | yes      | keyPath  | Same ID as original document      |
-| `title`      | string   | yes      |          | Preserved from document           |
-| `html`       | string   | yes      |          | Preserved from document           |
-| `plainText`  | string   | yes      |          | Preserved from document           |
-| `wordCount`  | number   | yes      |          | Preserved from document           |
-| `createdAt`  | string   | yes      |          | Preserved from document           |
-| `updatedAt`  | string   | yes      |          | Preserved from document           |
-| `trashedAt`  | string   | yes      | yes      | ISO 8601 — when it was trashed    |
-| `expiresAt`  | string   | yes      |          | ISO 8601 — when auto-purge fires  |
-| `references` | array    | no       |          | Preserved from document           |
-| `frameType`  | string   | no       |          | Preserved from document           |
-| `subject`    | string   | no       |          | Legacy. Preserved from document   |
-| `schoolYear` | string   | no       |          | Preserved from document           |
-| `folderIds`  | array    | no       |          | Preserved from document. Added in v4. |
+Trash records preserve the complete document record, including `writingLanguage`, `references`, `frameType`, `folderIds`, `schoolYear`, and `germanHint`, and add:
 
-**Trash retention:** 30 days. `purgeExpired()` runs on app startup and deletes documents where `expiresAt` has passed.
+| Field | Type | Required | Index | Notes |
+| --- | --- | --- | --- | --- |
+| `trashedAt` | string | yes | yes | ISO 8601 soft-delete time |
+| `expiresAt` | string | yes | | ISO 8601 automatic-purge time |
+
+Trash retention is 30 days. Moving a document to trash retains its version snapshots so restore remains complete. Permanent delete, empty trash, and expiry purge also delete snapshots for the affected document IDs.
 
 ### Object store: `folders`
 
 Key path: `id`
 
-| Field        | Type     | Required | Index    | Notes                             |
-|------------- |--------- |--------- |--------- |---------------------------------- |
-| `id`         | string   | yes      | keyPath  | Deterministic: `sys_<norm>` for system, `cust_<norm>` for custom, `usr_<uuid>` for user-created |
-| `name`       | string   | yes      |          | Display name (e.g. `'Norsk'`, `'Personlig mappe'`) |
-| `parentId`   | string   | no       | yes      | Parent folder ID, or `null` for root |
-| `isSystem`   | boolean  | yes      |          | `true` for seeded system/subject folders |
-| `schoolYear` | string   | no       | yes      | Reserved for future per-year folders |
-| `sortOrder`  | number   | yes      |          | Display order within siblings     |
-| `createdAt`  | string   | yes      |          | ISO 8601 timestamp                |
+| Field | Type | Required | Index | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | string | yes | keyPath | Deterministic for seeded/migrated folders; timestamp-suffixed for new custom folders |
+| `name` | string | yes | | Display name |
+| `parentId` | string/null | yes | yes | Parent folder or `null` at the root |
+| `isSystem` | boolean | yes | | Seeded subject/personal folder flag |
+| `schoolYear` | string/null | yes | yes | Reserved for year-scoped folders |
+| `sortOrder` | number | yes | | Sibling order |
+| `createdAt` | string | yes | | ISO 8601 timestamp |
 
-**Folder ID convention:**
-- `sys___personal__` — Personal folder (system)
-- `sys_<normalized_name>` — Predefined subject folders (e.g. `sys_norsk`, `sys_matematikk`)
-- `cust_<normalized_name>` — Migrated custom subjects from localStorage
-- `usr_<uuid>` — User-created folders after migration
+Folder IDs:
 
-**Normalization:** lowercase, Norwegian chars transliterated (æ→ae, ø→oe, å→aa), non-alphanumeric → `_`, collapsed.
+- `sys___personal__` for the built-in personal folder.
+- `sys_<normalized-name>` for seeded subjects, for example `sys_norsk`.
+- `cust_<normalized-name>` for custom subjects migrated from `skriv_custom_subjects`.
+- `cust_<normalized-name>_<timestamp>` for folders created in the current UI.
 
-**Max depth:** 3 levels (root → child → grandchild).
+Normalization lowercases, transliterates æ/ø/å to ae/oe/aa, converts other non-alphanumeric runs to `_`, and trims leading/trailing underscores. The maximum tree depth is three levels (root, child, grandchild).
 
-### DB migration history
+### Migration history
 
-| Version | Changes |
-|---------|---------|
-| 1       | `documents` store with `updatedAt` index |
-| 2       | `trash` store with `trashedAt` index |
-| 3       | `subject` and `schoolYear` indexes on `documents`. Backfill: existing docs get `subject: null`, `schoolYear` derived from `createdAt`. |
-| 4       | `folders` store with `parentId` and `schoolYear` indexes. `folderIds` multiEntry index on `documents`. Seed system folders from hardcoded subject list + `skriv_custom_subjects` localStorage. Walk all documents and trash: map `subject` → folder ID → set `folderIds`. |
+| Version | Change |
+| --- | --- |
+| 1 | `documents` with `updatedAt` index |
+| 2 | `trash` with `trashedAt` index |
+| 3 | `subject` and `schoolYear` indexes on documents; missing values backfilled |
+| 4 | `folders`, `folderIds` multiEntry index, deterministic folder seed, legacy subject/custom-subject migration |
+
+The current post-open repair deliberately remains at version 4. Bumping the schema solely to repair data would force active older tabs to close and could endanger unsaved text.
+
+## IndexedDB: `skriv-versions`
+
+- **Database name:** `skriv-versions`
+- **Current version:** 1
+
+### Object store: `snapshots`
+
+Key path: `id`, auto-incrementing. Indexes: non-unique `docId` and `timestamp`.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | number | Local auto-increment key; ignored when merging backups |
+| `docId` | string | Owning live or trashed document |
+| `timestamp` | number | `Date.now()` milliseconds at snapshot time |
+| `content` | string | Editor HTML at this point in time |
+| `wordCount` | number | Count at snapshot time |
+| `preview` | string | Short timeline preview |
+| `isMajor` | boolean | Marks normal timeline/automatic snapshots; pre-restore safety checkpoints may be `false` |
+
+Snapshots are written only when content changes: at most every five minutes or after 100 additional words. At most 50 snapshots are kept per document. On quota pressure, the module prunes older snapshots and retries once.
+
+## Portable library backup
+
+The downloaded `.skriv` file is UTF-8 JSON:
+
+```json
+{
+  "format": "papertek-skriv-backup",
+  "version": 1,
+  "createdAt": "2026-08-22T12:00:00.000Z",
+  "data": {
+    "documents": [],
+    "trash": [],
+    "folders": [],
+    "versions": [],
+    "settings": {}
+  }
+}
+```
+
+Restore is validated before writes and is merge-only: local records are never overwritten. Exact replays are idempotent, deterministic conflict IDs keep related folder/document/version records connected, and version auto-increment IDs do not participate in deduplication. Primary document/folder/trash changes use one transaction; later version/settings phase failures are reported as retryable partial restores. Backup creation fails rather than returning a file that silently omits version history.
+
+The parser applies size/count/depth limits and rejects duplicate identities, missing folder parents, document-to-folder references that do not exist in the backup, invalid folder topology, unsafe active HTML, event attributes, unsafe URL schemes, and network-capable inline CSS. A legacy version snapshot whose `docId` is absent is accepted for portability, then counted as orphaned and skipped during restore.
+
+Only these preferences travel in a library backup: `skriv_language`, `skriv_theme`, legacy `theme`, `skriv_school_year`, `skriv_school_level`, and the three core Leksihjelp language/limited-assistance keys.
 
 ## localStorage
 
-| Key                      | Type   | Purpose                                     |
-|------------------------- |------- |-------------------------------------------- |
-| `skriv_language`         | string | Selected UI language (nb/nn/en)              |
-| `skriv_theme`            | string | Theme preference (`light`, `dark`, `system`) |
-| `skriv_custom_subjects`  | string | **Legacy.** JSON array of student-created subject names. Read during v4 migration to seed custom folders. No longer written. |
-| `skriv_school_year`      | string | Active school year label e.g. `'2025/2026'`  |
-| `skriv_school_level`     | string | Selected school level ID (`barneskole`, `ungdomsskole`, `vg1`, `vg2`, `vg3`) |
-| `papertek.skriv.germanExam.deck.writing.tysk-1` | string | JSON array of remaining writing-mode Tysk 1 task ids; auto-shuffles on exhaustion |
-| `papertek.skriv.germanExam.deck.writing.tysk-2` | string | JSON array of remaining writing-mode Tysk 2 task ids; auto-shuffles on exhaustion |
-| `papertek.skriv.germanExam.deck.exam.tysk-1` | string | JSON array of remaining exam-mode Tysk 1 task ids; auto-shuffles on exhaustion |
-| `papertek.skriv.germanExam.deck.exam.tysk-2` | string | JSON array of remaining exam-mode Tysk 2 task ids; auto-shuffles on exhaustion |
-| `papertek.skriv.germanExam.activeLevel` | string | `'tysk-1'` or `'tysk-2'`; persists last selected level on the spinner screen |
-| `papertek.skriv.germanExam.activeMode`  | string | `'writing'` or `'exam'`; persists last selected German spinner mode |
-| `germanExam.writeExplainSeen`           | string | `'1'` once the user has seen the explain dialog before "Skriv svar" creates a doc |
-| `germanHintDrawer.variant.<docId>`      | string | `'simple'` or `'rich'`; per-document tab selection in the editor hint drawer |
-| `skriv_daily_goal`       | string | Writing-progress daily word goal             |
-| `skriv_writing_streak`   | string | Writing-progress streak count                |
-| `skriv_last_write_date`  | string | ISO date string for last streak update       |
-| `skriv_tour_completed`   | string | `'true'` when editor onboarding tour has been completed |
-| `skriv.leksihjelp.writingLang`          | string | Skrivespråk — drives spell-check + special-chars panel. One of `nb`/`nn`/`en`/`de`/`es`/`fr` |
-| `skriv.leksihjelp.lookupLang`           | string | Oppslagsspråk — drives dictionary popup language |
-| `skriv.leksihjelp.examMode`             | string | `'1'` when eksamensmodus is on, `''` otherwise |
-| `skriv.leksihjelp.grammarFeatures.{lang}` | string | JSON. Per-language grammar feature checkbox state for the dictionary view |
-| `skriv.leksihjelp.activeTab`              | string | `'dictionary'` or `'settings'`; persists last active tab in the Leksihjelp drawer |
+### Active application preferences
 
-## Other storage
+| Key | Value | Purpose |
+| --- | --- | --- |
+| `skriv_language` | `nb` / `nn` / `en` | Interface language; first run defaults deterministically to Bokmål |
+| `skriv_theme` | `light` / `dark` / `system` | Theme preference |
+| `skriv_school_year` | year label | Active library year |
+| `skriv_school_level` | `barneskole`, `ungdomsskole`, `vg1`, `vg2`, `vg3` | Selected school level |
+| `skriv.leksihjelp.writingLang` | `nb` / `nn` / `en` / `de` / `es` / `fr` | Compatibility mirror for Leksihjelp; the open document is authoritative in the editor |
+| `skriv.leksihjelp.lookupLang` | supported language | Dictionary lookup language |
+| `skriv.leksihjelp.examMode` | `1` or empty | Technical legacy key for the UI's **Limited assistance** setting; not a secure exam mode or locked browser |
+| `skriv.leksihjelp.activeTab` | `dictionary` / `settings` | Last Leksihjelp drawer tab |
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v72`.
-- **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.
+The embedded loader keeps `enabledGrammarFeatures` only in its in-memory `chrome.storage.local` shim. Those choices reset on reload and are not localStorage data.
+
+### German task preferences
+
+| Key | Purpose |
+| --- | --- |
+| `papertek.skriv.germanExam.deck.<writing|exam>.<tysk-1|tysk-2>` | Remaining randomized task IDs |
+| `papertek.skriv.germanExam.activeLevel` | Last `tysk-1` / `tysk-2` selection |
+| `papertek.skriv.germanExam.activeMode` | Last `writing` / `exam` task collection |
+| `germanExam.writeExplainSeen` | `1` after the pre-writing explanation has been shown |
+| `germanHintDrawer.variant.<docId>` | `simple` / `rich` hint tab per document |
+
+The word `exam` in these legacy technical keys identifies the German task collection or earlier Leksihjelp integration. It does not imply secure assessment software.
+
+### Dormant opt-in feature preferences
+
+The current minimal editor does not mount progress or tour modules automatically, but the portable modules retain their keys for explicit future use:
+
+| Key | Purpose |
+| --- | --- |
+| `skriv_daily_goal` | Daily word target |
+| `skriv_writing_streak` | Streak count |
+| `skriv_last_write_date` | Last streak-update date |
+| `skriv_tour_completed` | Completion marker for an explicitly started tour |
+
+### Legacy preference
+
+- `skriv_custom_subjects` is a JSON string array read only during the v4 folder migration. It is no longer written.
+- `theme` is retained only as a backup pass-through for older installations. Current theme code reads and writes `skriv_theme`.
+
+## Other local storage
+
+- **Service Worker cache:** current static cache is `skriv-v76`. Critical shell/modules/frames are precached atomically; vendored Leksihjelp files are best-effort and lazy-filled by the same-origin cache-first fetch handler.
+- **Images:** compressed images are stored as base64 data URIs inside document HTML; there is no separate image store.

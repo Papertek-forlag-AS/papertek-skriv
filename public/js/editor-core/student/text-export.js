@@ -1,5 +1,5 @@
 /**
- * Export written text as a downloadable .txt, .pdf, or .docx file.
+ * Export written text as a downloadable .txt, .pdf, or Word-compatible .doc file.
  * Supports TOC and reference rendering in PDF.
  */
 
@@ -42,12 +42,12 @@ export function downloadText({ title, studentName, text }) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /**
  * Download text as a formatted PDF.
- * Uses jsPDF (loaded via CDN in HTML).
+ * Uses the locally vendored jsPDF build loaded by index.html.
  * @param {Object} opts
  * @param {string} opts.title
  * @param {string} opts.studentName
@@ -56,7 +56,7 @@ export function downloadText({ title, studentName, text }) {
  * @param {Array} [opts.references] - Array of reference objects
  */
 export function downloadPDF({ title, studentName, text, html, references }) {
-    const { jsPDF } = window.jspdf;
+    const jsPDF = window.jspdf?.jsPDF;
     if (!jsPDF) {
         showInPageAlert('PDF', t('export.pdfNotLoaded'));
         return;
@@ -219,7 +219,7 @@ ${content}
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /**

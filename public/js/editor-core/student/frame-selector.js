@@ -20,20 +20,54 @@ import { parseFrameMarkdown } from './frame-parser.js';
  * File paths use {{lang}} placeholder, resolved at runtime via getFramePath().
  * Can be overridden via options.frames.
  */
-const DEFAULT_FRAME_REGISTRY = [
-    { id: 'droefting', file: '/frames/{{lang}}/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc' },
-    { id: 'analyse', file: '/frames/{{lang}}/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc' },
-    { id: 'kronikk', file: '/frames/{{lang}}/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc' },
-    { id: 'kaaseri', file: '/frames/{{lang}}/kaaseri.md', labelKey: 'skriv.frameKaaseri', descKey: 'skriv.frameKaaseriDesc' },
-    { id: 'fagartikkel', file: '/frames/{{lang}}/fagartikkel.md', labelKey: 'skriv.frameFagartikkel', descKey: 'skriv.frameFagartikkelDesc' },
-    { id: 'leserinnlegg', file: '/frames/{{lang}}/leserinnlegg.md', labelKey: 'skriv.frameLeserinnlegg', descKey: 'skriv.frameLeserinnleggDesc' },
-    { id: 'novelle', file: '/frames/{{lang}}/novelle.md', labelKey: 'skriv.frameNovelle', descKey: 'skriv.frameNovelleDesc' },
-    { id: 'retorisk-analyse', file: '/frames/{{lang}}/retorisk-analyse.md', labelKey: 'skriv.frameRetoriskAnalyse', descKey: 'skriv.frameRetoriskAnalyseDesc' },
-    { id: 'kortsvar', file: '/frames/{{lang}}/kortsvar.md', labelKey: 'skriv.frameKortsvar', descKey: 'skriv.frameKortsvarDesc' },
-    { id: 'kreativ-tekst', file: '/frames/{{lang}}/kreativ-tekst.md', labelKey: 'skriv.frameKreativTekst', descKey: 'skriv.frameKreativTekstDesc' },
-    { id: 'reflekterende-tekst', file: '/frames/{{lang}}/reflekterende-tekst.md', labelKey: 'skriv.frameReflekterendeTekst', descKey: 'skriv.frameReflekterendeTekstDesc' },
-    { id: 'sammenligning', file: '/frames/{{lang}}/sammenligning.md', labelKey: 'skriv.frameSammenligning', descKey: 'skriv.frameSammenligningDesc' },
+export const DEFAULT_FRAME_REGISTRY = [
+    { id: 'droefting', file: '/frames/{{lang}}/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'analyse', file: '/frames/{{lang}}/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'kronikk', file: '/frames/{{lang}}/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc', levels: ['vgs'] },
+    { id: 'kaaseri', file: '/frames/{{lang}}/kaaseri.md', labelKey: 'skriv.frameKaaseri', descKey: 'skriv.frameKaaseriDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'fagartikkel', file: '/frames/{{lang}}/fagartikkel.md', labelKey: 'skriv.frameFagartikkel', descKey: 'skriv.frameFagartikkelDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'leserinnlegg', file: '/frames/{{lang}}/leserinnlegg.md', labelKey: 'skriv.frameLeserinnlegg', descKey: 'skriv.frameLeserinnleggDesc', levels: ['barneskole', 'ungdomsskole', 'vgs'] },
+    { id: 'novelle', file: '/frames/{{lang}}/novelle.md', labelKey: 'skriv.frameNovelle', descKey: 'skriv.frameNovelleDesc', levels: ['barneskole', 'ungdomsskole', 'vgs'] },
+    { id: 'retorisk-analyse', file: '/frames/{{lang}}/retorisk-analyse.md', labelKey: 'skriv.frameRetoriskAnalyse', descKey: 'skriv.frameRetoriskAnalyseDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'kortsvar', file: '/frames/{{lang}}/kortsvar.md', labelKey: 'skriv.frameKortsvar', descKey: 'skriv.frameKortsvarDesc', levels: ['vgs'] },
+    { id: 'kreativ-tekst', file: '/frames/{{lang}}/kreativ-tekst.md', labelKey: 'skriv.frameKreativTekst', descKey: 'skriv.frameKreativTekstDesc', levels: ['barneskole', 'ungdomsskole', 'vgs'] },
+    { id: 'reflekterende-tekst', file: '/frames/{{lang}}/reflekterende-tekst.md', labelKey: 'skriv.frameReflekterendeTekst', descKey: 'skriv.frameReflekterendeTekstDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'sammenligning', file: '/frames/{{lang}}/sammenligning.md', labelKey: 'skriv.frameSammenligning', descKey: 'skriv.frameSammenligningDesc', levels: ['ungdomsskole', 'vgs'] },
 ];
+
+const FRAME_LANGUAGES = ['nb', 'nn'];
+
+/** Resolve the available frame language for a document writing language. */
+export function resolveFrameLanguage(lang) {
+    return FRAME_LANGUAGES.includes(lang) ? lang : 'nb';
+}
+
+/** Resolve a registry path without coupling frame language to interface language. */
+export function resolveFramePath(pathTemplate, writingLanguage) {
+    return pathTemplate.replace('{{lang}}', resolveFrameLanguage(writingLanguage));
+}
+
+/**
+ * Split frames into recommended and additional groups for a broad level band.
+ * Registries without level metadata remain fully backward compatible.
+ */
+export function partitionFramesByLevel(frames, levelBand) {
+    if (!levelBand) return { recommended: [...frames], additional: [] };
+
+    const recommended = [];
+    const additional = [];
+    for (const frame of frames) {
+        if (!Array.isArray(frame.levels) || frame.levels.includes(levelBand)) {
+            recommended.push(frame);
+        } else {
+            additional.push(frame);
+        }
+    }
+
+    // An unknown/custom level must never produce an empty picker.
+    if (recommended.length === 0) return { recommended: [...frames], additional: [] };
+    return { recommended, additional };
+}
 
 /**
  * Resolve a frame file path for the current language.
@@ -41,12 +75,9 @@ const DEFAULT_FRAME_REGISTRY = [
  * @param {string} pathTemplate - Path with {{lang}} placeholder
  * @returns {string} Resolved path
  */
-function getFramePath(pathTemplate) {
-    const lang = getCurrentLanguage();
-    // Nynorsk (nn) and Bokmål (nb) have their own frame directories.
-    // Other languages fall back to nb for now.
-    const frameLang = ['nb', 'nn'].includes(lang) ? lang : 'nb';
-    return pathTemplate.replace('{{lang}}', frameLang);
+function getFramePath(pathTemplate, getWritingLanguage) {
+    const lang = getWritingLanguage?.() || getCurrentLanguage();
+    return resolveFramePath(pathTemplate, lang);
 }
 
 /**
@@ -54,8 +85,8 @@ function getFramePath(pathTemplate) {
  * @param {HTMLElement} button - The Struktur button
  * @param {HTMLElement} editor - The contenteditable element
  * @param {object} frameGuide - The frame guide panel API (applyFrame, removeFrame, getActiveFrame, hasFrame, toggle, hide)
- * @param {{ onFrameApplied?: () => void, frames?: Array }} options
- * @returns {{ destroy: () => void, updateButtonState: () => void }}
+ * @param {{ onFrameApplied?: () => void, frames?: Array, getWritingLanguage?: () => string, getLevelBand?: () => string|null }} options
+ * @returns {{ destroy: () => void, updateButtonState: () => void, reloadActiveFrame: () => Promise<void> }}
  */
 export function initFrameSelector(button, editor, frameGuide, options = {}) {
     const { onFrameApplied } = options;
@@ -129,8 +160,25 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
         titleDiv.textContent = t('skriv.frameSelectorTitle');
         panel.appendChild(titleDiv);
 
-        // Frame options
-        for (const frame of frameRegistry) {
+        const writingLanguage = options.getWritingLanguage?.() || getCurrentLanguage();
+        if (resolveFrameLanguage(writingLanguage) !== writingLanguage) {
+            const languageNote = document.createElement('p');
+            languageNote.className = 'px-4 py-1.5 text-xs leading-snug text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20';
+            languageNote.textContent = t('skriv.frameLanguageFallback');
+            panel.appendChild(languageNote);
+        }
+
+        const levelBand = options.getLevelBand?.() || null;
+        const { recommended, additional } = partitionFramesByLevel(frameRegistry, levelBand);
+
+        function appendGroupTitle(key, withDivider = false) {
+            const heading = document.createElement('div');
+            heading.className = `px-4 pt-2 pb-1 text-[11px] font-semibold text-stone-400 uppercase tracking-wide${withDivider ? ' border-t border-stone-100 dark:border-stone-700 mt-1' : ''}`;
+            heading.textContent = t(key);
+            panel.appendChild(heading);
+        }
+
+        function appendFrame(frame) {
             const btn = document.createElement('button');
             btn.className = 'block w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors';
 
@@ -150,6 +198,14 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
             });
 
             panel.appendChild(btn);
+        }
+
+        if (levelBand) appendGroupTitle('skriv.frameRecommendedForLevel');
+        recommended.forEach(appendFrame);
+
+        if (additional.length > 0) {
+            appendGroupTitle('skriv.frameMoreOptions', true);
+            additional.forEach(appendFrame);
         }
     }
 
@@ -183,9 +239,21 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
         await applyFrameFromRegistry(frame);
     }
 
-    async function applyFrameFromRegistry(frame) {
+    function commitFrameMarkdown(md, frame, rehydrate = false) {
+        const wasVisible = frameGuide.isVisible?.() ?? true;
+        const frameData = parseFrameMarkdown(md);
+        frameGuide.applyFrame(frameData, frame.id);
+        if (rehydrate) {
+            frameGuide.rehydrate?.();
+            if (!wasVisible) frameGuide.hide();
+        }
+        updateButtonState();
+        if (onFrameApplied) onFrameApplied();
+    }
+
+    async function applyFrameFromRegistry(frame, { rehydrate = false } = {}) {
         try {
-            const filePath = getFramePath(frame.file);
+            const filePath = getFramePath(frame.file, options.getWritingLanguage);
             const res = await fetch(filePath);
             if (!res.ok) {
                 // Fallback to nb if language-specific frame not found
@@ -193,20 +261,21 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
                 const fallbackRes = await fetch(fallbackPath);
                 if (!fallbackRes.ok) throw new Error(`Failed to load frame: ${res.status}`);
                 const md = await fallbackRes.text();
-                const frameData = parseFrameMarkdown(md);
-                frameGuide.applyFrame(frameData, frame.id);
-                updateButtonState();
-                if (onFrameApplied) onFrameApplied();
+                commitFrameMarkdown(md, frame, rehydrate);
                 return;
             }
             const md = await res.text();
-            const frameData = parseFrameMarkdown(md);
-            frameGuide.applyFrame(frameData, frame.id);
-            updateButtonState();
-            if (onFrameApplied) onFrameApplied();
+            commitFrameMarkdown(md, frame, rehydrate);
         } catch (err) {
             console.error('Frame load error:', err);
         }
+    }
+
+    async function reloadActiveFrame() {
+        const activeId = frameGuide.getActiveFrame();
+        const frame = frameRegistry.find(item => item.id === activeId);
+        if (!frame) return;
+        await applyFrameFromRegistry(frame, { rehydrate: true });
     }
 
     async function handleRemoveFrame() {
@@ -265,5 +334,5 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
         panel.remove();
     }
 
-    return { destroy, updateButtonState, openDialog };
+    return { destroy, updateButtonState, openDialog, reloadActiveFrame };
 }

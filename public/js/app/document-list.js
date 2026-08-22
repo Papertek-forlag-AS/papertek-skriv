@@ -13,7 +13,7 @@ import { escapeHtml } from '../editor-core/shared/html-escape.js';
 import { countWords } from '../editor-core/shared/word-counter.js';
 import { showInPageConfirm } from '../editor-core/shared/in-page-modal.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
-import { t, getDateLocale } from '../editor-core/shared/i18n.js';
+import { t, getDateLocale, renderLanguageSelector } from '../editor-core/shared/i18n.js';
 import { showWordCountStats } from './word-count-stats.js';
 import { createSearchBar, filterDocuments } from './document-search.js';
 import { cycleTheme, getTheme } from '../editor-core/shared/theme.js';
@@ -49,38 +49,62 @@ export async function renderDocumentList(container, onOpenDocument) {
     const sidebarContainer = document.createElement('aside');
     sidebarContainer.className = 'skriv-sidebar-container hidden md:block w-56 flex-shrink-0 border-r border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 overflow-y-auto';
 
-    // Cleanup desk — orphan documents panel (desktop only, between sidebar and docs)
-    const cleanupDeskEl = document.createElement('div');
-    cleanupDeskEl.className = 'skriv-cleanup-desk hidden md:flex md:flex-col w-56 flex-shrink-0 border-r border-stone-100 dark:border-stone-700/50 overflow-y-auto';
-
     // Main content area
     const mainContent = document.createElement('div');
     mainContent.className = 'flex-1 overflow-y-auto flex flex-col';
 
     layout.appendChild(sidebarContainer);
-    layout.appendChild(cleanupDeskEl);
     layout.appendChild(mainContent);
     container.appendChild(layout);
 
     // Mobile sidebar overlay
     const mobileOverlay = document.createElement('div');
     mobileOverlay.className = 'skriv-sidebar-overlay fixed inset-0 z-40 bg-black/30 hidden';
-    mobileOverlay.addEventListener('click', () => closeMobileSidebar());
+    mobileOverlay.addEventListener('click', () => closeMobileSidebar({ restoreFocus: true }));
 
     const mobileSidebar = document.createElement('aside');
+    mobileSidebar.id = 'mobile-folder-navigation';
     mobileSidebar.className = 'skriv-mobile-sidebar fixed top-0 left-0 z-50 h-full w-64 bg-stone-50 dark:bg-stone-800 border-r border-stone-200 dark:border-stone-700 overflow-y-auto transform -translate-x-full transition-transform duration-200';
+    mobileSidebar.setAttribute('aria-label', t('sidebar.folders'));
+    mobileSidebar.setAttribute('aria-hidden', 'true');
+    mobileSidebar.tabIndex = -1;
+    mobileSidebar.inert = true;
     container.appendChild(mobileOverlay);
     container.appendChild(mobileSidebar);
+
+    let hamburgerButton = null;
 
     function openMobileSidebar() {
         mobileOverlay.classList.remove('hidden');
         mobileSidebar.classList.remove('-translate-x-full');
+        mobileSidebar.setAttribute('aria-hidden', 'false');
+        mobileSidebar.inert = false;
+        layout.inert = true;
+        hamburgerButton?.setAttribute('aria-expanded', 'true');
+        requestAnimationFrame(() => {
+            const firstControl = mobileSidebar.querySelector('button, select, [tabindex="0"]');
+            (firstControl || mobileSidebar).focus();
+        });
     }
 
-    function closeMobileSidebar() {
+    function closeMobileSidebar({ restoreFocus = false } = {}) {
+        const wasOpen = mobileSidebar.getAttribute('aria-hidden') === 'false';
         mobileOverlay.classList.add('hidden');
         mobileSidebar.classList.add('-translate-x-full');
+        mobileSidebar.setAttribute('aria-hidden', 'true');
+        mobileSidebar.inert = true;
+        layout.inert = false;
+        hamburgerButton?.setAttribute('aria-expanded', 'false');
+        if (restoreFocus || wasOpen) hamburgerButton?.focus();
     }
+
+    function handleMobileSidebarKeydown(event) {
+        if (event.key === 'Escape' && mobileSidebar.getAttribute('aria-hidden') === 'false') {
+            event.preventDefault();
+            closeMobileSidebar({ restoreFocus: true });
+        }
+    }
+    document.addEventListener('keydown', handleMobileSidebarKeydown);
 
     // Header
     const header = document.createElement('div');
@@ -88,7 +112,7 @@ export async function renderDocumentList(container, onOpenDocument) {
     header.innerHTML = `
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
-                <button id="btn-hamburger" class="md:hidden p-2 -ml-2 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg transition-colors">
+                <button id="btn-hamburger" class="md:hidden p-2 -ml-2 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg transition-colors" aria-label="${t('sidebar.folders')}" aria-controls="mobile-folder-navigation" aria-expanded="false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
                 <div>
@@ -97,6 +121,7 @@ export async function renderDocumentList(container, onOpenDocument) {
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <span id="ui-language-selector"></span>
                 <button id="btn-theme" class="px-3 py-2.5 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg text-sm transition-colors" title="${t('theme.toggle')}">
                     ${getThemeIconSVG()}
                 </button>
@@ -110,6 +135,8 @@ export async function renderDocumentList(container, onOpenDocument) {
             </div>
         </div>
     `;
+    hamburgerButton = header.querySelector('#btn-hamburger');
+    renderLanguageSelector(header.querySelector('#ui-language-selector'), { compact: true });
     mainContent.appendChild(header);
 
     // Footer
@@ -145,7 +172,7 @@ export async function renderDocumentList(container, onOpenDocument) {
         renderTrashView(container, onOpenDocument);
     });
 
-    header.querySelector('#btn-hamburger').addEventListener('click', openMobileSidebar);
+    hamburgerButton.addEventListener('click', openMobileSidebar);
 
     // --- File drag & drop import ---
     const dragOverlay = document.createElement('div');
@@ -240,6 +267,12 @@ export async function renderDocumentList(container, onOpenDocument) {
     const desktopSidebar = createSidebar(sidebarContainer, sidebarOptions);
     const mobileSidebarInstance = createSidebar(mobileSidebar, sidebarOptions);
 
+    const destroyScreen = () => {
+        desktopSidebar.destroy?.();
+        mobileSidebarInstance.destroy?.();
+        document.removeEventListener('keydown', handleMobileSidebarKeydown);
+    };
+
     if (docs.length === 0) {
         listEl.innerHTML = `
             <div class="text-center py-16">
@@ -248,7 +281,7 @@ export async function renderDocumentList(container, onOpenDocument) {
             </div>
         `;
         mainContent.appendChild(footer);
-        return;
+        return { destroy: destroyScreen };
     }
 
     function getDescendantFolderIds(folderId) {
@@ -289,7 +322,7 @@ export async function renderDocumentList(container, onOpenDocument) {
         // Search filter
         filtered = filterDocuments(filtered, currentQuery);
 
-        renderDocumentCards(cardsContainer, docs, filtered, currentQuery, currentFolderFilter, currentSchoolYear, onOpenDocument, container, allFolders, cleanupDeskEl);
+        renderDocumentCards(cardsContainer, docs, filtered, currentQuery, currentFolderFilter, currentSchoolYear, onOpenDocument, container, allFolders);
 
         // Update sidebar counts
         desktopSidebar.update({ docs, activeFilter: currentFolderFilter, schoolYear: currentSchoolYear });
@@ -316,46 +349,27 @@ export async function renderDocumentList(container, onOpenDocument) {
         desktopSidebar.setDragActive(false);
         mobileSidebarInstance.setDragActive(false);
     });
-    cleanupDeskEl.addEventListener('dragstart', () => {
-        desktopSidebar.setDragActive(true);
-        mobileSidebarInstance.setDragActive(true);
-    });
-    cleanupDeskEl.addEventListener('dragend', () => {
-        desktopSidebar.setDragActive(false);
-        mobileSidebarInstance.setDragActive(false);
-    });
-
     // Initial render
     applyFilters();
 
     mainContent.appendChild(footer);
 
     return {
-        destroy() {
-            if (desktopSidebar && typeof desktopSidebar.destroy === 'function') {
-                desktopSidebar.destroy();
-            }
-            if (mobileSidebarInstance && typeof mobileSidebarInstance.destroy === 'function') {
-                mobileSidebarInstance.destroy();
-            }
-        }
+        destroy: destroyScreen,
     };
 }
 
 /**
  * Render document cards into the list element.
  */
-function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter, schoolYear, onOpenDocument, container, folders, cleanupDeskEl) {
+function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter, schoolYear, onOpenDocument, container, folders) {
     // Clear all cards — search bar and tag filter live outside this container
     listEl.innerHTML = '';
 
-    // Split docs: when viewing "all", separate filed and orphan docs
-    let mainDocs = filteredDocs;
-    let orphanDocs = [];
-    if (folderFilter === 'all' && !query) {
-        mainDocs = filteredDocs; // Show everything in the main list
-        orphanDocs = filteredDocs.filter(d => !d.folderIds || d.folderIds.length === 0);
-    }
+    // All documents have one canonical card. Unfiled documents remain easy to
+    // find through the sidebar's "Uten mappe" filter.
+    const mainDocs = filteredDocs;
+    const orphanDocs = [];
 
     const isFiltering = query || folderFilter !== 'all';
 
@@ -484,7 +498,6 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
                 if (fullDoc) {
                     await trashDocument(fullDoc);
                 }
-                await deleteDocument(doc.id);
                 showToast(t('skriv.trashMovedToTrash', { title }));
                 renderDocumentList(container, onOpenDocument);
             }
@@ -522,11 +535,6 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
 
         cardList.appendChild(card);
     });
-
-    // --- Desktop cleanup desk (between sidebar and document list) ---
-    if (cleanupDeskEl) {
-        updateCleanupDesk(cleanupDeskEl, orphanDocs, onOpenDocument, container, folders);
-    }
 
     // --- Mobile orphan section (below documents, hidden on desktop) ---
     if (orphanDocs.length > 0) {
