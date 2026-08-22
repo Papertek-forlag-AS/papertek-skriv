@@ -59,8 +59,8 @@
     explain: function (finding) {
       const pronoun = finding.pronoun || 'yo';
       return {
-        nb: 'Paa spansk er subjektpronomenet <em>' + escapeHtml(pronoun) + '</em> vanligvis unodvendig naar verbformen allerede viser personen. Prov aa skrive uten <em>' + escapeHtml(pronoun) + '</em>.',
-        nn: 'Paa spansk er subjektpronomenet <em>' + escapeHtml(pronoun) + '</em> vanlegvis unodvendig naar verbforma allereie viser personen. Prov aa skrive utan <em>' + escapeHtml(pronoun) + '</em>.',
+        nb: 'På spansk er subjektpronomenet <em>' + escapeHtml(pronoun) + '</em> vanligvis unødvendig når verbformen allerede viser personen. Prøv å skrive uten <em>' + escapeHtml(pronoun) + '</em>.',
+        nn: 'På spansk er subjektpronomenet <em>' + escapeHtml(pronoun) + '</em> vanlegvis unødvendig når verbforma allereie viser personen. Prøv å skrive utan <em>' + escapeHtml(pronoun) + '</em>.',
         severity: 'hint',
       };
     },
@@ -78,6 +78,17 @@
       for (const sentence of ctx.sentences) {
         const range = tokensInSentence(ctx, sentence);
         if (range.end - range.start < 2) continue; // need pronoun + verb
+
+        // Contrast licenses an overt subject pronoun: "Yo soy de Noruega, pero
+        // mi amigo es de España" — the yo is contrastive, not redundant. A
+        // contrast marker anywhere in the sentence suppresses the hint (this is
+        // a gentle P3 nudge, so erring toward not-nagging is correct).
+        let hasContrast = false;
+        for (let c = range.start; c < range.end; c++) {
+          const cw = ctx.tokens[c].word;
+          if (cw === 'pero' || cw === 'sino' || cw === 'mientras' || cw === 'cambio') { hasContrast = true; break; }
+        }
+        if (hasContrast) continue;
 
         for (let i = range.start; i < range.end; i++) {
           const tokenWord = ctx.tokens[i].word; // already lowercase

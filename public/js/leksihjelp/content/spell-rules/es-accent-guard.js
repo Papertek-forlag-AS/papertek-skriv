@@ -77,8 +77,21 @@
              // Phase 40-05: broaden to feminine participles (-ada/-ida) — covers
              // "Ella esta embarazada" / "esta cansada" class without false positives
              // since 'esta' as demonstrative usually precedes a noun (not -ado/-ido).
+             // …but a known NOUN ending in -ada/-ida ("esta temporada", "esta
+             // bebida") is the demonstrative, not the verb — the -ada/-ida
+             // heuristic must not fire on nouns.
              if (next && (next.word.endsWith('ado') || next.word.endsWith('ido') ||
-                          next.word.endsWith('ada') || next.word.endsWith('ida'))) {
+                          next.word.endsWith('ada') || next.word.endsWith('ida'))
+                 && !(vocab.nounGenus && vocab.nounGenus.has(next.word))
+                 && !(vocab.nounLemmaGenus && vocab.nounLemmaGenus.has(next.word))) {
+               shouldFlag = true;
+             }
+             // v3.0.121 (synthetic-corpus miss "el agua esta caliente"):
+             // esta + known ADJECTIVE is the verb too. The demonstrative
+             // precedes a noun, so adjective-next disambiguates the same
+             // way the participle endings do.
+             if (!shouldFlag && next && vocab.isAdjective && vocab.isAdjective.has(next.word)
+                 && !(vocab.nounGenus && vocab.nounGenus.has(next.word))) {
                shouldFlag = true;
              }
           } else if (t.word === 'ano' || t.word === 'mas' ||
@@ -86,7 +99,7 @@
                      t.word === 'pelicula' || t.word === 'peliculas' ||
                      t.word === 'dia' || t.word === 'dias' ||
                      t.word === 'decision' ||
-                     t.word === 'cancion' || t.word === 'canciones' ||
+                     t.word === 'cancion' ||
                      t.word === 'comunicacion' || t.word === 'television' ||
                      t.word === 'examenes' || t.word === 'jamon' ||
                      t.word === 'corazon' ||
@@ -94,14 +107,15 @@
             shouldFlag = true; // unambiguous: always the accented form in student texts
           }
           
-          if (shouldFlag) {
+          const accentFix = matchCase(t.display, p.fix);
+          if (shouldFlag && accentFix !== t.display) {   // never emit a no-op suggestion
             out.push({
               rule_id: 'es-accent',
               priority: rule.priority,
               start: t.start,
               end: t.end,
               original: t.display,
-              fix: matchCase(t.display, p.fix),
+              fix: accentFix,
               message: `Aksent: "${p.fix}"`,
             });
           }

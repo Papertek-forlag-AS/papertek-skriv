@@ -56,8 +56,11 @@
         const next = tokens[i + 1];
         if (cursorPos != null && cursorPos >= t.start && cursorPos <= t.end + 1) continue;
 
-        // 1. "I" Capitalization
-        if (t.word === 'i' && t.display === 'i') {
+        // 1. "I" Capitalization. Skip single-letter enumerations ("a, e, i,
+        // o, and u") — a 1-letter neighbor means a letter list, not the pronoun.
+        const prevT0 = tokens[i - 1];
+        const isLetterList = (next && next.word.length === 1) || (prevT0 && prevT0.word.length === 1);
+        if (t.word === 'i' && t.display === 'i' && !isLetterList) {
           out.push({
             rule_id: 'en-grammar', subType: 'i-capitalization', priority: rule.priority,
             start: t.start, end: t.end, original: t.display, fix: 'I', suggestion: 'I',
@@ -68,8 +71,17 @@
         // 2. Modal Verb Form (basic)
         if (MODAL_VERBS.has(t.word) && next && verbInfinitive.has(next.word)) {
           const inf = verbInfinitive.get(next.word);
+          // Phrasal-verb data entries pollute the map with multiword
+          // "infinitives" ("bring" → "bring along") — never a modal-form fix.
+          if (inf && inf.indexOf(' ') !== -1) continue;
           if (inf && inf !== next.word) {
-            const isInflected = next.word.endsWith('s') || next.word.endsWith('ed') || next.word.endsWith('ing');
+            // -ing must be a real inflection, not part of the stem ("bring",
+            // "sing", "spring" end in -ing but ARE base forms).
+            const ingStem = next.word.endsWith('ing') ? next.word.slice(0, -3) : null;
+            const realIng = !!(ingStem && ingStem.length >= 3 &&
+              (verbInfinitive.has(ingStem) || verbInfinitive.has(ingStem + 'e') ||
+               (vocab.validWords && (vocab.validWords.has(ingStem) || vocab.validWords.has(ingStem + 'e')))));
+            const isInflected = next.word.endsWith('s') || next.word.endsWith('ed') || realIng;
             if (isInflected) {
                out.push({
                 rule_id: 'en-grammar', subType: 'modal', priority: rule.priority,

@@ -116,6 +116,18 @@
         if (!LEXICAL.has(t.word)) continue;
         const fixLower = MAP.get(t.word);
         if (!fixLower) continue;
+        // 'sagde' homograph: riksmål past of «si» (→ sa) but ALSO the standard
+        // past of «sage» (to saw). With a noun object or an instrument-PP it is
+        // the sawing verb — "de sagde tømmer", "satt og sagde på en fele" —
+        // while riksmål "sagde" is followed by at/quote/pronoun/adverb.
+        if (t.word === 'sagde') {
+          const nx = tokens[i + 1];
+          if (nx) {
+            const nxw = nx.word.toLowerCase();
+            const nounGenus = (ctx.vocab && ctx.vocab.nounGenus) || new Map();
+            if (nxw === 'på' || nxw === 'i' || nounGenus.has(nxw)) continue;
+          }
+        }
         const fix = matchCase ? matchCase(t.display, fixLower) : fixLower;
         out.push({
           rule_id: rule.id,

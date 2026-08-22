@@ -59,6 +59,11 @@
         // Spell-check feature flags:
         'spellCheckEnabled': true,
         'spellCheckAlternatesVisible': true,
+        // The upstream renderer now supports a personal dictionary and
+        // learning-state controls. Skriv has no durable host UI/storage for
+        // those features yet, so keep their controls hidden while retaining
+        // ordinary explanations and corrections.
+        'personalizationEnabled': false,
         // Word prediction is extension-only in Skriv — keep off so any
         // residual code paths in the vendored bundle stay quiet.
         'predictionEnabled': false,

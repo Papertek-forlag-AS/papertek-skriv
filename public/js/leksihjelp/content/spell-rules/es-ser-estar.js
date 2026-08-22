@@ -92,6 +92,12 @@
       const adj = finding.adj || '';
       const correctCopula = finding.correctCopula || '';
       const wrongCopula = finding.wrongCopula || '';
+      if (finding.profession) {
+        return {
+          nb: 'Yrkesbetegnelser brukes med <em>ser</em> (permanent egenskap), ikke <em>estar</em>. Skriv <em>' + escapeHtml(correctCopula) + '</em>.',
+          nn: 'Yrkesnemningar vert brukt med <em>ser</em> (permanent eigenskap), ikkje <em>estar</em>. Skriv <em>' + escapeHtml(correctCopula) + '</em>.',
+        };
+      }
       return {
         nb: 'Adjektivet <em>' + escapeHtml(adj) + '</em> brukes med <em>' + escapeHtml(correctCopula) + '</em>, ikke <em>' + escapeHtml(wrongCopula) + '</em>.',
         nn: 'Adjektivet <em>' + escapeHtml(adj) + '</em> vert brukt med <em>' + escapeHtml(correctCopula) + '</em>, ikkje <em>' + escapeHtml(wrongCopula) + '</em>.',
@@ -105,12 +111,86 @@
       const { SER_FORMS, ESTAR_FORMS, COPULA_ADJ } = getTables();
       if (!SER_FORMS.size && !ESTAR_FORMS.size) return [];
 
-      // Resolve adjective to its singular base form in COPULA_ADJ.
-      // Spanish plurals: -es ending (jovenes->joven), -s ending (altos->alto).
+      // Resolve adjective to its masculine-singular base form in COPULA_ADJ.
+      // The table keys on masculine singular (cansado, enfermo, alto, ...), so
+      // we normalize gender/number before lookup:
+      //   feminine sing  -a  -> -o   (enferma  -> enfermo)
+      //   feminine plural -as -> -o   (enfermas -> enfermo)
+      //   masculine plural -os -> -o  (cansados -> cansado, via the -s strip)
+      //   invariant plural -es/-s     (jovenes  -> joven, altos -> alto)
+      // Note: entries already keyed feminine (e.g. embarazada) hit the first
+      // exact-match branch before the -a normalization, so they still resolve.
       function resolveAdj(w) {
         if (w in COPULA_ADJ) return w;
+        // feminine plural: enfermas -> enfermo
+        if (w.endsWith('as') && (w.slice(0, -2) + 'o' in COPULA_ADJ)) return w.slice(0, -2) + 'o';
+        // feminine singular: enferma -> enfermo
+        if (w.endsWith('a') && (w.slice(0, -1) + 'o' in COPULA_ADJ)) return w.slice(0, -1) + 'o';
         if (w.endsWith('es') && (w.slice(0, -2) in COPULA_ADJ)) return w.slice(0, -2);
         if (w.endsWith('s') && (w.slice(0, -1) in COPULA_ADJ)) return w.slice(0, -1);
+        return null;
+      }
+
+      // Profession nouns that require ser (not estar).
+  // Stored as masculine-singular base forms; feminine/plural resolved by suffix-stripping.
+  // Pattern: estar + [optional article] + profession noun → flag (use ser instead).
+  const PROFESSION_NOUNS = new Set([
+    // core school-level professions (A1–B1 curriculum)
+    'profesor', 'maestro', 'director', 'secretario', 'decano',
+    'médico', 'medico', 'enfermero', 'dentista', 'cirujano', 'veterinario',
+    'abogado', 'juez', 'fiscal', 'notario',
+    'ingeniero', 'arquitecto', 'programador', 'informático', 'informatico',
+    'economista', 'contable', 'contador', 'funcionario',
+    'periodista', 'escritor', 'pintor', 'fotógrafo', 'fotografo',
+    'actor', 'cantante', 'bailarín', 'bailarin', 'músico', 'musico',
+    'cocinero', 'camarero', 'panadero', 'carnicero', 'jardinero', 'peluquero',
+    'taxista', 'piloto', 'mecánico', 'mecanico', 'electricista', 'fontanero', 'carpintero',
+    'policía', 'policia', 'bombero', 'militar', 'soldado',
+    'deportista', 'futbolista', 'atleta',
+    'psicólogo', 'psicologo', 'fisioterapeuta', 'farmacéutico', 'farmaceutico',
+    'filósofo', 'filosofo', 'político', 'politico',
+    'artista', 'diseñador', 'disenador', 'detective',
+    'estudiante', 'alumno',
+    'guía', 'guia', 'gerente', 'jefe',
+  ]);
+  function resolveProf(w) {
+    if (PROFESSION_NOUNS.has(w)) return w;
+    // feminine plural: two patterns — consonant-stem (profesoras→profesor) and
+    // -o stem (cocineras→cocinero).
+    if (w.endsWith('as')) {
+      if (PROFESSION_NOUNS.has(w.slice(0, -2))) return w.slice(0, -2);          // profesoras→profesor
+      if (PROFESSION_NOUNS.has(w.slice(0, -2) + 'o')) return w.slice(0, -2) + 'o'; // cocineras→cocinero
+    }
+    // feminine singular: profesora→profesor (remove -a) OR cocinera→cocinero (-a→-o).
+    if (w.endsWith('a')) {
+      if (PROFESSION_NOUNS.has(w.slice(0, -1))) return w.slice(0, -1);          // profesora→profesor
+      if (PROFESSION_NOUNS.has(w.slice(0, -1) + 'o')) return w.slice(0, -1) + 'o'; // cocinera→cocinero
+    }
+    // masculine plural -es: jueces -> juez (irregular — handle common case)
+    if (w.endsWith('es') && PROFESSION_NOUNS.has(w.slice(0, -2))) return w.slice(0, -2);
+    // masculine plural -s: profesores -> profesor
+    if (w.endsWith('s') && PROFESSION_NOUNS.has(w.slice(0, -1))) return w.slice(0, -1);
+    return null;
+  }
+
+  // v3.0.130: food/drink subjects for the temperature pattern below.
+      // frío/caliente are genuinely 'both' in general Spanish ("el invierno
+      // es frío" is correct ser — inherent climate), so they can't live in
+      // COPULA_ADJ. But with a FOOD/DRINK subject the temperature is the
+      // current state of the served item — estar is the A2-curriculum norm
+      // ("La sopa estaba fría"). Closed noun set keeps precision structural.
+      const FOOD_DRINK_NOUNS = new Set([
+        'sopa', 'comida', 'cena', 'desayuno', 'almuerzo', 'plato',
+        'café', 'cafe', 'té', 'leche', 'agua', 'chocolate',
+        'pizza', 'pasta', 'arroz', 'carne', 'pescado', 'pan', 'tortilla',
+      ]);
+      const TEMP_ADJ = new Set(['frío', 'frio', 'caliente', 'templado', 'tibio', 'helado']);
+      function resolveTempAdj(w) {
+        if (TEMP_ADJ.has(w)) return w;
+        if (w.endsWith('as') && TEMP_ADJ.has(w.slice(0, -2) + 'o')) return w.slice(0, -2) + 'o';
+        if (w.endsWith('a') && TEMP_ADJ.has(w.slice(0, -1) + 'o')) return w.slice(0, -1) + 'o';
+        if (w.endsWith('es') && TEMP_ADJ.has(w.slice(0, -2))) return w.slice(0, -2);
+        if (w.endsWith('s') && TEMP_ADJ.has(w.slice(0, -1))) return w.slice(0, -1);
         return null;
       }
 
@@ -131,6 +211,74 @@
           }
           if (!usedCopula) continue;
 
+          // Food/drink + ser + temperature adjective → estar (synthetic
+          // probe es/syn-03: "La sopa era fría" → estaba).
+          if (usedCopula === 'ser' && i > range.start) {
+            const subj = ctx.tokens[i - 1].word;
+            if (FOOD_DRINK_NOUNS.has(subj) || (subj.endsWith('s') && FOOD_DRINK_NOUNS.has(subj.slice(0, -1)))) {
+              let tIdx = -1, tBase = null;
+              const tScanEnd = Math.min(i + 4, range.end);
+              for (let j = i + 1; j < tScanEnd; j++) {
+                const w = ctx.tokens[j].word;
+                if (SKIP_WORDS.has(w)) continue;
+                tBase = resolveTempAdj(w);
+                if (tBase) tIdx = j;
+                break;
+              }
+              if (tIdx !== -1) {
+                const fixBase = COPULA_FORM_MAP[word];
+                if (fixBase) {
+                  const fix = matchCase(ctx.tokens[i].display, fixBase);
+                  findings.push({
+                    rule_id: 'es-ser-estar',
+                    start: ctx.tokens[i].start,
+                    end: ctx.tokens[i].end,
+                    original: ctx.tokens[i].display,
+                    fix: fix,
+                    adj: tBase,
+                    correctCopula: 'estar',
+                    wrongCopula: 'ser',
+                    message: ctx.tokens[i].display + ' + ' + ctx.tokens[tIdx].display + ' → ' + fix,
+                    severity: 'warning',
+                  });
+                  continue;
+                }
+              }
+            }
+          }
+
+          // estar + profession noun (direct adjacency) → use ser instead.
+          // Requires no article between copula and noun to avoid FPs on
+          // locative questions: "¿Está el médico aquí?" should not flag.
+          // "estar de profesora" (temporary role) also excluded since 'de'
+          // is not a profession noun.
+          if (usedCopula === 'estar') {
+            const nextTok = ctx.tokens[i + 1];
+            if (nextTok) {
+              const profBase = resolveProf(nextTok.word);
+              if (profBase) {
+                const fixBase = COPULA_FORM_MAP[word];
+                if (fixBase) {
+                  const fix = matchCase(ctx.tokens[i].display, fixBase);
+                  findings.push({
+                    rule_id: 'es-ser-estar',
+                    start: ctx.tokens[i].start,
+                    end: ctx.tokens[i].end,
+                    original: ctx.tokens[i].display,
+                    fix,
+                    adj: nextTok.word,
+                    correctCopula: 'ser',
+                    wrongCopula: 'estar',
+                    profession: true,
+                    message: ctx.tokens[i].display + ' + ' + nextTok.display + ' → ' + fix,
+                    severity: 'warning',
+                  });
+                  continue;
+                }
+              }
+            }
+          }
+
           // Scan next 1-3 tokens for an adjective in COPULA_ADJ
           let adjIdx = -1;
           let adjBase = null;
@@ -148,6 +296,12 @@
           }
 
           if (adjIdx === -1) continue;
+
+          // Passive / compound voice: "El puesto ha sido ocupado" is ser +
+          // past participle (passive), not copula + adjective. The participle
+          // copula forms sido/estado followed by another participle (-ado/-ido)
+          // are an auxiliary chain — skip to avoid flagging the passive.
+          if ((word === 'sido' || word === 'estado') && /(?:ad[oa]s?|id[oa]s?)$/.test(ctx.tokens[adjIdx].word)) continue;
 
           const adjWord = adjBase;
           const requiredCopula = COPULA_ADJ[adjWord];

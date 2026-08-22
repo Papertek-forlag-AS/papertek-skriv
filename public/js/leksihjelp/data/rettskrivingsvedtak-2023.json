@@ -1,0 +1,221 @@
+{
+  "_metadata": {
+    "name": "rettskrivingsvedtak-2023",
+    "description": "Bokmålsformer som fall bort ved Kultur- og likestillingsdepartementets vedtak av 26.09.2023 om bøyinga av ein del inkjekjønnssubstantiv. Valfridomen mellom samantrekt og full form er borte; berre den lange forma er rett.",
+    "source": "https://sprakradet.no/aktuelt/endringer-i-boyningen-av-en-del-intetkjonnssubstantiver-i-bokmal/",
+    "decided": "2023-09-26",
+    "language": "nb",
+    "why_word_and_cell": "Fleire av strengane er fullt lovlege andre stader — «sentra» er gyldig UBESTEMT fleirtal av «sentrum», «lagra» er nynorsk preteritum av «lagre». Difor bind lista kvar utgåtte form til oppslagsordet OG cella.",
+    "why_here": "Fullformlistene i vocabulary/downloads/ordbank/ er daterte 01.02.2022 og er eldre enn vedtaket. Dei fører framleis «eksemplet» som normert med TILDATO 4000. Kvart verktøy som byggjer celler frå dei må slå opp her først, elles gjeninnfører det formene iterasjon 56 fjerna.",
+    "consumers": [
+      "papertek-vocabulary/scripts/complete-form-cells-from-ordbank.mjs",
+      "leksihjelp/scripts/check-rettskrivingsvedtak-2023.js"
+    ]
+  },
+  "withdrawn": {
+    "eksempel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "eksemplet"
+      }
+    ],
+    "fengsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "fengslet"
+      }
+    ],
+    "kapittel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "kapitlet"
+      }
+    ],
+    "kjøpesenter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "kjøpesentret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "kjøpesentra"
+      }
+    ],
+    "lager": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "lagra"
+      }
+    ],
+    "middel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "midlet"
+      }
+    ],
+    "nummer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "numra"
+      }
+    ],
+    "næringsmiddel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "næringsmidlet"
+      }
+    ],
+    "offer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "ofra"
+      }
+    ],
+    "orkester": [
+      {
+        "slot": "bestemt.entall",
+        "form": "orkestret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "orkestra"
+      }
+    ],
+    "plaster": [
+      {
+        "slot": "bestemt.entall",
+        "form": "plastret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "plastra"
+      }
+    ],
+    "postnummer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "postnumra"
+      }
+    ],
+    "retningsnummer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "retningsnumra"
+      }
+    ],
+    "rusmiddel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "rusmidlet"
+      }
+    ],
+    "semester": [
+      {
+        "slot": "bestemt.entall",
+        "form": "semestret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "semestra"
+      }
+    ],
+    "senter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "sentret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "sentra"
+      }
+    ],
+    "sentrum": [
+      {
+        "slot": "bestemt.entall",
+        "form": "sentret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "sentra"
+      }
+    ],
+    "stempel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "stemplet"
+      }
+    ],
+    "støpsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "støpslet"
+      }
+    ],
+    "søppel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "søplet"
+      }
+    ],
+    "teater": [
+      {
+        "slot": "bestemt.entall",
+        "form": "teatret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "teatra"
+      }
+    ],
+    "telefonnummer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "telefonnumra"
+      }
+    ],
+    "transportmiddel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "transportmidlet"
+      }
+    ],
+    "treningssenter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "treningssentret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "treningssentra"
+      }
+    ],
+    "under": [
+      {
+        "slot": "bestemt.entall",
+        "form": "undret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "undra"
+      }
+    ],
+    "vaskemiddel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "vaskemidlet"
+      }
+    ],
+    "værvarsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "værvarslet"
+      }
+    ],
+    "møbel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "møblet"
+      }
+    ]
+  }
+}

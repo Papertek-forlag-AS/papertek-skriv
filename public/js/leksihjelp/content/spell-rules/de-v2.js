@@ -30,6 +30,46 @@
     'dass', 'weil', 'wenn', 'ob', 'obwohl', 'als', 'bevor', 'nachdem',
     'damit', 'sodass', 'solange', 'sobald', 'seit', 'seitdem',
     'während', 'indem', 'falls',
+    // "Je + comparative" opens a verb-final correlative clause ("Je länger ich
+    // warte, desto …") — the verb stays at the end, so this is NOT a V2 error.
+    // A clause-initial "je" is virtually always this construction.
+    'je',
+  ]);
+
+  // v3.0.119: unambiguous single-word fronting adverbs that open the
+  // noun-subject V2 branch ("Dann die Reise ist kürzer"). Curated narrow —
+  // multi-word fronted phrases ("Am Abend …") stay with the pronoun branch.
+  const FRONT_ADVERBS = new Set([
+    'dann', 'danach', 'heute', 'gestern', 'morgen', 'jetzt', 'deshalb',
+    'später', 'zuerst', 'dort', 'hier', 'abends', 'morgens', 'manchmal',
+    'oft', 'immer', 'leider', 'bald', 'vielleicht', 'außerdem', 'trotzdem',
+  ]);
+  // Determiners that can head the fronted noun phrase.
+  const NP_DETS = new Set([
+    'der', 'die', 'das', 'ein', 'eine',
+    'mein', 'meine', 'dein', 'deine', 'sein', 'seine',
+    'ihr', 'ihre', 'unser', 'unsere',
+  ]);
+
+  // Coordinating conjunctions + correlative lead/continuation words. A clause
+  // opening after one of these keeps SVO order — V2 inversion is optional, not
+  // required — so a following [subject pronoun][verb] is NOT a V2 error
+  // ("Entweder du kommst mit …", "Weder er noch sie wollten …"). The set is
+  // also used to reject a conjunction-homograph being read as the finite verb
+  // ("Nicht nur er, sondern auch sie …", where "sondern" is the conjunction,
+  // not the verb absondern/sondern).
+  const COORD_CORRELATIVE = new Set([
+    'und', 'oder', 'aber', 'denn', 'sondern',
+    'entweder', 'weder', 'noch', 'sowohl',
+  ]);
+  // Perfect/passive auxiliaries — if one precedes a participle-homograph in the
+  // same clause, the homograph is the participle bracket, not a misplaced finite
+  // verb ("Trotzdem habe ich es versucht.", where "versucht" is the participle
+  // AND a 3sg-present homograph).
+  const PERFECT_AUX = new Set([
+    'habe', 'hast', 'hat', 'haben', 'habt', 'hatte', 'hattest', 'hatten', 'hattet',
+    'bin', 'bist', 'ist', 'sind', 'seid', 'war', 'warst', 'waren', 'wart',
+    'wird', 'werde', 'wirst', 'werden', 'werdet', 'wurde', 'wurdest', 'wurden', 'wurdet',
   ]);
 
   // Separable prefixes: read from shared grammar-tables.js (canonical source).
@@ -128,6 +168,66 @@
         const firstWord = ctx.getTagged(range.start).word;
         if (SUBORDINATORS.has(firstWord)) continue;
 
+        // v3.0.119 (synthetic-corpus miss "dann die Reise ist kürzer"): the
+        // pronoun detector below misses NOUN-PHRASE subjects. Narrow branch:
+        // a curated fronting adverb opens the sentence, followed directly by
+        // det + known noun + finite verb (or demonstrative das + finite verb,
+        // real-corpus shape "dann das ist fisch"). OVS guard: a nominative
+        // pronoun after the verb means the fronted NP is the object ("Dann
+        // die Suppe esse ich") — correct German, skip.
+        {
+          const isFiniteWord = (w) =>
+            (ctx.vocab.knownPresens && ctx.vocab.knownPresens.has(w)) ||
+            (ctx.vocab.knownPreteritum && ctx.vocab.knownPreteritum.has(w));
+          const nounGenusMap = ctx.vocab.nounGenus || new Map();
+          // Clause starts: the sentence head plus any token preceded by a
+          // comma ("Ich håper wir fliegen, dann die Reise ist kürzer").
+          const clauseStarts = [range.start];
+          for (let k = range.start + 1; k < range.end; k++) {
+            const gap = ctx.text.slice(ctx.tokens[k - 1].end, ctx.tokens[k].start);
+            if (/[,;:]/.test(gap)) clauseStarts.push(k);
+          }
+          let emitted = false;
+          for (const cs of clauseStarts) {
+            if (emitted) break;
+            if (cs + 2 >= range.end) continue;
+            if (!FRONT_ADVERBS.has(ctx.getTagged(cs).word)) continue;
+            const t1 = ctx.getTagged(cs + 1);
+            if (!t1 || !NP_DETS.has(t1.word)) continue;
+            const t2 = ctx.getTagged(cs + 2);
+            const t3 = cs + 3 < range.end ? ctx.getTagged(cs + 3) : null;
+            let npEnd = -1; // index of the finite verb token
+            if (t1.word === 'das' && t2 && isFiniteWord(t2.word) && !nounGenusMap.has(t2.word)) {
+              npEnd = cs + 2; // demonstrative: "dann das ist …"
+            } else if (t2 && nounGenusMap.has(t2.word) && t3 && isFiniteWord(t3.word) && !nounGenusMap.has(t3.word)) {
+              npEnd = cs + 3;
+            }
+            if (npEnd < 0) continue;
+            const after = npEnd + 1 < range.end ? ctx.getTagged(npEnd + 1) : null;
+            if (after && SUBJECT_PRONOUNS.has(after.word)) continue; // OVS guard
+            const raw = [];
+            for (let k = cs + 1; k <= npEnd; k++) raw.push(ctx.tokens[k]);
+            const original = raw.map(t => t.display).join(' ');
+            const verbDisp = raw[raw.length - 1].display;
+            const rest = raw.slice(0, -1).map(t => t.display).join(' ');
+            const verbTok = ctx.tokens[npEnd]; // span the verb — det-area spans
+            // collide with gender/possessive findings in dedupeOverlapping
+            findings.push({
+              rule_id: rule.id,
+              priority: rule.priority,
+              start: verbTok.start,
+              end: verbTok.end,
+              original: original,
+              fix: verbDisp + ' ' + rest,
+              message: original + ' → ' + verbDisp + ' ' + rest + ' (V2)',
+              severity: 'warning',
+              noAutoFix: true,
+            });
+            emitted = true;
+          }
+          if (emitted) continue;
+        }
+
         // Strategy: find adjacent [subject pronoun] [finite verb]
         // where the subject is NOT at position 0.
         for (let i = range.start + 1; i < range.end - 1; i++) {
@@ -145,6 +245,90 @@
           const isDirectFinite = (ctx.vocab.knownPresens && ctx.vocab.knownPresens.has(nw)) ||
                                   (ctx.vocab.knownPreteritum && ctx.vocab.knownPreteritum.has(nw));
           if (!isDirectFinite && !isFiniteOrUnseparated(nw, ctx)) continue;
+          // Particles are never the finite verb ("er es NICHT geschafft"
+          // stem-matched as a verb) — Ordbank sweep 2026-07.
+          if (nw === 'nicht' || nw === 'auch' || nw === 'nur' || nw === 'schon' || nw === 'noch' || nw === 'sehr') continue;
+
+          // The "verb" is really a coordinating conjunction homograph (sondern/
+          // denn also exist as verb forms) — not a finite verb here. Fixes
+          // "Nicht nur er, sondern auch sie kommt." flagging "er sondern".
+          if (COORD_CORRELATIVE.has(nw)) continue;
+
+          // Participle bracket: a candidate that is also a known past participle,
+          // preceded by a perfect/passive auxiliary in the same clause, is the
+          // clause-final participle ("…habe ich es versucht"), not a misplaced
+          // finite verb. "versucht"/"studiert"/… are participle+3sg homographs.
+          const partAux = ctx.vocab && ctx.vocab.participleToAux;
+          if (partAux && partAux.has(nw)) {
+            let auxBefore = false;
+            for (let j = range.start; j < i; j++) {
+              const gap = j > range.start ? ctx.text.slice(ctx.tokens[j - 1].end, ctx.tokens[j].start) : '';
+              if (/[.,;:!?]/.test(gap)) auxBefore = false;        // reset at a clause boundary
+              if (PERFECT_AUX.has(ctx.getTagged(j).word)) auxBefore = true;
+            }
+            if (auxBefore) continue;
+          }
+
+          // Coordinating conjunction / correlative lead before the subject:
+          // "und/oder/aber/denn/sondern" and "entweder/weder/noch/sowohl" all
+          // keep SVO order, so [conj][subject][verb] is valid (no forced V2).
+          if (i > range.start) {
+            const prevWord = ctx.getTagged(i - 1).word;
+            if (COORD_CORRELATIVE.has(prevWord)) continue;
+            // Subordinator directly before the subject pronoun opens a
+            // verb-final clause even without the (required) comma: "Ich
+            // weiß das es stimmt." — das/dass before a PRONOUN is never a
+            // determiner, always a complementizer/relative, so [subject]
+            // [finite] there is correct subordinate order, not V3.
+            if (SUBORDINATORS.has(prevWord) || prevWord === 'das' || prevWord === 'die' || prevWord === 'der') continue;
+            // wie/wo open verb-final relative-adverb clauses ("Die Art,
+            // wie sie spricht"); a pronoun directly after another subject
+            // pronoun is the OBJECT ("hätte er es nicht geschafft").
+            // (mid-sentence only: sentence-initial "Wie du heißt?" is the
+            // fronted-question error and must still flag)
+            if ((prevWord === 'wie' || prevWord === 'wo') && i - 1 > range.start) continue;
+            if (SUBJECT_PRONOUNS.has(prevWord)) continue;
+            // Pronoun directly after a preposition is a PP OBJECT, not the
+            // subject — "Ohne sie gehe ich nicht." is correct inversion
+            // around the fronted PP ('sie' is acc-ambiguous; for du/er the
+            // case error belongs to the prep-case rules, not V2).
+            const V2_PREPS = ['ohne', 'für', 'gegen', 'durch', 'um', 'mit',
+              'bei', 'nach', 'von', 'zu', 'aus', 'seit', 'an', 'auf', 'in',
+              'über', 'unter', 'vor', 'hinter', 'neben', 'zwischen'];
+            if (V2_PREPS.indexOf(prevWord) !== -1) continue;
+          }
+
+          // Relative clause via preposition + relative pronoun: "Das Haus
+          // in dem ich wohne ist alt." — [prep][dem/denen/…][subject][verb]
+          // opens a verb-final relative clause (students often drop the
+          // comma), so [subject][finite] there is correct, not V3.
+          if (i - 2 >= range.start) {
+            const rel = ctx.getTagged(i - 1).word;
+            const prep = ctx.getTagged(i - 2).word;
+            const REL_PRON = ['dem', 'der', 'den', 'denen', 'deren', 'dessen', 'die', 'das'];
+            const REL_PREPS = ['in', 'an', 'auf', 'mit', 'von', 'zu', 'bei', 'nach',
+              'über', 'unter', 'vor', 'hinter', 'neben', 'zwischen', 'für',
+              'durch', 'gegen', 'ohne', 'um', 'aus', 'seit'];
+            if (REL_PRON.indexOf(rel) !== -1 && REL_PREPS.indexOf(prep) !== -1) continue;
+          }
+
+          // Clause-start coordinator: if the clause containing the subject opens
+          // (sentence head or first token after a comma) with a coordinator/
+          // correlative, the whole clause keeps SVO — covers the continuation
+          // half "…, sondern auch sie kommt." / "…, oder du bleibst hier.".
+          {
+            let clauseStart = range.start;
+            for (let j = range.start + 1; j <= i; j++) {
+              if (/[,;:]/.test(ctx.text.slice(ctx.tokens[j - 1].end, ctx.tokens[j].start))) clauseStart = j;
+            }
+            if (COORD_CORRELATIVE.has(ctx.getTagged(clauseStart).word)) continue;
+            // The subject pronoun IS the clause start (sentence head or first
+            // token after a comma) → subject-first, nothing fronted, so V2 is
+            // satisfied. "Der Lehrer sagt, ich soll …" / "…, ich komme später."
+            // are correct; only a FRONTED element before the subject in the same
+            // clause makes "[fronted][subject][verb]" a V3 error.
+            if (clauseStart === i) continue;
+          }
 
           // Embedded wh-clause guard
           let isEmbeddedWh = false;
@@ -172,6 +356,25 @@
             }
           }
           if (hasSubBefore) continue;
+
+          // V2-already-satisfied guard: if the token IMMEDIATELY before the
+          // subject is itself a finite verb, the structure is
+          // [fronted constituent][finite verb][subject] — correct inversion
+          // ("Heute kann ich kommen"). The token after the subject is then a
+          // non-finite verb in the modal/perfect bracket (infinitive "kommen")
+          // or a coincidental finite homograph; flagging it is a false
+          // positive. Real V2 errors put the subject BEFORE the finite verb
+          // ("Heute ich kann kommen"), so the pre-subject token is the fronted
+          // element, not a verb. Checking only i-1 (not the whole sentence)
+          // keeps later clauses in long sentences flaggable.
+          if (i > range.start) {
+            const pw = ctx.getTagged(i - 1).word;
+            if ((ctx.vocab.knownPresens && ctx.vocab.knownPresens.has(pw)) ||
+                (ctx.vocab.knownPreteritum && ctx.vocab.knownPreteritum.has(pw)) ||
+                isFiniteOrUnseparated(pw, ctx)) {
+              continue;
+            }
+          }
 
           // Build finding: flag just the subject pronoun to avoid overlap
           // with other rules that may fire on the verb token.

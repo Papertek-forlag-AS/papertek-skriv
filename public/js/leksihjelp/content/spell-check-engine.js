@@ -86,7 +86,14 @@
       }
       findings = findings.filter(f => {
         const rule = ruleById.get(f.rule_id);
-        return prefs.examApi.isRuleSafe(rule, true);
+        if (!prefs.examApi.isRuleSafe(rule, true)) return false;
+        // Udir parity: the exam-mode spell surface is spelling-only — no
+        // grammar. AND the spelling-category gate so a finding survives only if
+        // it is BOTH exam-safe AND a spellcheck-category rule.
+        if (typeof prefs.examApi.isRuleExamSpelling === 'function') {
+          return prefs.examApi.isRuleExamSpelling(rule, true);
+        }
+        return true; // defensive: older examApi without the predicate
       });
     }
 

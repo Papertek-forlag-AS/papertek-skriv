@@ -14,6 +14,15 @@
   host.__lexiSpellRules = host.__lexiSpellRules || [];
   const { matchCase, escapeHtml } = host.__lexiSpellCore || {};
 
+  // Subject/clitic pronouns that can follow a modal — in inversion
+  // ("Peux-tu fermer…?", "Puede usted venir") the pronoun is the SUBJECT, not
+  // the infinitive complement. "tu" also collides with the past participle of
+  // "se taire", so without this guard "Peux-tu" flagged tu → "se taire".
+  const PRONOUNS_AFTER_MODAL = {
+    es: new Set(['yo', 'tú', 'él', 'ella', 'usted', 'nosotros', 'vosotros', 'ellos', 'ellas', 'ustedes', 'me', 'te', 'se', 'lo', 'la', 'le', 'nos', 'os', 'les']),
+    fr: new Set(['je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'me', 'te', 'se', 'le', 'la', 'les', 'lui', 'leur', 'y', 'en']),
+  };
+
   const MODAL_VERBS = {
     es: new Set([
       'puedo', 'puedes', 'puede', 'podemos', 'podéis', 'pueden', 'pude', 'pudiste', 'pudo', 'pudimos', 'pudisteis', 'pudieron',
@@ -38,11 +47,33 @@
       category: "grammar-lookup",
     },
     severity: 'error',
-    explain: (finding) => ({
-      nb: `Etter modalverb skal hovedverbet stå i infinitiv — bytt <em>${escapeHtml(finding.original)}</em> med <em>${escapeHtml(finding.fix)}</em>.`,
-      nn: `Etter modalverb skal hovudverbet stå i infinitiv — byt <em>${escapeHtml(finding.original)}</em> med <em>${escapeHtml(finding.fix)}</em>.`,
-      en: `After a modal verb, the main verb should be in the infinitive — replace <em>${escapeHtml(finding.original)}</em> with <em>${escapeHtml(finding.fix)}</em>.`,
-    }),
+    // v3.0.121 Lær mer: modal_form (es,fr) was on the no-pedagogy gap list.
+    pedagogy: {
+      note: {
+        nb: 'Etter modalverb (<em>quiero, puedo, debo / je veux, je peux, je dois</em>) står hovedverbet i <strong>infinitiv</strong> — akkurat som på norsk: «jeg vil <em>spise</em>», ikke «jeg vil <em>spiser</em>».',
+        nn: 'Etter modalverb (<em>quiero, puedo, debo / je veux, je peux, je dois</em>) står hovudverbet i <strong>infinitiv</strong> — akkurat som på norsk: «eg vil <em>ete</em>», ikkje «eg vil <em>et</em>».',
+        en: 'After a modal verb (<em>quiero, puedo, debo / je veux, je peux, je dois</em>) the main verb is an <strong>infinitive</strong> — just like Norwegian: «jeg vil <em>spise</em>».',
+      },
+      examples: [
+        { correct: 'Quiero comer pizza.', incorrect: 'Quiero como pizza.', translation: { nb: 'Jeg vil spise pizza.', nn: 'Eg vil ete pizza.', en: 'I want to eat pizza.' } },
+        { correct: 'Je veux manger une pizza.', incorrect: 'Je veux mange une pizza.', translation: { nb: 'Jeg vil spise en pizza.', nn: 'Eg vil ete ein pizza.', en: 'I want to eat a pizza.' } },
+      ],
+      extra: {
+        nb: 'Infinitiven kjenner du igjen på endelsen: spansk <em>-ar/-er/-ir</em> (comer, hablar, vivir), fransk <em>-er/-ir/-re</em> (manger, finir, prendre).',
+        nn: 'Infinitiven kjenner du att på endinga: spansk <em>-ar/-er/-ir</em> (comer, hablar, vivir), fransk <em>-er/-ir/-re</em> (manger, finir, prendre).',
+        en: 'Spot the infinitive by its ending: Spanish <em>-ar/-er/-ir</em> (comer, hablar, vivir), French <em>-er/-ir/-re</em> (manger, finir, prendre).',
+      },
+    },
+    explain: (finding) => {
+      const mw = finding.modal ? `<em>${escapeHtml(finding.modal)}</em>` : '';
+      const nbPre = finding.modal ? `Etter modalverbet ${mw}` : 'Etter modalverb';
+      const enPre = finding.modal ? `After the modal verb ${mw}` : 'After a modal verb';
+      return {
+        nb: `${nbPre} skal hovedverbet stå i infinitiv — bytt <em>${escapeHtml(finding.original)}</em> med <em>${escapeHtml(finding.fix)}</em>.`,
+        nn: `${nbPre} skal hovudverbet stå i infinitiv — byt <em>${escapeHtml(finding.original)}</em> med <em>${escapeHtml(finding.fix)}</em>.`,
+        en: `${enPre}, the main verb should be in the infinitive — replace <em>${escapeHtml(finding.original)}</em> with <em>${escapeHtml(finding.fix)}</em>.`,
+      };
+    },
     check(ctx) {
       const { tokens, vocab, cursorPos, lang } = ctx;
       const verbInfinitive = vocab.verbInfinitive || new Map();
@@ -56,7 +87,9 @@
         const prev = tokens[i - 1];
         if (cursorPos != null && cursorPos >= t.start && cursorPos <= t.end + 1) continue;
 
-        if (prev && modals.has(prev.word) && verbInfinitive.has(t.word)) {
+        const pronouns = PRONOUNS_AFTER_MODAL[lang];
+        if (prev && modals.has(prev.word) && verbInfinitive.has(t.word)
+            && !(pronouns && pronouns.has(t.word))) {
           const inf = verbInfinitive.get(t.word);
           if (inf && inf !== t.word) {
             // Check if it's already a valid infinitive (some forms overlap)
@@ -72,6 +105,7 @@
                 end: t.end,
                 original: t.display,
                 fix: matchCase(t.display, inf),
+                modal: prev.display,
                 message: `Etter "${prev.display}" skal verbet stå i infinitiv: "${inf}"`,
               });
             }

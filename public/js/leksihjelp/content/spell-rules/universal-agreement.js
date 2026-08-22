@@ -20,6 +20,19 @@
     de: new Set(['die']), // 'die' is also feminine singular, handled by context
   };
 
+  // Personal pronouns (subject + object clitics). A plural ARTICLE never
+  // follows one of these; when "les/los/las" does, it is an object clitic in a
+  // clitic cluster (FR "elle leur les montre", "je les montre"; ES "me los
+  // da") and the next token is a verb, not a noun — even when that token is a
+  // noun homograph (montre = watch/shows, casa = house/marries). Used together
+  // with a verb-form check so "las casa"/"les maison" (no preceding pronoun)
+  // still fire.
+  const PRONOUNS = {
+    fr: new Set(['je', 'tu', 'il', 'elle', 'on', 'nous', 'vous', 'ils', 'elles', 'me', 'te', 'se', 'le', 'la', 'les', 'lui', 'leur', 'y', 'en', 'moi', 'toi', 'eux']),
+    es: new Set(['yo', 'tú', 'tu', 'él', 'ella', 'usted', 'nosotros', 'nosotras', 'vosotros', 'vosotras', 'ustedes', 'ellos', 'ellas', 'me', 'te', 'se', 'lo', 'la', 'los', 'las', 'le', 'les', 'nos', 'os']),
+    de: new Set(),
+  };
+
   const rule = {
     id: 'agreement',
     languages: ['fr', 'es', 'de'],
@@ -50,8 +63,18 @@
         if (articles.has(t.word) && next) {
           // Special case for German 'die': only flag if we are SURE it's plural context
           // (for now, let's keep it simple and focus on FR/ES where it's unambiguous)
-          if (lang === 'de' && t.word === 'die') continue; 
+          if (lang === 'de' && t.word === 'die') continue;
 
+          // Clitic-cluster guard: if the previous token is a personal pronoun
+          // AND the candidate is a known verb form, this is a clitic + verb
+          // ("leur les montre", "je les montre"), not article + noun. Skip.
+          const prev = tokens[i - 1];
+          const verbInf = vocab.verbInfinitive;
+          if (prev && PRONOUNS[lang] && PRONOUNS[lang].has(prev.word)
+              && verbInf && verbInf.has(next.word)) continue;
+
+          const isAlsoPlural = Array.from(nounForms.values()).some(f => f.plural.has(next.word));
+          if (isAlsoPlural) continue;
           const forms = Array.from(nounForms.values()).find(f => f.singular.has(next.word));
           if (forms && forms.plural.size > 0) {
             const fix = Array.from(forms.plural)[0];

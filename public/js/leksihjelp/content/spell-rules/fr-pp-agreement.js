@@ -116,8 +116,8 @@
       const pp = finding.original || '';
       const fix = finding.fix || '';
       return {
-        nb: `Partisippet <em>${escapeHtml(pp)}</em> ma samsvarboyes med det direkte objektet som star foran: <em>${escapeHtml(fix)}</em>.`,
-        nn: `Partisippet <em>${escapeHtml(pp)}</em> ma samsvarboyas med det direkte objektet som star framfor: <em>${escapeHtml(fix)}</em>.`,
+        nb: `Partisippet <em>${escapeHtml(pp)}</em> må samsvarbøyes med det direkte objektet som står foran: <em>${escapeHtml(fix)}</em>.`,
+        nn: `Partisippet <em>${escapeHtml(pp)}</em> må samsvarbøyast med det direkte objektet som står framfor: <em>${escapeHtml(fix)}</em>.`,
       };
     },
     check(ctx) {

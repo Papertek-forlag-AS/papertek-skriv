@@ -118,6 +118,11 @@ test('embedded shim rebinds to each document bridge instead of keeping stale lan
   vm.runInContext(source, context);
 
   const shim = context.window.__skrivLeksihjelpShim;
+  assert.equal(
+    shim._store.personalizationEnabled,
+    false,
+    'embedded Skriv must not expose ephemeral personalization controls',
+  );
   const firstDocument = createFakeBridge('nn');
   const secondDocument = createFakeBridge('en');
 

@@ -31,7 +31,7 @@ public/
 ├── index.html                  SPA shell
 ├── whitepaper.html             transparency and portability notes
 ├── manifest.json               PWA manifest
-├── sw.js                       Service Worker, current cache `skriv-v76`
+├── sw.js                       Service Worker, current cache `skriv-v77`
 ├── css/main.css                app/editor CSS and responsive rules
 ├── icons/                      install icon
 ├── vendor/                     pinned Tailwind and jsPDF distributions
@@ -80,10 +80,10 @@ The dependency graph is a DAG. Storage access to `skriv-documents` is centralize
 
 ## PWA and update safety
 
-The current cache is `skriv-v76`.
+The current cache is `skriv-v77`.
 
 1. The service worker atomically precaches the critical app shell and full ES-module graph.
-2. The larger vendored Leksihjelp inventory is cached best-effort per file so a vendor inventory issue cannot prevent the word processor from installing.
+2. Vendored Leksihjelp code, styles, metadata, and the compact NB fallback are cached best-effort per file. Larger language data is cached on first use by the same-origin fetch handler so installing the word processor does not eagerly download every language.
 3. Same-origin release assets are cache-first, preventing mixed old/new module graphs.
 4. A new worker remains waiting. The student explicitly accepts the update.
 5. Every mounted editor registers an awaited flush before `SKIP_WAITING` and reload.

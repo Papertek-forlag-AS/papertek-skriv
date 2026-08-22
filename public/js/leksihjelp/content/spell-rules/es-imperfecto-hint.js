@@ -45,6 +45,13 @@
     return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
 
+  // Coordinating/subordinating words that open a new clause. Used to bound the
+  // forward scan for "mientras" so its imperfecto cue doesn't reach a preterito
+  // verb in a following coordinate clause ("mientras corría y tuve que parar").
+  const CLAUSE_BOUNDARY = new Set([
+    'y', 'e', 'o', 'u', 'pero', 'porque', 'que', 'cuando', 'aunque', 'como', 'pues', 'sino', 'ni',
+  ]);
+
   // Lazy-init grammar tables
   let _tables = null;
   function getTables() {
@@ -125,12 +132,13 @@
           const word = ctx.tokens[i].word;
           const stripped = stripAccents(word);
 
-          // "mientras" guard: bare "mientras" = imperfecto, "mientras que" = contrastive (skip)
+          // "mientras" guard: bare "mientras" = imperfecto. "mientras que"
+          // (contrastive) and "mientras tanto" (= meanwhile, not a subordinator)
+          // do NOT cue an aspect.
           if (word === 'mientras' || stripped === 'mientras') {
-            if (i + 1 < range.end && ctx.tokens[i + 1].word === 'que') {
-              continue; // "mientras que" — contrastive, skip
-            }
-            adverbHits.push({ type: 'imperfecto', adverb: ctx.tokens[i].display, tokenIdx: i });
+            const nxt = i + 1 < range.end ? ctx.tokens[i + 1].word : '';
+            if (nxt === 'que' || nxt === 'tanto') continue;
+            adverbHits.push({ type: 'imperfecto', adverb: ctx.tokens[i].display, tokenIdx: i, isMientras: true });
             continue;
           }
 
@@ -187,7 +195,19 @@
 
         // Pass 2: For each adverb hit, scan for mismatched verb forms
         for (const hit of adverbHits) {
-          for (let j = range.start; j < range.end; j++) {
+          let scanStart = range.start;
+          let scanEnd = range.end;
+          if (hit.isMientras) {
+            // "mientras" governs only its own (right-hand) subordinate clause;
+            // the main-clause preterito that precedes it is correct. Scan only
+            // forward, stopping at the next clause boundary, so "acaricié el pelo
+            // mientras dormía" no longer nudges the correct main verb.
+            scanStart = hit.tokenIdx + 1;
+            for (let b = hit.tokenIdx + 1; b < range.end; b++) {
+              if (CLAUSE_BOUNDARY.has(ctx.tokens[b].word)) { scanEnd = b; break; }
+            }
+          }
+          for (let j = scanStart; j < scanEnd; j++) {
             if (j === hit.tokenIdx) continue;
             const word = ctx.tokens[j].word;
             const stripped = stripAccents(word);
@@ -196,6 +216,11 @@
               // Preterito adverb found — look for imperfecto verb forms
               const verbInfo = imperfectoToVerb.get(word) || imperfectoToVerb.get(stripped);
               if (verbInfo) {
+                // "había/habíamos" (pluperfect auxiliary: "había dormido"),
+                // "era/estaba" (background states) are correct imperfecto even
+                // beside a punctual adverb — never nudge ser/estar/haber toward
+                // preterito. Keep scanning for a genuine content verb.
+                if (verbInfo.inf === 'haber' || verbInfo.inf === 'ser' || verbInfo.inf === 'estar') continue;
                 // Verb is imperfecto but adverb suggests preterito
                 // Look up the preterito form for this verb+person
                 const pretKey = verbInfo.inf + '|' + verbInfo.person;
@@ -225,6 +250,18 @@
               // Imperfecto adverb found — look for preterito verb forms
               const verbInfo = preteritumToVerb.get(word) || preteritumToVerb.get(stripped);
               if (verbInfo) {
+                // Accent-collision guard: the reverse map is keyed by both the
+                // accented preterito ("caminó", "viajé") and its accent-stripped
+                // twin ("camino", "viaje"). The stripped twin is a homograph of
+                // the present tense ("camino" = I walk), a noun ("viaje" = a
+                // trip), or a subjunctive ("pase") — all correct, none preterito.
+                // Only proceed when the token IS the canonical accented preterito.
+                const canonicalPret = findPreteritumForm(preteritumToVerb, verbInfo.inf, verbInfo.person);
+                if (!canonicalPret || word !== canonicalPret) continue;
+                // Ambiguous 1pl: -ar/-ir "nosotros" preterito is spelled exactly
+                // like the present ("cantamos", "vivimos"), so a present-habitual
+                // reading is equally valid — don't nudge it.
+                if (verbInfo.person === 'nosotros' && /(?:amos|imos)$/.test(word)) continue;
                 // Verb is preterito but adverb suggests imperfecto
                 const impForm = imperfectoForms.get(verbInfo.inf + '|' + verbInfo.person);
                 if (impForm && impForm !== word && impForm !== stripped) {

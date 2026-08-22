@@ -77,6 +77,14 @@
       }),
     }),
     Object.freeze({
+      id: 'dictionary.examples',
+      exam: Object.freeze({
+        safe: false,
+        reason: 'Dictionary example sentences are ready-made prose, not reference data. A pupil looking up a flagged word gets a finished sentence to lift; the headword, gender and inflection table stay available',
+        category: 'dictionary',
+      }),
+    }),
+    Object.freeze({
       id: 'widget.conjugation',
       exam: Object.freeze({
         safe: true,
@@ -114,6 +122,57 @@
         safe: true,
         reason: 'Festet side-panel is the same dictionary surface as the popup; static reference, allowed during exam',
         category: 'dictionary',
+      }),
+    }),
+    // Phase-1 personalization (FEIDE/personal-dictionary/Lær-mer-library wave) —
+    // all suppressed in exam mode: a personal dictionary is an answer-loading
+    // vector, and the Lær mer library is active learning material.
+    Object.freeze({
+      id: 'personalization.addWord',
+      exam: Object.freeze({
+        safe: false,
+        reason: 'A personal dictionary in an exam is an answer-loading vector; suppressed in exam mode',
+        category: 'spellcheck',
+      }),
+    }),
+    Object.freeze({
+      id: 'personalization.markKnown',
+      exam: Object.freeze({
+        safe: false,
+        reason: 'Lær mer is suppressed in exam mode, so its mark-known control is too',
+        category: 'pedagogy',
+      }),
+    }),
+    Object.freeze({
+      id: 'personalization.markLearning',
+      exam: Object.freeze({
+        safe: false,
+        reason: 'Læringsbunken (active-learning stack) is Lær mer personalization; its add/marker controls are suppressed in exam mode',
+        category: 'pedagogy',
+      }),
+    }),
+    Object.freeze({
+      id: 'personalization.libraryTab',
+      exam: Object.freeze({
+        safe: false,
+        reason: 'The Lær mer study library is active learning material, not allowed during exam',
+        category: 'pedagogy',
+      }),
+    }),
+    Object.freeze({
+      id: 'personalization.settingsWordList',
+      exam: Object.freeze({
+        safe: false,
+        reason: 'The personal word list is a personal dictionary — an answer-loading vector; its Settings management surface is suppressed in exam mode',
+        category: 'spellcheck',
+      }),
+    }),
+    Object.freeze({
+      id: 'widget.rsvpReader',
+      exam: Object.freeze({
+        safe: true,
+        reason: 'The reading trainer presents text the pupil already has at a chosen pace; it generates no answers — the same category as read-aloud, which is allowed during exam',
+        category: 'widget',
       }),
     }),
   ]);

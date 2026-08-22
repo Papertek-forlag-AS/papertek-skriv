@@ -160,12 +160,12 @@
     limpio: 'estar', sucio: 'estar',
     // ser-only (inherent qualities)
     alto: 'ser', bajo: 'ser', grande: 'ser', pequeno: 'ser',
-    inteligente: 'ser', tonto: 'ser', rico: 'ser', pobre: 'ser',
+    inteligente: 'ser', tonto: 'ser', rico: 'both', pobre: 'ser',
     joven: 'ser', viejo: 'ser', guapo: 'ser', feo: 'ser',
     delgado: 'ser', gordo: 'ser', fuerte: 'ser', debil: 'ser',
     importante: 'ser', necesario: 'ser', posible: 'ser', imposible: 'ser',
     dificil: 'ser', facil: 'ser', obvio: 'ser', claro: 'ser',
-    cierto: 'ser', falso: 'ser', justo: 'ser', injusto: 'ser',
+    cierto: 'ser', falso: 'ser', justo: 'both', injusto: 'ser',
     // both (meaning changes with copula)
     aburrido: 'both', listo: 'both', malo: 'both', bueno: 'both',
     verde: 'both', vivo: 'both', seguro: 'both', atento: 'both',

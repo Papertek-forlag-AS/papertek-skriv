@@ -108,22 +108,58 @@
 
         // 2. Pronoun Case (Object form after verb/prep)
         if (next && PRONOUN_OBJ_MAP[next.word]) {
+          // Aux/modal/copula + pronoun is INVERSION ("should I skip", "do I",
+          // "am I lending") — the pronoun is the subject, never an object.
+          const INVERSION_TRIGGERS = new Set(['can', 'could', 'will', 'would',
+            'shall', 'should', 'may', 'might', 'must', 'do', 'does', 'did',
+            'am', 'is', 'are', 'was', 'were', 'have', 'has', 'had']);
+          if (INVERSION_TRIGGERS.has(t.word)) continue;
           const isVerb = knownPresens.has(t.word) || knownPreteritum.has(t.word);
           const isPrep = PREPOSITIONS.has(t.word);
           if (isVerb || isPrep) {
-             const fix = PRONOUN_OBJ_MAP[next.word];
-             const fixWithCase = matchCase(next.display, fix);
-             out.push({
-              rule_id: 'en-grammar', subType: 'pronoun-case', priority: rule.priority,
-              start: next.start, end: next.end, original: next.display,
-              fix: fixWithCase, suggestion: fixWithCase,
-              message: `Objektsform: Bruk "${fix}" etter "${t.display}"`,
-            });
+            const prevToken = tokens[i - 1];
+            const afterBoundary = !prevToken || /[.!?]$/.test(prevToken.display);
+            // Ordbank sweep 2026-07: punctuation/quote/dash between the
+            // trigger word and the pronoun means a clause boundary — the
+            // pronoun is the NEW clause's subject ('said "I don't know"',
+            // "finished — we can move in").
+            const trigGap = ctx.text ? ctx.text.slice(t.end, next.start) : ' ';
+            if (/[,;:—–"«»''./-]/.test(trigGap)) continue;
+            const afterNext = tokens[i + 2];
+            const HAVE_AUX = new Set(['have', 'has', 'had']);
+            const EN_MODALS2 = new Set(['can', 'could', 'will', 'would', 'shall',
+              'should', 'may', 'might', 'must', 'do', 'does', 'did']);
+            const SUBJ_ADVERBS = new Set(['still', 'really', 'always', 'just',
+              'only', 'truly', 'never', 'often', 'also', 'usually', 'even',
+              'certainly', 'probably', 'definitely', 'shall']);
+            const looksFinite = (w) => !!(w && (knownPresens.has(w) ||
+              knownPreteritum.has(w) || HAVE_AUX.has(w) || EN_MODALS2.has(w) ||
+              ['am', 'is', 'are', 'was', 'were'].includes(w) ||
+              /['']((t|ll|re|ve|d|m))$/.test(w) ||
+              (/ed$/.test(w) && w.length > 4 && vocab.validWords &&
+                (vocab.validWords.has(w.slice(0, -2)) || vocab.validWords.has(w.slice(0, -1)) ||
+                 vocab.validWords.has(w.slice(0, -3))))));
+            const afterAfter = tokens[i + 3];
+            const pronounIsSubject = afterNext && (looksFinite(afterNext.word) ||
+              (SUBJ_ADVERBS.has(afterNext.word) && afterAfter && looksFinite(afterAfter.word)) ||
+              (SUBJ_ADVERBS.has(afterNext.word) && afterAfter &&
+                vocab.validWords && vocab.validWords.has(afterAfter.word)));
+            if (!afterBoundary && !pronounIsSubject) {
+              const fix = PRONOUN_OBJ_MAP[next.word];
+              const fixWithCase = matchCase(next.display, fix);
+              out.push({
+                rule_id: 'en-grammar', subType: 'pronoun-case', priority: rule.priority,
+                start: next.start, end: next.end, original: next.display,
+                fix: fixWithCase, suggestion: fixWithCase,
+                message: `Objektsform: Bruk "${fix}" etter "${t.display}"`,
+              });
+            }
           }
         }
 
         // 3. Tense Consistency
-        if (i > 1 && t.word === 'and' && next && knownPresens.has(next.word)) {
+        if (i > 1 && t.word === 'and' && next && knownPresens.has(next.word)
+            && !knownPreteritum.has(next.word) /* found/read/put are past too */) {
           const prev = tokens[i - 1];
           if (knownPreteritum.has(prev.word)) {
             const inf = verbInfinitive.get(next.word) || next.word;
@@ -146,21 +182,64 @@
 
         // 4. Much vs. Many
         if ((t.word === 'much' || t.word === 'many') && next) {
-          const looksCountable = next.word.endsWith('s') && next.word.length > 3;
-          const expected = looksCountable ? 'many' : 'much';
-          if (t.word !== expected) {
+          // Wikipedia-corpus precision (E3, 2026-06-12): the noun can sit
+          // behind a modifier — «many modern reciters», «Many mental
+          // illnesses» all flagged many→much because only `next` was
+          // checked. Shift to the modifier's noun when next is a known
+          // adjective, or when next is non-plural but the token after is
+          // plural (covers adjectives missing from adjectivebank).
+          const isAdjective = (ctx.vocab && ctx.vocab.isAdjective) || new Set();
+          let nounTok = next;
+          const afterTok = tokens[i + 2];
+          if (!next.word.endsWith('s') && afterTok &&
+              (isAdjective.has(next.word) || (afterTok.word.endsWith('s') && afterTok.word.length > 3))) {
+            nounTok = afterTok;
+          }
+          // Irregular plurals (people/children/men…) are countable but don't end
+          // in -s, so "many people" must NOT be "corrected" to the ungrammatical
+          // "much people". Treat them as countable.
+          const IRREGULAR_PLURAL = new Set(['people', 'children', 'men', 'women', 'feet', 'teeth', 'mice', 'geese', 'oxen']);
+          // "many" is the right default for any plural/countable noun. Only flag
+          // many→much when the noun is a KNOWN uncountable ("many water"); never
+          // second-guess "many" off a weak "doesn't end in -s" heuristic.
+          const UNCOUNTABLE = new Set(['water', 'information', 'advice', 'homework', 'furniture', 'money',
+            'music', 'news', 'knowledge', 'traffic', 'weather', 'progress', 'research', 'luggage', 'feedback',
+            'equipment', 'rice', 'bread', 'milk', 'coffee', 'tea', 'sugar', 'salt', 'work', 'help', 'fun',
+            'love', 'air', 'energy', 'food', 'hair', 'paper', 'wood', 'stuff', 'time', 'space', 'patience']);
+          // Verb/aux in the noun slot ("how much DOES a cup cost") or a verb
+          // right after the noun ("how much tourists SPEND", "how much the
+          // repairs WOULD cost") means «much» quantifies an amount and the
+          // noun is a clause subject — never a much→many error.
+          const AUXV = new Set(['does', 'do', 'did', 'is', 'are', 'was', 'were',
+            'has', 'have', 'had', 'will', 'would', 'can', 'could', 'should', 'goes']);
+          // (AUXV only — knownPresens would false-match noun/verb homographs
+          // like "books" and kill the core "much books" catch.)
+          if (AUXV.has(nounTok.word)) continue;
+          const afterNoun = tokens[tokens.indexOf(nounTok) + 1];
+          if (afterNoun && (AUXV.has(afterNoun.word) || knownPresens.has(afterNoun.word) ||
+              knownPreteritum.has(afterNoun.word))) continue;
+          const looksCountable = (nounTok.word.endsWith('s') && nounTok.word.length > 3) || IRREGULAR_PLURAL.has(nounTok.word);
+          let expected = null;
+          if (t.word === 'much' && looksCountable) expected = 'many';          // "much books" → many
+          else if (t.word === 'many' && UNCOUNTABLE.has(nounTok.word) && !looksCountable) expected = 'much'; // "many water" → much
+          if (expected) {
             out.push({
               rule_id: 'en-grammar', subType: 'much-many', priority: rule.priority,
               start: t.start, end: t.end, original: t.display,
               fix: matchCase(t.display, expected), suggestion: matchCase(t.display, expected),
-              is_countable: looksCountable,
+              is_countable: expected === 'many',
               message: `Bruk "${expected}" foran "${next.display}"`,
             });
           }
         }
 
         // 5. "should/could/would of" -> "have"
-        if (MODAL_VERBS.has(t.word) && next && next.word === 'of') {
+        // 'can'/'will' are noun homographs ("a can of tomatoes", "the will of
+        // the people") — an article/determiner before means the noun reading.
+        const NOUN_DET_BEFORE = new Set(['a', 'an', 'the', 'this', 'that', 'his',
+          'her', 'my', 'your', 'their', 'our', 'every', 'each', 'empty', 'tin']);
+        if (MODAL_VERBS.has(t.word) && next && next.word === 'of' &&
+            !((t.word === 'can' || t.word === 'will') && i > 0 && NOUN_DET_BEFORE.has(tokens[i - 1].word))) {
           out.push({
             rule_id: 'en-grammar', subType: 'modal-of', priority: rule.priority,
             start: next.start, end: next.end, original: next.display,

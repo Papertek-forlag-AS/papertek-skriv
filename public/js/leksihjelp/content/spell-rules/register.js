@@ -40,7 +40,7 @@
       ['sharet', { word: 'sharet', formal: 'delt' }],
       ['linke', { word: 'linke', formal: 'lenke til' }],
       ['joine', { word: 'joine', formal: 'bli med' }],
-      ['streame', { word: 'streame', formal: 'stromme' }],
+      ['streame', { word: 'streame', formal: 'strømme' }],
       ['skrolle', { word: 'skrolle', formal: 'bla' }],
     ]),
     nn: new Map([
@@ -51,7 +51,7 @@
       ['sharet', { word: 'sharet', formal: 'delt' }],
       ['linke', { word: 'linke', formal: 'lenkje til' }],
       ['joine', { word: 'joine', formal: 'verte med' }],
-      ['streame', { word: 'streame', formal: 'stromme' }],
+      ['streame', { word: 'streame', formal: 'strømme' }],
       ['skrolle', { word: 'skrolle', formal: 'bla' }],
     ]),
     fr: new Map([
@@ -113,6 +113,11 @@
               end: t.end,
               original: t.display,
               fix: entry.formal,
+              // A multiword/separable formal alternative ("downloade"→"laste ned")
+              // can't be applied as a single-token swap without breaking word
+              // order ("laste ned det"). Advisory only in that case — show the
+              // alternative, don't auto-rewrite. Single-word swaps stay fixable.
+              noAutoFix: /\s/.test(entry.formal),
               message: t.display + ' → ' + entry.formal + ' (formelt)',
               severity: 'warning',
             });

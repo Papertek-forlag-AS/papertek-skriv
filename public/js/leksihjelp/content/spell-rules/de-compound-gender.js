@@ -97,6 +97,13 @@
         // Previous token must be a German article
         if (!_allArticles.has(prev.word)) continue;
 
+        // Comma directly before der/die/das → RELATIVE pronoun, not the
+        // compound's determiner ("ein Organ, das Abfallstoffe … filtert" —
+        // das refers to Organ; Abfallstoffe is the relative clause's
+        // object). Ordbank sweep 2026-07.
+        if (i >= 2 && ctx.text &&
+            /,/.test(ctx.text.slice(tokens[i - 2].end, prev.start))) continue;
+
         // Current token must be capitalized (German nouns are capitalized)
         if (!t.display || t.display[0] !== t.display[0].toUpperCase() ||
             t.display[0] === t.display[0].toLowerCase()) continue;
@@ -130,6 +137,48 @@
         // Check structural suppression
         if (ctx.suppressedFor && ctx.suppressedFor.structural &&
             ctx.suppressedFor.structural.has(prev.start)) continue;
+
+        // Wikipedia-corpus wave 2 (2026-06-12): mirror de-gender's case-
+        // context suppressions — this rule assumed nominative everywhere.
+        const preArt = tokens[i - 2];
+        // (a) der + feminine compound after a dative/genitive-governing
+        //     preposition («in der Zeitumstellung», «wegen der Zeitumstellung»).
+        const CASE_PREPS = rule.__casePreps || (rule.__casePreps = new Set([
+          'aus', 'bei', 'mit', 'nach', 'seit', 'von', 'zu', 'an', 'auf',
+          'hinter', 'in', 'neben', 'über', 'unter', 'vor', 'zwischen',
+          'gemäß', 'gegenüber', 'samt', 'nebst', 'entsprechend', 'zufolge',
+          'während', 'wegen', 'trotz', 'statt', 'anstatt', 'kraft', 'mittels',
+          'laut', 'zugunsten', 'innerhalb', 'außerhalb', 'angesichts',
+          'aufgrund', 'dank', 'infolge',
+        ]));
+        if (prev.word === 'der' && inference.genus === 'f'
+            && preArt && CASE_PREPS.has(preArt.word)) continue;
+        // (b) adnominal genitive: der directly after a capitalized word (a
+        //     noun) is the genitive-chain article — correct for feminine
+        //     singular and every genitive plural («die Hälfte der
+        //     Zeitumstellung», «Teile der Bevölkerungsgruppe»).
+        if (prev.word === 'der' && preArt && /^\p{Lu}/u.test(preArt.display)) continue;
+        // (c) plural compounds: `die` is the universal nom/acc plural
+        //     article, but the tail's genus is stored as the lemma's
+        //     singular genus («die Naturschutzgebiete» — tail Gebiete reads
+        //     n). Skip when the compound tail is an EXCLUSIVELY plural
+        //     surface form — invariant-plural tails (Zimmer, Fenster) stay
+        //     flagged because «die Kinderzimmer» is the classic singular-
+        //     intent student error (fixture de-cg-pos-006).
+        if (prev.word === 'die') {
+          const nf = vocab.nounForms;
+          const tail = inference.suffix;
+          let inPlural = false, inSingular = false;
+          if (nf && typeof nf.values === 'function') {
+            for (const forms of nf.values()) {
+              if (!forms) continue;
+              if (!inPlural && forms.plural && forms.plural.has(tail)) inPlural = true;
+              if (!inSingular && forms.singular && forms.singular.has(tail)) inSingular = true;
+              if (inPlural && inSingular) break;
+            }
+          }
+          if (inPlural && !inSingular) continue;
+        }
 
         // Determine correct article (use first genus from the Set for definite/indef lookup)
         const isDef = !!_defArticleCase[prev.word];

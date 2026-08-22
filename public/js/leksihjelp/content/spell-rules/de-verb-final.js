@@ -28,6 +28,32 @@
     'indem', 'falls',
   ]);
 
+  // seit/während are dual-function: preposition + subordinating conjunction.
+  // When followed by an article or temporal adverb → preposition (no verb-final).
+  const DUAL_FUNCTION_SUBORDINATORS = new Set(['seit', 'während']);
+  const DE_ARTICLES = new Set([
+    'der', 'die', 'das', 'des', 'dem', 'den',
+    'ein', 'eine', 'einem', 'einen', 'eines', 'einer',
+    'mein', 'meine', 'meinem', 'meinen', 'meiner', 'meines',
+    'dein', 'deine', 'deinem', 'deinen', 'deiner', 'deines',
+    'sein', 'seine', 'seinem', 'seinen', 'seiner', 'seines',
+    'ihr', 'ihre', 'ihrem', 'ihren', 'ihrer', 'ihres',
+    'unser', 'unsere', 'unserem', 'unseren', 'unserer', 'unseres',
+    'euer', 'eure', 'eurem', 'euren', 'eurer', 'eures',
+    'kein', 'keine', 'keinem', 'keinen', 'keiner', 'keines',
+    'diesem', 'dieser', 'dieses', 'diesen', 'diese',
+    'jedem', 'jeder', 'jedes', 'jeden', 'jede',
+  ]);
+  const DE_NUMERALS = new Set([
+    'ein', 'eine', 'einem', 'einer', 'zwei', 'drei', 'vier', 'fünf', 'sechs',
+    'sieben', 'acht', 'neun', 'zehn', 'elf', 'zwölf', 'zwanzig', 'dreißig',
+    'hundert', 'tausend', 'einigen', 'mehreren', 'vielen', 'wenigen', 'paar',
+  ]);
+  const DE_TEMPORAL_ADVERBS = new Set([
+    'gestern', 'heute', 'morgen', 'damals', 'langem', 'kurzem',
+    'jahren', 'monaten', 'wochen', 'tagen', 'stunden',
+  ]);
+
   // Modal verb stems — these are the conjugated forms that should appear at
   // clause end in modal+infinitive constructions within subordinate clauses.
   const DE_MODALS = new Set([
@@ -102,7 +128,55 @@
           if (ctx.suppressedFor && ctx.suppressedFor.structural && ctx.suppressedFor.structural.has(i)) continue;
 
           const tagged = ctx.getTagged(i);
-          if (!DE_SUBORDINATORS.has(tagged.word.toLowerCase())) continue;
+          const subWord = tagged.word.toLowerCase();
+          if (!DE_SUBORDINATORS.has(subWord)) continue;
+
+          // "sowohl … als auch …" is a correlative coordinator, not a
+          // subordinating "als": the clause stays main-clause (V2), so its verb
+          // is NOT final. "Sowohl meine Mutter als auch mein Vater sprechen …"
+          // must not flag "sprechen". Skip when "als" is followed by "auch".
+          if (subWord === 'als' && i + 1 < range.end && ctx.tokens[i + 1].word.toLowerCase() === 'auch') continue;
+
+          // seit/während + article/temporal-adverb → preposition, not conjunction
+          if (DUAL_FUNCTION_SUBORDINATORS.has(subWord) && i + 1 < range.end) {
+            const nextWord = ctx.tokens[i + 1].word.toLowerCase();
+            if (DE_ARTICLES.has(nextWord) || DE_TEMPORAL_ADVERBS.has(nextWord)) continue;
+            // Capitalized noun directly after → preposition reading
+            // ("Seit Januar gibt es …") — Ordbank sweep 2026-07.
+            var dfn = ctx.tokens[i + 1].display;
+            if (/^\p{Lu}/u.test(dfn)) continue;
+          }
+
+          // "als" + bare capitalized noun is the ROLE/comparative phrase
+          // ("Durch meine Erfahrung als Lehrer kenne ich …"), not the
+          // temporal conjunction ("als der Regen begann" keeps flagging —
+          // its next token is a lowercase article). Ordbank sweep 2026-07.
+          if (subWord === 'als' && i + 1 < range.end &&
+              /^\p{Lu}/u.test(ctx.tokens[i + 1].display)) continue;
+
+          // seit + numeral is the durative preposition ("seit zwei Wochen",
+          // "seit 2019"), never the conjunction.
+          if (DUAL_FUNCTION_SUBORDINATORS.has(subWord) && i + 1 < range.end) {
+            var dfw = ctx.tokens[i + 1].word.toLowerCase();
+            if (/^\d/.test(dfw) || DE_NUMERALS.has(dfw)) continue;
+          }
+
+          // Fronted als/seit-phrase with main-clause INVERSION: if the first
+          // finite verb in the presumed clause is directly followed by a
+          // subject pronoun ("Als leidenschaftliche Leserin verbringt sie
+          // viele Stunden …"), the phrase is fronted and V2 inversion is
+          // correct — not a verb-final clause.
+          if ((subWord === 'als' || DUAL_FUNCTION_SUBORDINATORS.has(subWord))) {
+            var invFound = false;
+            for (var vi2 = i + 1; vi2 < range.end - 1; vi2++) {
+              if (!ctx.getTagged(vi2).isFinite) continue;
+              var nxw = ctx.tokens[vi2 + 1].word.toLowerCase();
+              if (nxw === 'ich' || nxw === 'du' || nxw === 'er' || nxw === 'sie' ||
+                  nxw === 'es' || nxw === 'wir' || nxw === 'ihr' || nxw === 'man') invFound = true;
+              break;
+            }
+            if (invFound) continue;
+          }
 
           // Found a subordinator at position i. Define subordinate clause bounds.
           const clauseStart = i + 1;
@@ -144,6 +218,23 @@
             finiteVerbs.push(fi);
           }
           if (finiteVerbs.length === 0) continue;
+
+          // Missing-comma clause seam (Ordbank sweep 2026-07): two ADJACENT
+          // finite verbs ("Wenn ich komme bringe ich es mit") mean the
+          // subordinate clause ends between them — its verb IS final, and
+          // the missing comma is de-comma-subord's finding, not ours.
+          // Modal+infinitive pairs ("ob er kann schwimmen") are the rule's
+          // core catch — the infinitive is a finite-form homograph, not a
+          // second clause. Only non-modal pairs signal the seam.
+          var adjacentPair = false;
+          for (var ai = 1; ai < finiteVerbs.length; ai++) {
+            if (finiteVerbs[ai] !== finiteVerbs[ai - 1] + 1) continue;
+            var w1 = ctx.tokens[finiteVerbs[ai - 1]].word.toLowerCase();
+            var w2 = ctx.tokens[finiteVerbs[ai]].word.toLowerCase();
+            if (DE_MODALS.has(w1) || DE_MODALS.has(w2)) continue;
+            adjacentPair = true; break;
+          }
+          if (adjacentPair) continue;
 
           // Find the last content token (non-punctuation) before clause boundary
           var lastContent = clauseEnd - 1;

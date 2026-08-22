@@ -13,9 +13,9 @@
  *      upstream don't linger as stale leftovers (Phase 43 renamed several
  *      content scripts; the lockdown sibling repo learned this lesson the
  *      hard way).
- *   2. Copies the subset listed in FILE_INVENTORY into public/js/leksihjelp/.
- *      Engine + renderer pairs (Phase 43) ship together; spell-rules/ ships
- *      whole.
+ *   2. Reads extension/manifest.json once and copies Skriv's classic-script
+ *      subset in upstream dependency order. Only spell-rule files explicitly
+ *      listed by the manifest are copied.
  *   3. Vocab JSONs (de/es/fr/en/nb/nn) — strips the per-entry `audio` field
  *      (~17 MB across 6 langs) since Skriv has no MP3 playback path; writes
  *      minified JSON to keep the bundle compact.
@@ -24,14 +24,17 @@
  *      with Skriv's existing UI. Output goes to
  *      public/js/leksihjelp/styles/leksihjelp.css.
  *   5. Writes public/js/leksihjelp/.version with the upstream version,
- *      commit SHA, and sync timestamp.
- *   6. Prints a summary table.
+ *      commit SHA, sync timestamp, and complete generated runtime inventory.
+ *   6. Regenerates the managed classic-script block in public/index.html and
+ *      the managed Leksihjelp asset block in public/sw.js.
+ *   7. Prints a summary table generated from the actual inventories.
  *
- * Vocab loading model: BUNDLED, NOT runtime-fetched. Phase 40.2 of leksihjelp
+ * Vocab loading model: BUNDLED, NOT remotely fetched. Phase 40.2 of leksihjelp
  * forbids runtime API fetch (release gate `check-no-vocab-fetch`). Skriv
  * matches that architecture: data/<lang>.json files ship inside Skriv's
- * static bundle and are read by vocab-seam.js via fetch('/js/leksihjelp/data/...').
- * No dependency on papertek-vocabulary.vercel.app at runtime.
+ * static bundle and are read on demand from the same origin by vocab-seam.js.
+ * The service worker cache-on-use path stores a language after first use; it
+ * is not part of the eager install cache. There is no runtime vocabulary API.
  *
  * Usage:
  *   node scripts/sync-leksihjelp.js
@@ -46,6 +49,14 @@ const { execSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
 const destDir = path.join(root, 'public', 'js', 'leksihjelp');
+const extensionRoot = (srcRoot) => path.join(srcRoot, 'extension');
+
+const indexPath = path.join(root, 'public', 'index.html');
+const swPath = path.join(root, 'public', 'sw.js');
+const INDEX_BEGIN_MARKER = '    <!-- BEGIN GENERATED LEKSIHJELP BUNDLE -->';
+const INDEX_END_MARKER = '    <!-- END GENERATED LEKSIHJELP BUNDLE -->';
+const SW_BEGIN_MARKER = '    // BEGIN GENERATED LEKSIHJELP ASSETS';
+const SW_END_MARKER = '    // END GENERATED LEKSIHJELP ASSETS';
 
 // ── Locate the leksihjelp source tree ─────────────────────────────────
 
@@ -72,14 +83,19 @@ if (!srcRoot) {
 }
 console.log('[sync-leksihjelp] Source:', srcRoot);
 
-// Read upstream version + commit SHA for the .version pin.
-let upstreamVersion = 'unknown';
-let upstreamCommit = 'unknown';
+// Parse the manifest once. It is both the version source and the authority for
+// classic content-script dependency order (including the exact rule list).
+const manifestPath = path.join(extensionRoot(srcRoot), 'manifest.json');
+let upstreamManifest;
 try {
-    upstreamVersion = JSON.parse(
-        fs.readFileSync(path.join(srcRoot, 'extension', 'manifest.json'), 'utf8')
-    ).version;
-} catch (_) {}
+    upstreamManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+} catch (error) {
+    console.error(`[sync-leksihjelp] Could not parse ${manifestPath}: ${error.message}`);
+    process.exit(1);
+}
+
+const upstreamVersion = upstreamManifest.version || 'unknown';
+let upstreamCommit = 'unknown';
 try {
     upstreamCommit = execSync('git rev-parse HEAD', { cwd: srcRoot }).toString().trim();
 } catch (_) {}
@@ -99,33 +115,48 @@ try {
 //   - popup/views/: NOT vendored — Skriv writes its own popup using
 //     dict-state-builder.js's pure VM (per integration doc §4)
 
-// Files copied verbatim. Source paths relative to srcRoot/extension/.
-const FILE_INVENTORY = [
-    // i18n strings
+// Manifest-listed files Skriv needs. Source paths are relative to extension/.
+// These are filtered out of the manifest sequence rather than ordered here.
+const REQUIRED_MANIFEST_FILES = [
     'i18n/strings.js',
-
-    // Content seam — pure index builder + hydration policy
+    'exam-registry.js',
     'content/vocab-seam-core.js',
     'content/vocab-seam.js',
     'content/lang-detect.js',
-
-    // Spell-check — engine/renderer pair (Phase 43 split)
+    'content/rule-features.js',
     'content/spell-check-core.js',
     'content/spell-check-engine.js',
+    'content/pedagogy-render.js',
+    'content/personalization-store.js',
     'content/spell-check-renderer.js',
+];
 
-    // Exam-mode registry — Skriv's settings panel surfaces it
-    'exam-registry.js',
-
-    // Popup pure logic — Skriv consumes dict-state-builder's view-model
-    // and renders with its own DOM. grammar-features-section is a small
-    // self-contained checkbox renderer Skriv re-uses inside its drawer.
+// These helpers are not content scripts, so they follow the manifest-derived
+// subset. Skriv consumes their globals from its own settings drawer.
+const POST_MANIFEST_FILES = [
     'popup/dict-state-builder.js',
     'popup/grammar-features-section.js',
 ];
 
-// Spell-rules: copy whole directory.
-const SPELL_RULES_DIR = 'content/spell-rules';
+const manifestContentScripts = Array.isArray(upstreamManifest.content_scripts)
+    ? upstreamManifest.content_scripts
+    : [];
+const manifestScriptFiles = manifestContentScripts.flatMap((entry) => {
+    if (!Array.isArray(entry?.js)) return [];
+    return entry.js.filter((rel) => typeof rel === 'string');
+});
+
+const SPELL_RULE_PREFIX = 'content/spell-rules/';
+const spellRuleFiles = manifestScriptFiles.filter((rel) => (
+    rel.startsWith(SPELL_RULE_PREFIX) && rel.endsWith('.js')
+));
+
+const requiredManifestSet = new Set(REQUIRED_MANIFEST_FILES);
+const spellRuleSet = new Set(spellRuleFiles);
+const manifestSubsetSet = new Set([...requiredManifestSet, ...spellRuleSet]);
+const manifestClassicLoadOrder = manifestScriptFiles.filter((rel) => manifestSubsetSet.has(rel));
+const CLASSIC_LOAD_ORDER = [...manifestClassicLoadOrder, ...POST_MANIFEST_FILES];
+const FILE_INVENTORY = [...new Set(CLASSIC_LOAD_ORDER)];
 
 // Vocab data — bundled into Skriv. Audio stripped, minified.
 const VOCAB_LANGS = ['de', 'es', 'fr', 'en', 'nb', 'nn'];
@@ -151,17 +182,42 @@ function copyFile(src, dest) {
     return fs.statSync(dest).size;
 }
 
-function copyDirRecursive(src, dest) {
-    if (!fs.existsSync(src)) return 0;
-    let bytes = 0;
-    ensureDir(dest);
-    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-        const sp = path.join(src, entry.name);
-        const dp = path.join(dest, entry.name);
-        if (entry.isDirectory()) bytes += copyDirRecursive(sp, dp);
-        else bytes += copyFile(sp, dp);
+function countOccurrences(input, marker) {
+    return input.split(marker).length - 1;
+}
+
+function readAndValidateManagedFile(filePath, beginMarker, endMarker) {
+    const source = fs.readFileSync(filePath, 'utf8');
+    const beginCount = countOccurrences(source, beginMarker);
+    const endCount = countOccurrences(source, endMarker);
+    const beginIndex = source.indexOf(beginMarker);
+    const endIndex = source.indexOf(endMarker);
+
+    if (beginCount !== 1 || endCount !== 1 || beginIndex >= endIndex) {
+        throw new Error(
+            `Invalid managed block in ${filePath}: expected one ordered ${beginMarker} / ${endMarker} pair`
+        );
     }
-    return bytes;
+
+    return source;
+}
+
+function replaceManagedBlock(source, beginMarker, endMarker, body) {
+    const beginIndex = source.indexOf(beginMarker);
+    const bodyStart = beginIndex + beginMarker.length;
+    const endIndex = source.indexOf(endMarker, bodyStart);
+    return source.slice(0, bodyStart) + '\n' + body + '\n' + source.slice(endIndex);
+}
+
+function listFilesRecursive(dir, prefix = '') {
+    const files = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) files.push(...listFilesRecursive(fullPath, rel));
+        else files.push(rel);
+    }
+    return files;
 }
 
 // Recursively strip the `audio` key from any object in the JSON tree.
@@ -263,6 +319,86 @@ function scopeCss(input, prefix) {
     return out;
 }
 
+// ── Preflight validation ──────────────────────────────────────────────
+// Validate every input and both managed destinations before deleting the
+// previously working vendor snapshot. A malformed manifest or marker block
+// must never leave Skriv with an empty public/js/leksihjelp/ directory.
+
+function isSafeRelativePath(rel) {
+    return typeof rel === 'string'
+        && rel.length > 0
+        && !path.isAbsolute(rel)
+        && !rel.split(/[\\/]/).includes('..');
+}
+
+let indexTemplate;
+let swTemplate;
+try {
+    if (manifestScriptFiles.length === 0) {
+        throw new Error('extension/manifest.json has no content-script JavaScript inventory');
+    }
+    if (spellRuleFiles.length === 0) {
+        throw new Error('extension/manifest.json lists no content/spell-rules/*.js files');
+    }
+    if (spellRuleFiles.length !== spellRuleSet.size) {
+        throw new Error('extension/manifest.json contains duplicate spell-rule entries');
+    }
+    if (CLASSIC_LOAD_ORDER.length !== FILE_INVENTORY.length) {
+        throw new Error('Classic-script subset contains duplicate entries');
+    }
+
+    for (const rel of REQUIRED_MANIFEST_FILES) {
+        const occurrences = manifestScriptFiles.filter((entry) => entry === rel).length;
+        if (occurrences !== 1) {
+            throw new Error(`Expected exactly one manifest content-script entry for ${rel}; found ${occurrences}`);
+        }
+    }
+
+    const requiredSourceFiles = [
+        ...FILE_INVENTORY,
+        'styles/content.css',
+        'data/nb-baseline.json',
+        ...VOCAB_LANGS.map((lang) => `data/${lang}.json`),
+    ];
+    for (const rel of requiredSourceFiles) {
+        if (!isSafeRelativePath(rel)) throw new Error(`Unsafe source path in inventory: ${rel}`);
+        const sourcePath = path.join(extensionRoot(srcRoot), rel);
+        if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
+            throw new Error(`Missing required upstream file: ${rel}`);
+        }
+    }
+
+    const dataSourceDir = path.join(extensionRoot(srcRoot), 'data');
+    if (!fs.existsSync(dataSourceDir) || !fs.statSync(dataSourceDir).isDirectory()) {
+        throw new Error('Missing required upstream data/ directory');
+    }
+
+    indexTemplate = readAndValidateManagedFile(indexPath, INDEX_BEGIN_MARKER, INDEX_END_MARKER);
+    swTemplate = readAndValidateManagedFile(swPath, SW_BEGIN_MARKER, SW_END_MARKER);
+
+    const indexBegin = indexTemplate.indexOf(INDEX_BEGIN_MARKER);
+    const indexEnd = indexTemplate.indexOf(INDEX_END_MARKER);
+    const loaderIndex = indexTemplate.indexOf('<script src="/js/leksihjelp-loader.js"></script>');
+    const appEntryIndex = indexTemplate.indexOf('<script type="module" src="/js/app/main.js"></script>');
+    if (loaderIndex === -1 || loaderIndex > indexBegin) {
+        throw new Error('Leksihjelp loader must remain before the generated index block');
+    }
+    if (appEntryIndex === -1 || appEntryIndex < indexEnd) {
+        throw new Error('Skriv app entry must remain after the generated index block');
+    }
+
+    const swArrayStart = swTemplate.indexOf('const LEKSIHJELP_ASSETS = [');
+    const swBegin = swTemplate.indexOf(SW_BEGIN_MARKER);
+    const swEnd = swTemplate.indexOf(SW_END_MARKER);
+    const swArrayEnd = swTemplate.indexOf('];', swEnd);
+    if (swArrayStart === -1 || swArrayStart > swBegin || swArrayEnd === -1) {
+        throw new Error('Leksihjelp SW markers must remain inside LEKSIHJELP_ASSETS');
+    }
+} catch (error) {
+    console.error(`[sync-leksihjelp] Preflight failed; existing vendor output was not changed: ${error.message}`);
+    process.exit(1);
+}
+
 // ── Wipe + sync ────────────────────────────────────────────────────────
 
 if (fs.existsSync(destDir)) {
@@ -273,32 +409,31 @@ ensureDir(destDir);
 const summary = [];
 let totalBytes = 0;
 
-// 1. Whitelisted JS files
-for (const rel of FILE_INVENTORY) {
-    const src = path.join(srcRoot, 'extension', rel);
-    if (!fs.existsSync(src)) {
-        console.warn(`[sync-leksihjelp] MISSING upstream file: ${rel} — skipping`);
-        summary.push({ file: rel, bytes: 0, note: 'missing upstream' });
-        continue;
-    }
+// 1. Whitelisted non-rule JS files
+for (const rel of FILE_INVENTORY.filter((entry) => !entry.startsWith(SPELL_RULE_PREFIX))) {
+    const src = path.join(extensionRoot(srcRoot), rel);
     const dest = path.join(destDir, rel);
     const bytes = copyFile(src, dest);
     totalBytes += bytes;
     summary.push({ file: rel, bytes });
 }
 
-// 2. spell-rules/ — whole directory
-const rulesSrc = path.join(srcRoot, 'extension', SPELL_RULES_DIR);
-const rulesDest = path.join(destDir, SPELL_RULES_DIR);
-const rulesBytes = copyDirRecursive(rulesSrc, rulesDest);
+// 2. spell-rules/ — exact manifest list and dependency order only
+let rulesBytes = 0;
+for (const rel of spellRuleFiles) {
+    rulesBytes += copyFile(
+        path.join(extensionRoot(srcRoot), rel),
+        path.join(destDir, rel)
+    );
+}
 totalBytes += rulesBytes;
-const ruleCount = fs.existsSync(rulesDest)
-    ? fs.readdirSync(rulesDest).filter(f => f.endsWith('.js')).length
-    : 0;
-summary.push({ file: `${SPELL_RULES_DIR}/ (${ruleCount} files)`, bytes: rulesBytes });
+summary.push({
+    file: `${SPELL_RULE_PREFIX} (${spellRuleFiles.length} manifest files)`,
+    bytes: rulesBytes,
+});
 
 // 3. data/ — vocab JSONs (audio-stripped, minified) + passthrough JSONs
-const dataSrc = path.join(srcRoot, 'extension', 'data');
+const dataSrc = path.join(extensionRoot(srcRoot), 'data');
 const dataDest = path.join(destDir, 'data');
 ensureDir(dataDest);
 
@@ -336,20 +471,16 @@ summary.push({
 });
 
 // 4. styles/content.css → public/js/leksihjelp/styles/leksihjelp.css (scoped)
-const cssSrc = path.join(srcRoot, 'extension', 'styles', 'content.css');
-if (fs.existsSync(cssSrc)) {
-    const cssDestDir = path.join(destDir, 'styles');
-    ensureDir(cssDestDir);
-    const cssDest = path.join(cssDestDir, 'leksihjelp.css');
-    const raw = fs.readFileSync(cssSrc, 'utf8');
-    const scoped = scopeCss(raw, '.skriv-leksihjelp');
-    fs.writeFileSync(cssDest, scoped);
-    const bytes = fs.statSync(cssDest).size;
-    totalBytes += bytes;
-    summary.push({ file: 'styles/leksihjelp.css (scoped under .skriv-leksihjelp)', bytes });
-} else {
-    console.warn('[sync-leksihjelp] MISSING upstream styles/content.css');
-}
+const cssSrc = path.join(extensionRoot(srcRoot), 'styles', 'content.css');
+const cssDestDir = path.join(destDir, 'styles');
+ensureDir(cssDestDir);
+const cssDest = path.join(cssDestDir, 'leksihjelp.css');
+const rawCss = fs.readFileSync(cssSrc, 'utf8');
+const scopedCss = scopeCss(rawCss, '.skriv-leksihjelp');
+fs.writeFileSync(cssDest, scopedCss);
+const cssBytes = fs.statSync(cssDest).size;
+totalBytes += cssBytes;
+summary.push({ file: 'styles/leksihjelp.css (scoped under .skriv-leksihjelp)', bytes: cssBytes });
 
 // 5a. README — regenerated each sync so the wipe step doesn't strand contributors.
 fs.writeFileSync(path.join(destDir, 'README.md'),
@@ -372,19 +503,52 @@ If this directory is empty, the leksihjelp side has not been pulled in
 yet — run \`node scripts/sync-leksihjelp.js\` from the repo root.
 `);
 
-// 5b. .version pin
+// 5b. .version pin. Inventory every copied/transformed runtime file, not just
+// the hand-maintained JS subset, so sync parity can be checked exactly.
+const completeCopiedInventory = listFilesRecursive(destDir)
+    .filter((rel) => rel !== 'README.md')
+    .sort();
 const versionData = {
     upstream_version: upstreamVersion,
     upstream_commit: upstreamCommit,
     synced_at: new Date().toISOString(),
-    inventory: FILE_INVENTORY,
+    inventory: completeCopiedInventory,
+    classic_script_order: CLASSIC_LOAD_ORDER,
 };
 fs.writeFileSync(
     path.join(destDir, '.version'),
     JSON.stringify(versionData, null, 2) + '\n'
 );
 
-// 6. Summary table
+// 6. Regenerate the two managed release blocks. Loader and app entry are
+// intentionally outside the index block. Large language data remains lazy;
+// the SW eagerly caches executable code, scoped CSS, metadata, and the small
+// Bokmål fallback baseline, then cache-on-use handles other same-origin data.
+const indexBundleBody = CLASSIC_LOAD_ORDER
+    .map((rel) => `    <script src="/js/leksihjelp/${rel}"></script>`)
+    .join('\n');
+const eagerSwInventory = [
+    '.version',
+    ...completeCopiedInventory.filter((rel) => (
+        rel.endsWith('.js')
+        || rel === 'styles/leksihjelp.css'
+        || rel === 'data/nb-baseline.json'
+    )),
+];
+const swAssetBody = eagerSwInventory
+    .map((rel) => `    '/js/leksihjelp/${rel}',`)
+    .join('\n');
+
+fs.writeFileSync(
+    indexPath,
+    replaceManagedBlock(indexTemplate, INDEX_BEGIN_MARKER, INDEX_END_MARKER, indexBundleBody)
+);
+fs.writeFileSync(
+    swPath,
+    replaceManagedBlock(swTemplate, SW_BEGIN_MARKER, SW_END_MARKER, swAssetBody)
+);
+
+// 7. Summary table
 console.log('');
 console.log('[sync-leksihjelp] Done — synced to public/js/leksihjelp/');
 console.log('');
@@ -401,18 +565,11 @@ for (const row of summary) {
     console.log('  ' + row.file.padEnd(58) + sizeStr.padEnd(11) + (row.note || ''));
 }
 console.log('');
-console.log('  Next: load these in index.html in dependency order:');
-console.log('    1. i18n/strings.js');
-console.log('    2. exam-registry.js');
-console.log('    3. content/vocab-seam-core.js');
-console.log('    4. content/vocab-seam.js');
-console.log('    5. content/lang-detect.js');
-console.log('    6. content/spell-check-core.js');
-console.log('    7. content/spell-rules/*.js  (78 rule files)');
-console.log('    8. content/spell-check-engine.js  (must precede renderer)');
-console.log('    9. content/spell-check-renderer.js');
-console.log('   10. popup/dict-state-builder.js');
-console.log('   11. popup/grammar-features-section.js');
-console.log('  Plus: <link rel="stylesheet" href="/js/leksihjelp/styles/leksihjelp.css">');
-console.log('  Plus: bump sw.js ASSETS array + cache version.');
+console.log(`  manifest spell rules: ${spellRuleFiles.length}`);
+console.log(`  classic scripts:      ${CLASSIC_LOAD_ORDER.length}`);
+console.log(`  copied runtime files: ${completeCopiedInventory.length}`);
+console.log(`  eager SW assets:      ${eagerSwInventory.length}`);
+console.log('  regenerated:          public/index.html managed bundle');
+console.log('  regenerated:          public/sw.js managed eager assets');
+console.log('  Next: review the diff and bump the Skriv SW cache version for release.');
 console.log('');

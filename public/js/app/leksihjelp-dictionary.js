@@ -100,7 +100,7 @@ function extractWordAt(editor, clientX, clientY) {
 // language. Matches the displayed form first, then a lowercased version,
 // then the inflection index (so clicking "kommer" surfaces the "komme"
 // verb entry).
-function findEntry(word, vocab) {
+export function findLeksihjelpEntry(word, vocab) {
     if (!vocab || typeof vocab.getWordList !== 'function') return null;
     const list = vocab.getWordList();
     if (!Array.isArray(list)) return null;
@@ -114,11 +114,14 @@ function findEntry(word, vocab) {
     }
     // Try the verb-infinitive map for cases the wordList itself doesn't index.
     if (typeof vocab.getVerbInfinitive === 'function') {
-        const inf = vocab.getVerbInfinitive(lower);
-        if (inf) {
+        const infinitiveIndex = vocab.getVerbInfinitive();
+        const infinitive = infinitiveIndex && typeof infinitiveIndex.get === 'function'
+            ? infinitiveIndex.get(lower)
+            : null;
+        if (typeof infinitive === 'string') {
             for (const e of list) {
                 if (!e) continue;
-                if ((e.word || '').toLowerCase() === inf.toLowerCase()) return e;
+                if ((e.word || '').toLowerCase() === infinitive.toLowerCase()) return e;
             }
         }
     }
@@ -295,7 +298,7 @@ export function initLeksihjelpDictionary(editor, bridge) {
         close();
         const vocab = window.__lexiVocab;
         const lookupLang = bridge.getLookupLang();
-        const entry = findEntry(word, vocab);
+        const entry = findLeksihjelpEntry(word, vocab);
 
         popup = document.createElement('div');
         popup.className = POPUP_CLASS;

@@ -71,6 +71,21 @@
     ['accommodate', 'accommodated'],
     ['analyze', 'analyzed'],
     ['apologize', 'apologized'],
+    ['borrow', 'borrowed'],
+    ['survive', 'survived'],
+    ['suppose', 'supposed'],
+    ['discuss', 'discussed'],
+    ['require', 'required'],
+    ['consider', 'considered'],
+    ['suggest', 'suggested'],
+    ['discover', 'discovered'],
+    ['establish', 'established'],
+    ['experience', 'experienced'],
+    ['represent', 'represented'],
+    ['provide', 'provided'],
+    ['publish', 'published'],
+    ['manage', 'managed'],
+    ['announce', 'announced'],
   ]);
 
   // Auxiliary verbs that trigger the have+pp pattern

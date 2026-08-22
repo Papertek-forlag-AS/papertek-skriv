@@ -181,6 +181,38 @@
         return null;
       },
     },
+    // clothe (verb: to dress) vs clothes (noun: garments)
+    // Norwegian students almost always mean the noun; "clothe" is rare.
+    {
+      words: ['clothe'],
+      check(word, prev, next) {
+        // Legitimate verb contexts: "to clothe", subject+verb, coordinated verb
+        if (prev === 'to' || prev === 'they' || prev === 'we' || prev === 'you' ||
+            prev === 'i' || prev === 'who' || prev === 'and' || prev === 'or' ||
+            next === 'and' || next === 'or') return null;
+        return { fix: 'clothes', subType: 'clothe-clothes' };
+      },
+    },
+    // red (colour) vs read (past tense of read)
+    // "I have red" → "I have read" — Norwegian students spell the past
+    // participle phonetically.
+    {
+      words: ['red'],
+      check(word, prev, next) {
+        if (prev === 'have' || prev === 'has' || prev === 'had') {
+          return { fix: 'read', subType: 'red-read' };
+        }
+        return null;
+      },
+    },
+    // familie (Norwegian) → family (English)
+    // Direct Norwegian-word insertion; "familie" is never correct in English.
+    {
+      words: ['familie'],
+      check() {
+        return { fix: 'family', subType: 'familie-family' };
+      },
+    },
     // to (preposition / infinitive) vs too (also / excessive) vs two (number)
     {
       words: ['to', 'too', 'two'],
@@ -250,6 +282,18 @@
     'to-too': (f) => ({
       nb: `<strong>To</strong> er preposisjon eller infinitivsmerke. <strong>Too</strong> betyr «for mye» eller «også». <strong>Two</strong> er tallet 2.`,
       nn: `<strong>To</strong> er preposisjon eller infinitivsmerke. <strong>Too</strong> tyder «for mykje» eller «òg». <strong>Two</strong> er talet 2.`,
+    }),
+    'clothe-clothes': (f) => ({
+      nb: `<strong>Clothe</strong> er et verb (å kle på). <strong>Clothes</strong> er et substantiv (klær).`,
+      nn: `<strong>Clothe</strong> er eit verb (å kle på). <strong>Clothes</strong> er eit substantiv (klede).`,
+    }),
+    'red-read': (f) => ({
+      nb: `Etter <em>have/has/had</em> skal det være <strong>read</strong> (fortid av «to read»), ikke <strong>red</strong> (fargen rød).`,
+      nn: `Etter <em>have/has/had</em> skal det vere <strong>read</strong> (fortid av «to read»), ikkje <strong>red</strong> (fargen raud).`,
+    }),
+    'familie-family': (f) => ({
+      nb: `<strong>Familie</strong> er det norske ordet — på engelsk heter det <strong>family</strong>.`,
+      nn: `<strong>Familie</strong> er det norske ordet — på engelsk heiter det <strong>family</strong>.`,
     }),
   };
 

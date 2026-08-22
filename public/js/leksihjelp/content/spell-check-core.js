@@ -33,8 +33,12 @@
 
   // ── Tokenization ──
 
-  // WORD_RE: matches letters, but also allows internal apostrophes (e.g. they're, don't)
-  const WORD_RE = /[\p{L}]+(?:'[\p{L}]+)*/gu;
+  // WORD_RE: matches letters, but also allows internal apostrophes (e.g. they're, don't).
+  // Accepts both ASCII apostrophe (U+0027) and right single quotation mark (U+2019, the
+  // macOS/iOS/Word smart-quote auto-replacement). Phase 50-01 bug 1: without U+2019
+  // here, `Mari’s` (smart-quoted) split into two tokens and apostrophe-genitive
+  // silently no-op'd for the entire macOS/iOS student population.
+  const WORD_RE = /[\p{L}]+(?:['’][\p{L}]+)*/gu;
 
   function tokenize(text) {
     const out = [];
@@ -68,14 +72,29 @@
     es: new Set(['yo', 'tu', 'el', 'ella', 'nosotros', 'vosotros', 'ellos', 'ellas', 'usted', 'ustedes']),
   };
 
+  // v3.0.119: some upstream entries store conjugations WITH the subject
+  // pronoun ("ich verabschiede mich"). Taking the raw first token made
+  // "ich" a finite stem — getTagged('ich').isFinite became true and
+  // de-verb-final flagged the PRONOUN in "weil ich habe Hunger". Skip
+  // leading pronouns when extracting the stem.
+  const STEM_SKIP_PRONOUNS = new Set([
+    'ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'man',
+    'jeg', 'eg', 'han', 'hun', 'ho', 'vi', 'de', 'dei',
+    'yo', 'tú', 'él', 'ella', 'nosotros', 'je', "j'", 'tu', 'il', 'elle', 'nous', 'vous', 'ils', 'elles',
+    'i', 'you', 'he', 'she', 'we', 'they', 'it',
+  ]);
   function buildFiniteStems(vocab) {
     const stems = new Set();
-    for (const form of (vocab.knownPresens || new Set())) {
-      if (form.includes(' ')) stems.add(form.split(' ')[0]);
-    }
-    for (const form of (vocab.knownPreteritum || new Set())) {
-      if (form.includes(' ')) stems.add(form.split(' ')[0]);
-    }
+    const addStem = (form) => {
+      if (!form.includes(' ')) return;
+      for (const part of form.split(' ')) {
+        if (STEM_SKIP_PRONOUNS.has(part)) continue;
+        stems.add(part);
+        return; // first non-pronoun token is the verb stem
+      }
+    };
+    for (const form of (vocab.knownPresens || new Set())) addStem(form);
+    for (const form of (vocab.knownPreteritum || new Set())) addStem(form);
     return stems;
   }
 
@@ -120,6 +139,18 @@
     return { start: first, end: last };
   }
 
+  // ── Level-scoped corrections: feature-gate helper ──
+  //
+  // A rule listed in host.__lexiRuleFeatures only runs when its grammar feature
+  // is enabled by the student's preset. Permissive by default — when isEnabled
+  // is absent/falsy (fixtures, no-preset, lockdown full features) every rule
+  // runs, so this is inert except for a narrowed preset.
+  function featureInScope(req, isEnabled) {
+    if (!isEnabled) return true;
+    if (Array.isArray(req)) return req.some(f => isEnabled(f));
+    return isEnabled(req);
+  }
+
   // ── Generic rule runner ──
   //
   // Iterates self.__lexiSpellRules filtered by language and sorted by
@@ -147,11 +178,45 @@
         start: seg.index,
         end: seg.index + seg.segment.length,
       }));
+      // Intl.Segmenter follows UAX#29 and treats every newline as a sentence
+      // boundary. For our use case — line-wrapped paragraphs pasted from a
+      // textarea — that's wrong: "Han spurde meg\nhva eg dreiv" is one
+      // sentence and rules like nb-v2 depend on seeing the whole clause to
+      // hit their fronted-wh / earlier-subject / coordinator guards. Merge
+      // adjacent segments where the preceding chunk doesn't end with real
+      // sentence-terminating punctuation (./?/!/…).
+      const merged = [];
+      for (const s of sentences) {
+        if (merged.length === 0) { merged.push(s); continue; }
+        const prev = merged[merged.length - 1];
+        const trimmed = prev.text.replace(/\s+$/, '');
+        const lastChar = trimmed.length > 0 ? trimmed[trimmed.length - 1] : '';
+        if (/[.!?…]/.test(lastChar)) {
+          merged.push(s);
+        } else {
+          prev.text = text.slice(prev.start, s.end);
+          prev.end = s.end;
+        }
+      }
+      sentences = merged;
     } else {
       sentences = [{ text, start: 0, end: text.length }];
     }
 
-    const vocabRef = vocab || {};
+    // If vocab is a seam wrapper (__lexiVocab), knownPresens/knownPreteritum are
+    // exposed only as getter methods, not as enumerable direct properties. The
+    // tagger (getTagged) and classifyPOS read them as direct properties, so they
+    // get undefined in the playground/lockdown context. Create a local shim that
+    // inherits all of vocab's properties but adds the resolved sets as own
+    // properties — no mutation of the shared __lexiVocab object.
+    const _rawVocab = vocab || {};
+    const vocabRef = (_rawVocab.knownPresens !== undefined) ? _rawVocab : Object.assign(
+      Object.create(_rawVocab),
+      {
+        knownPresens:   _rawVocab.getKnownPresens?.(),
+        knownPreteritum: _rawVocab.getKnownPreteritum?.(),
+      }
+    );
     // Phase 4: `suppressed` is the shared "do not flag this token index" Set.
     // Pre-pass rules (priority 1-9) populate it; typo/sarskriving rules
     // (priority >= 10) honor it by `if (ctx.suppressed.has(i)) continue` in
@@ -210,6 +275,8 @@
 
     const findings = [];
     for (const rule of rules) {
+      const _req = (host.__lexiRuleFeatures || {})[rule.id];
+      if (_req && !featureInScope(_req, ctx.vocab && ctx.vocab.isFeatureEnabled)) continue;
       try {
         const out = rule.check(ctx);
         if (Array.isArray(out) && out.length) {
@@ -244,6 +311,8 @@
     // lives in checkDocument(ctx, findings).
     const docRules = rules.filter(r => r.kind === 'document');
     for (const rule of docRules) {
+      const _reqDoc = (host.__lexiRuleFeatures || {})[rule.id];
+      if (_reqDoc && !featureInScope(_reqDoc, ctx.vocab && ctx.vocab.isFeatureEnabled)) continue;
       try {
         const out = rule.checkDocument(ctx, findings);
         if (Array.isArray(out) && out.length) {
@@ -280,7 +349,28 @@
   function isLikelyProperNoun(tok, idx, toks, text) {
     const first = tok.display[0];
     if (first !== first.toUpperCase() || first === first.toLowerCase()) return false;
-    if (idx === 0) return false;
+    if (idx === 0) {
+      // Sentence-initial capitalization is normal regardless of POS, so we
+      // can't infer proper-noun-ness from the capital alone. Narrow signal:
+      // a capitalized word ending in -s where the version-without-s starts
+      // with uppercase too is most likely a Norwegian genitive-of-proper-
+      // noun pattern ("Pers bil", "Lises hus", "Maris bok"). Length >= 3
+      // keeps "Os" / "Es" out. Without this guard, typo-fuzzy fires
+      // "Pers → Perm" on the sentence-start name.
+      const d = tok.display;
+      if (d.length >= 3 && d.endsWith('s') && d[d.length - 2] !== d[d.length - 2].toLowerCase()) {
+        // last char before 's' is uppercase too — likely an all-caps word
+        // ("USA's"). Pass.
+        return true;
+      }
+      if (d.length >= 3 && d.endsWith('s')) {
+        const stem = d.slice(0, -1);
+        if (stem[0] === stem[0].toUpperCase() && stem[0] !== stem[0].toLowerCase()) {
+          return true;
+        }
+      }
+      return false;
+    }
     // Look at chars between previous token and this one
     const prevTok = toks[idx - 1];
     const between = text.slice(prevTok.end, tok.start);
@@ -515,6 +605,17 @@
     isRuleSafe(rule, examMode) {
       if (!examMode) return true;
       return !!(rule && rule.exam && rule.exam.safe === true);
+    },
+    // Udir parity (2026-06-15): the official exam spell-checker helps only with
+    // MISSPELLED WORDS, not grammar. In exam-mode the spell-check surface must
+    // therefore paint spelling-category findings ONLY — every grammar/usage
+    // rule (gender, sarskriving, agreement, word-order, …) is suppressed even
+    // when its exam.safe===true. This is a stricter gate than isRuleSafe and is
+    // ANDed with it in the engine's exam-mode filter. isRuleSafe stays as-is —
+    // it's still the single gate for non-rule surfaces (the surface registry).
+    isRuleExamSpelling(rule, examMode) {
+      if (!examMode) return true;
+      return !!(rule && rule.exam && rule.exam.category === 'spellcheck');
     },
     isExplainSafe(rule, examMode) {
       if (!examMode) return true;

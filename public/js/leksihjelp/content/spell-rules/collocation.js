@@ -22,6 +22,8 @@
   // falls back to NB via the lang-resolution below). The rule reads
   // ctx.vocab.collocations populated by the vocab seam.
 
+  const COLLOC_NOUN_DETERMINERS = new Set(['el','la','los','las','un','una','unos','unas','mi','tu','su','mis','tus','sus','nuestro','nuestra','vuestro','vuestra','sin','con','de','del','este','esta','ese','esa']);
+
   const rule = {
     id: 'collocation',
     languages: ['en', 'nb', 'nn', 'de', 'es', 'fr'],
@@ -34,8 +36,8 @@
     severity: 'warning',
     explain: function (finding) {
       return {
-        nb: 'Usikker — <em>' + escapeHtml(finding.original) + '</em> er feil kollokasjon. Bruk <em>' + escapeHtml(finding.fix) + '</em>.',
-        nn: 'Usikker — <em>' + escapeHtml(finding.original) + '</em> er feil kollokasjon. Bruk <em>' + escapeHtml(finding.fix) + '</em>.',
+        nb: 'På dette språket sier man <em>' + escapeHtml(finding.fix) + '</em>, ikke <em>' + escapeHtml(finding.original) + '</em>. Dette er en fast kollokasjon.',
+        nn: 'På dette språket seier ein <em>' + escapeHtml(finding.fix) + '</em>, ikkje <em>' + escapeHtml(finding.original) + '</em>. Dette er ein fast kollokasjon.',
       };
     },
     check(ctx) {
@@ -60,8 +62,51 @@
             const idx = sentLower.indexOf(triggerLower, searchStart);
             if (idx === -1) break;
 
+            // Word-boundary check (Ordbank sweep 2026-07): the substring match
+            // hit inside larger words — "a money" inside "extrA MONEY",
+            // "a news" inside "a NEWSpaper". Require non-letter/edge on both sides.
+            const beforeCh = idx > 0 ? sentLower[idx - 1] : ' ';
+            const afterCh = idx + triggerLower.length < sentLower.length
+              ? sentLower[idx + triggerLower.length] : ' ';
+            if (/[a-zà-öø-ÿ]/.test(beforeCh) || /[a-zà-öø-ÿ]/.test(afterCh)) {
+              searchStart = idx + 1; continue;
+            }
+
             const absStart = sentence.start + idx;
             const absEnd = absStart + entry.trigger.length;
+
+            // Compound-modifier guard: "a research GRANT", "a music CLASS",
+            // "a traffic JAM" — the uncountable noun modifies a following noun
+            // and the article belongs to the compound head. Skip when a plain
+            // word (not a verb/connector) directly follows the match.
+            if (/^an? [a-z]+$/.test(triggerLower)) {
+              let nxW = null;
+              for (let ti = 0; ti < ctx.tokens.length; ti++) {
+                if (ctx.tokens[ti].start >= absEnd) { nxW = ctx.tokens[ti]; break; }
+              }
+              const NOT_HEAD = new Set(['is', 'are', 'was', 'were', 'that', 'which',
+                'and', 'or', 'to', 'in', 'on', 'at', 'for', 'with', 'from', 'about',
+                'because', 'but', 'so', 'when', 'while', 'after', 'before']);
+              if (nxW && /^[a-z]/.test(nxW.word) && !NOT_HEAD.has(nxW.word) &&
+                  !/[,.;:!?]/.test(ctx.text.slice(absEnd, nxW.start))) {
+                searchStart = idx + 1; continue;
+              }
+            }
+
+            // Noun-homograph guard: when the trigger's first word is preceded by
+            // a determiner/possessive it is functioning as a NOUN, not the verb
+            // the collocation targets ("su sueño de publicar" = his dream of;
+            // the entry "sueño de → soñar con" is for the verb "yo sueño de…").
+            // ES-only: the determiner set is Spanish; 'tu' collides with the
+            // French subject pronoun ("Tu penses de…" is exactly the error
+            // the FR entries target — Ordbank sweep 2026-07 regression).
+            if (ctx.lang === 'es') {
+              let prevW = '';
+              for (let ti = ctx.tokens.length - 1; ti >= 0; ti--) {
+                if (ctx.tokens[ti].end <= absStart) { prevW = ctx.tokens[ti].word.toLowerCase(); break; }
+              }
+              if (COLLOC_NOUN_DETERMINERS.has(prevW)) { searchStart = idx + 1; continue; }
+            }
 
             // Check structural suppression for any token in the match span.
             let suppressed = false;
@@ -76,7 +121,7 @@
             }
 
             if (!suppressed) {
-              findings.push({
+              const f = {
                 rule_id: 'collocation',
                 start: absStart,
                 end: absEnd,
@@ -84,7 +129,20 @@
                 fix: entry.fix,
                 message: entry.trigger + ' → ' + entry.fix,
                 severity: 'warning',
-              });
+              };
+              if (entry.examples && entry.examples.length > 0) {
+                f.pedagogy = {
+                  note: {
+                    nb: '<em>' + escapeHtml(entry.fix) + '</em> er en fast kollokasjon — preposisjonen hører til uttrykket og kan ikke byttes ut med en norsk oversettelse.',
+                    nn: '<em>' + escapeHtml(entry.fix) + '</em> er ein fast kollokasjon — preposisjonen høyrer til uttrykket og kan ikkje bytast ut med ei norsk omsetjing.',
+                  },
+                  examples: entry.examples.map(ex => ({
+                    correct: ex.sentence || '',
+                    translation: { nb: ex.translation || '', nn: ex.translation || '' },
+                  })),
+                };
+              }
+              findings.push(f);
             }
 
             searchStart = idx + 1;

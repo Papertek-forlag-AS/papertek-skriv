@@ -42,7 +42,7 @@ export function initMyFeature(editor, options = {}) {
 4. Circular imports are forbidden; update `DEPENDENCIES.md` when an edge changes.
 5. Optional editor review tools use literal dynamic imports so the service-worker asset audit can discover them.
 6. Floating UI is imported from local ESM files. The locally vendored jsPDF UMD exposes `window.jspdf`; guard that global before use.
-7. `public/js/leksihjelp/` is generated from the upstream Leksihjelp repository. Do not hand-edit it. It is loaded as ordered classic scripts and accessed through `app/leksihjelp-bridge.js` plus `leksihjelp-loader.js`.
+7. `public/js/leksihjelp/` is generated from the upstream Leksihjelp repository. Do not hand-edit it. The sync also owns the marked classic-script block in `index.html` and marked Leksihjelp cache inventory in `sw.js`; order comes from the upstream manifest. Runtime access stays behind `app/leksihjelp-bridge.js` plus `leksihjelp-loader.js`.
 
 ## Localization and language
 
@@ -113,4 +113,3 @@ sections: 4
 ```
 
 The registry in `frame-selector.js` owns broad level recommendations (`barneskole`, `ungdomsskole`, `vgs`). Recommendations reorder/group choices; they never hide the remaining frames.
-

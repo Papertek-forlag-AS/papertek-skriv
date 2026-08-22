@@ -4,8 +4,8 @@
  * Phase 40.2 owns this layer's hydration policy (supersedes Plan 23-02):
  *
  *   Phase 1 (sync, no network):
- *     - Build baseline indexes from the bundled NB vocab (data/nb.json or
- *       trimmed data/nb-baseline.json when present).
+ *     - Build baseline indexes from the bundled NB vocab (full data/nb.json;
+ *       trimmed data/nb-baseline.json is a fallback only — see initBaseline).
  *     - Set self.__lexiVocab so spell-check + word-prediction render
  *       immediately. NO awaits before this point — popup must work offline.
  *     - Emit {type: 'lexi:hydration', lang: 'nb', state: 'baseline'}.
@@ -46,8 +46,66 @@
   try {
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
       self.__lexiPresent = 'extension';
+
+      // Cross-world presence signal. The sentinel above lives on the
+      // content-script ISOLATED-world global (`self`), which is NOT the page's
+      // `window` — so a host page (Skriv) running in the MAIN world cannot see
+      // it, and would double-dip (its own embedded leksihjelp + ours). The
+      // shared DOM is the one surface both worlds can read, so also stamp a
+      // marker on <html>. Skriv's bridge reads `data-lexi-present` to yield.
+      // Guarded on chrome.runtime.id, so Skriv's vendored copy of this file
+      // (no runtime.id) never sets it — standalone Skriv stays embedded.
+      try {
+        if (typeof document !== 'undefined' && document.documentElement) {
+          document.documentElement.setAttribute('data-lexi-present', 'extension');
+        }
+      } catch (_) { /* DOM not ready / inaccessible — sentinel above still set */ }
+
+      // L-6 (skriv integration contract, skriv repo docs/leksihjelp-integration.md
+      // §3.2): once Skriv detects us via the __lexiPresent sentinel above, its
+      // 📚 Leksihjelp button defers to us — on click it posts
+      //   { type: 'skriv:leksihjelp:openPanel', source: 'skriv' }
+      // to its own origin. We relay that to the service worker, which makes a
+      // best-effort chrome.sidePanel.open(). The message shape is fixed by the
+      // merged Skriv side (Papertek-forlag-AS/papertek-skriv PR #6) — do NOT
+      // change it without a coordinated change on the Skriv side. Gated inside
+      // the chrome.runtime.id check so it registers ONLY in real extension
+      // context — Skriv's own vendored copy of this file (no runtime.id) never
+      // wires this listener and so never loops on its own postMessage.
+      window.addEventListener('message', onSkrivOpenPanelMessage);
     }
   } catch (_) { /* defensive: chrome.* access can throw in odd contexts */ }
+
+  // L-6: origins trusted to request a side-panel open. Skriv posts to its own
+  // origin, so event.origin is the page origin. The __lexiPresent sentinel is
+  // set on every page we inject into, so without an origin gate any site could
+  // pop our side panel — benign, but annoying. Allow Skriv prod + localhost dev.
+  const SKRIV_ORIGINS = new Set(['https://skriv.papertek.app']);
+  function isTrustedSkrivOrigin(origin) {
+    if (SKRIV_ORIGINS.has(origin)) return true;
+    try {
+      const u = new URL(origin);
+      return u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+    } catch (_) { return false; }
+  }
+
+  function onSkrivOpenPanelMessage(event) {
+    // Reject cross-frame / worker posts, then match Skriv's published shape
+    // verbatim (type + source). event.source === window ensures the post came
+    // from this top window rather than a nested frame.
+    if (event.source !== window) return;
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+    if (data.type !== 'skriv:leksihjelp:openPanel') return;
+    if (data.source !== 'skriv') return;
+    if (!isTrustedSkrivOrigin(event.origin)) return;
+    try {
+      chrome.runtime.sendMessage({ type: 'openSidePanel' });
+    } catch (_) {
+      // Service worker asleep / no receiver — non-fatal. Skriv also shows a
+      // toast pointing the user at the toolbar icon as a manual fallback.
+    }
+  }
 
   // ── Dependencies ──
   const core = self.__lexiVocabCore;
@@ -62,7 +120,16 @@
   // every existing __lexiVocab reference.
   let state = null;
   let currentLang = 'en';
+  // v3.0.139: which language the CURRENT state was built for. Distinct from
+  // currentLang (the requested/label language): hydrateTarget's baseline
+  // early-return used to assume the boot-time NB baseline was still live,
+  // but any intervening target-language hydration replaces `state` — so
+  // switching de→nb left getLanguage()==='nb' serving German indexes
+  // (spell-check then suggested «Paket»/«sole» on NB text; caught on the
+  // live playground walk of v3.0.138).
+  let stateLang = '';
   let ready = false;
+  let _baselineLoading = false;
   let enabledFeatures = new Set();
   const readyCallbacks = [];
 
@@ -137,7 +204,13 @@
   // events during typing. Falls back to setTimeout(0) when rIC is missing.
   function scheduleIdle(fn) {
     if (typeof requestIdleCallback === 'function') {
-      requestIdleCallback(() => { try { fn(); } catch (e) { console.warn('[lexi-vocab] swap build failed', e); } });
+      // {timeout: 2000}: guarantee the callback runs within 2s even on pages
+      // that never go idle (busy SPAs, chat apps, the playground harness).
+      // Without the timeout, requestIdleCallback can be starved indefinitely,
+      // so target-language hydration (incl. the Ordbank accept-list) never
+      // completes and spell-check stays on the NB baseline — every target-
+      // language-only word is then FP-flagged until the page happens to idle.
+      requestIdleCallback(() => { try { fn(); } catch (e) { console.warn('[lexi-vocab] swap build failed', e); } }, { timeout: 2000 });
     } else {
       setTimeout(() => { try { fn(); } catch (e) { console.warn('[lexi-vocab] swap build failed', e); } }, 0);
     }
@@ -199,9 +272,24 @@
   // devtools console for every missing file. Gate the fetch by language
   // to keep the console clean. Update these sets when a new sidecar gets
   // added to extension/data/.
-  const BIGRAM_LANGS = new Set(['nb', 'nn']);
+  // v3.0.123: de/en/es/fr added — the curated FL prediction-boost bigram
+  // files shipped in v3.0.19 but the nb/nn-only gate left them unloaded in
+  // every browser path (caught by check-sc-sidecar-lang-parity's new
+  // disk-coverage check).
+  const BIGRAM_LANGS = new Set(['nb', 'nn', 'de', 'en', 'es', 'fr']);
   const FREQ_LANGS = new Set(['nb', 'nn']);
   const PITFALL_LANGS = new Set(['en']);
+  const NON_COMPOUND_PAIRS_LANGS = new Set(['nb', 'nn']);
+  // Phase 48 Wave A.0: per-language spell-check accept-list sidecar.
+  // v3.0.123: de + es added — validwords-de.json shipped in the bundle but
+  // this set (then nb/nn-only) meant the browser never loaded it; real users
+  // saw 'Letzten' flagged while the Node harness (which loads the sidecar
+  // directly) kept fixtures green. check-sc-sidecar-lang-parity now also
+  // asserts every validwords-*.json on disk is present here AND in the
+  // renderer's SC_VALIDWORDS_LANGS, so the next sidecar can't ship unloaded.
+  // v3.0.128: en + fr added — frequency-capped validwords-common lists now
+  // ship for en/fr/es (papertek generate-validwords-common.py).
+  const VALIDWORDS_LANGS = new Set(['nb', 'nn', 'de', 'es', 'en', 'fr']);
   async function loadBigrams(lang) {
     if (!BIGRAM_LANGS.has(lang)) return null;
     return loadBundledSidecar(`bigrams-${lang}.json`);
@@ -218,6 +306,17 @@
     const sister = lang === 'nb' ? 'nn' : lang === 'nn' ? 'nb' : null;
     if (!sister) return null;
     return loadBundledRaw(sister);
+  }
+  // Phase 45: curated NB/NN denylist of word pairs that look decomposable
+  // but are NOT productive compounds (subject+verb collisions, idiomatic
+  // adj+noun phrases). Single shared file for both registers.
+  async function loadNonCompoundPairs(lang) {
+    if (!NON_COMPOUND_PAIRS_LANGS.has(lang)) return null;
+    return loadBundledSidecar(`non-compound-pairs.json`);
+  }
+  async function loadValidwordsExtra(lang) {
+    if (!VALIDWORDS_LANGS.has(lang)) return null;
+    return loadBundledSidecar(`validwords-${lang}.json`);
   }
 
   // ── Index building + swap ──
@@ -263,14 +362,16 @@
     } else {
       enabledFeatures = new Set();
     }
-    const [bigrams, freq, sisterRaw, pitfalls] = await Promise.all([
+    const [bigrams, freq, sisterRaw, pitfalls, nonCompoundPairs, validwordsExtra] = await Promise.all([
       loadBigrams(lang), loadFrequency(lang), loadSister(lang), loadPitfalls(lang),
+      loadNonCompoundPairs(lang), loadValidwordsExtra(lang),
     ]);
     const isFeatureEnabled = buildFeaturePredicate(lang);
-    const fresh = core.buildIndexes({ raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled });
+    const fresh = core.buildIndexes({ raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled, nonCompoundPairs, validwordsExtra });
     fresh.pitfalls = pitfalls || {};
     fresh._sourceTag = source; // diagnostic
     state = fresh;
+    stateLang = lang;
     return true;
   }
 
@@ -282,6 +383,7 @@
     if (!freshIndexes) return;
     if (revision && lastRevision.get(lang) === revision) return;
     state = freshIndexes;
+    stateLang = lang;
     if (revision) lastRevision.set(lang, revision);
   }
 
@@ -290,47 +392,75 @@
   // to read bundled JSON, but no network hits the wire (chrome-extension://
   // scheme). Consumers can still call __lexiVocab synchronously after this
   // initial promise resolves; the readyCallbacks queue handles the gap.
-  // Plan 23-03: trimmed baseline (data/nb-baseline.json) replaces full nb.json
-  // as the bundled fallback. The trimmed file embeds its own freq + (empty)
-  // bigrams maps; use those when present so we don't hit nb.json/freq-nb.json
-  // (which plan 23-05 will remove from the bundle). Falls back to the legacy
-  // full file path if nb-baseline.json is missing — keeps the seam working in
-  // older installs / lockdown contexts where the baseline hasn't been built.
+  // v3.0.140 (deferred/nb-baseline-trimmed-starves-decompose): prefer the
+  // FULL nb.json over the Plan 23-03 trimmed baseline. The trimmed file
+  // existed to avoid parsing nb.json when Plan 23-05 was going to drop it
+  // from the bundle — Phase 40.2 reversed that, so nb.json ships anyway,
+  // and this path already parses the full sister nn.json (loadSister) plus
+  // validwords-nb on every boot. Measured marginal cost of going full:
+  // +150 ms async boot / +29 MB heap on a 327 ms / 61 MB base — while the
+  // trimmed state starved nounLemmaGenus (138 vs 2245), compoundNouns
+  // (627 vs 9720) and decomposeCompound, killing nb-sarskriving's
+  // plural-compound fallback recall on the seam path («skole sekk» fired
+  // via the spell-check side-car, silent via baseline). The trimmed file
+  // remains a fallback only (it embeds its own freq + empty bigrams).
   async function initBaseline() {
-    let raw = await loadBundledSidecar('nb-baseline.json');
-    let usingTrimmedBaseline = !!raw;
-    if (!raw) {
-      raw = await loadBundledRaw(BASELINE_LANG);
-    }
-    if (!raw) {
-      console.error('[lexi-vocab] baseline NB load failed — extension unusable');
-      return;
-    }
-    let bigrams, freq, sisterRaw, pitfalls;
-    if (usingTrimmedBaseline) {
-      // Trimmed baseline carries its own freq + bigrams in-payload. Pitfalls
-      // and the sister-language word list aren't in the baseline; load them
-      // out-of-band when those sidecars happen to still be bundled, otherwise
-      // an empty fallback is fine for spell-check on the baseline path.
-      bigrams = (raw && raw.bigrams) || {};
-      freq = (raw && raw.freq) || {};
-      [sisterRaw, pitfalls] = await Promise.all([
-        loadSister(BASELINE_LANG), loadPitfalls(BASELINE_LANG),
+    // all_frames: true causes this to run in each iframe (isolated worlds by
+    // design). Guard against double-init within the same frame — cross-frame
+    // deduplication is not feasible without SharedArrayBuffer.
+    // Note: do NOT use `ready` as the guard here — `ready` is set on the
+    // initial NB load and stays true after switching to a target language.
+    // If the user switches DE→NB we must rebuild the NB state even though
+    // ready=true; the `stateLang` check is the correct predicate.
+    if (_baselineLoading) return;
+    if (stateLang === BASELINE_LANG && state) return;
+    _baselineLoading = true;
+    try {
+      let raw = await loadBundledRaw(BASELINE_LANG);
+      let usingTrimmedBaseline = false;
+      if (!raw) {
+        raw = await loadBundledSidecar('nb-baseline.json');
+        usingTrimmedBaseline = !!raw;
+      }
+      if (!raw) {
+        console.error('[lexi-vocab] baseline NB load failed — extension unusable');
+        return;
+      }
+      let bigrams, freq, sisterRaw, pitfalls;
+      // Phase 48 Wave A.0 + B.2 follow-up: the baseline path is the ONLY path
+      // that runs for NB users (target-language hydration at line ~365 returns
+      // early when lang === BASELINE_LANG). Without loading validwordsExtra
+      // and nonCompoundPairs here, the baseline NB state has none of the
+      // Ordbank vocabulary, so all Phase 48 fixes are invisible in the
+      // browser. The buildAndApply path only fires for non-NB languages.
+      if (usingTrimmedBaseline) {
+        bigrams = (raw && raw.bigrams) || {};
+        freq = (raw && raw.freq) || {};
+        [sisterRaw, pitfalls] = await Promise.all([
+          loadSister(BASELINE_LANG), loadPitfalls(BASELINE_LANG),
+        ]);
+      } else {
+        [bigrams, freq, sisterRaw, pitfalls] = await Promise.all([
+          loadBigrams(BASELINE_LANG), loadFrequency(BASELINE_LANG), loadSister(BASELINE_LANG), loadPitfalls(BASELINE_LANG),
+        ]);
+      }
+      const [nonCompoundPairs, validwordsExtra] = await Promise.all([
+        loadNonCompoundPairs(BASELINE_LANG), loadValidwordsExtra(BASELINE_LANG),
       ]);
-    } else {
-      [bigrams, freq, sisterRaw, pitfalls] = await Promise.all([
-        loadBigrams(BASELINE_LANG), loadFrequency(BASELINE_LANG), loadSister(BASELINE_LANG), loadPitfalls(BASELINE_LANG),
-      ]);
+      const baseline = core.buildIndexes({
+        raw, bigrams, freq, sisterRaw, lang: BASELINE_LANG, isFeatureEnabled: () => true,
+        nonCompoundPairs, validwordsExtra,
+      });
+      baseline.pitfalls = pitfalls || {};
+      baseline._sourceTag = usingTrimmedBaseline ? 'baseline-nb-trimmed' : 'baseline-nb';
+      state = baseline;
+      stateLang = BASELINE_LANG;
+      ready = true;
+      emitHydration(BASELINE_LANG, 'baseline');
+      drainReady();
+    } finally {
+      _baselineLoading = false;
     }
-    const baseline = core.buildIndexes({
-      raw, bigrams, freq, sisterRaw, lang: BASELINE_LANG, isFeatureEnabled: () => true,
-    });
-    baseline.pitfalls = pitfalls || {};
-    baseline._sourceTag = usingTrimmedBaseline ? 'baseline-nb-trimmed' : 'baseline-nb';
-    state = baseline;
-    ready = true;
-    emitHydration(BASELINE_LANG, 'baseline');
-    drainReady();
   }
 
   function drainReady() {
@@ -346,7 +476,19 @@
   // fetch, no progress events beyond ready/error. If the bundled load fails
   // the manifest is broken — single 'error' emission, no fallback waterfall.
   async function hydrateTarget(lang) {
-    if (lang === BASELINE_LANG) return; // baseline already serving NB
+    if (lang === BASELINE_LANG) {
+      // v3.0.139: only skip when the live state actually IS the baseline.
+      // After a de/es/… hydration, switching back to NB must rebuild —
+      // the old unconditional `return` here left label=nb over the other
+      // language's indexes (see stateLang declaration for the live repro).
+      if (stateLang === BASELINE_LANG && state) {
+        emitHydration(lang, 'ready');
+        return;
+      }
+      await initBaseline(); // sets state + stateLang, emits 'baseline'
+      emitHydration(lang, 'ready');
+      return;
+    }
     const raw = await loadBundledRaw(lang);
     if (!raw) {
       emitHydration(lang, 'error');
@@ -365,6 +507,13 @@
 
   // ── Init ──
   async function init() {
+    // Worker / SSR context (no chrome.* APIs): the sentinel block above
+    // already no-ops defensively; init() likewise can't hydrate without
+    // chrome.storage + chrome.runtime.getURL, so bail quietly rather than
+    // throwing an unhandled rejection from storageGet().
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+      return;
+    }
     const stored = await storageGet(['lang.dictionary']);
     currentLang = stored['lang.dictionary'] || 'en';
 
@@ -443,13 +592,21 @@
     getNounGenus: () => (state && state.nounGenus) ? state.nounGenus : new Map(),
     getNounForms: () => (state && state.nounForms) ? state.nounForms : new Map(),
     getIsAdjective: () => (state && state.isAdjective) ? state.isAdjective : new Set(),
+    getAdjLemma: () => (state && state.adjLemma) ? state.adjLemma : new Map(),
+    getAdjNeuter: () => (state && state.adjNeuter) ? state.adjNeuter : new Map(),
+    getNounPlural: () => (state && state.nounPlural) ? state.nounPlural : new Map(),
     getKnownPresens: () => (state && state.knownPresens) ? state.knownPresens : new Set(),
     getKnownPreteritum: () => (state && state.knownPreteritum) ? state.knownPreteritum : new Set(),
+    getKnownParticiples: () => (state && state.knownParticiples) ? state.knownParticiples : new Set(),
     getVerbForms: () => (state && state.verbForms) ? state.verbForms : new Map(),
     getVerbInfinitive: () => (state && state.verbInfinitive) ? state.verbInfinitive : new Map(),
     getValidWords: () => (state && state.validWords) ? state.validWords : new Set(),
+    getCuratedValidWords: () => (state && state.curatedValidWords) ? state.curatedValidWords : new Set(),
+    getMultiwordTokens: () => (state && state.multiwordTokens) ? state.multiwordTokens : new Set(),
     getTypoFix: () => (state && state.typoFix) ? state.typoFix : new Map(),
     getCompoundNouns: () => (state && state.compoundNouns) ? state.compoundNouns : new Set(),
+    getVariantSpellings: () => (state && state.variantSpellings) ? state.variantSpellings : new Set(),
+    getNonCompoundPairs: () => (state && state.nonCompoundPairs) ? state.nonCompoundPairs : new Set(),
     getPitfalls: () => (state && state.pitfalls) ? state.pitfalls : {},
     phoneticNormalize: (str) => core.phoneticNormalize(str, currentLang),
     phoneticMatchScore: (queryPhonetic, targetPhonetic) => core.phoneticMatchScore(queryPhonetic, targetPhonetic),
@@ -460,6 +617,17 @@
     getRedundancyPhrases: () => (state && state.redundancyPhrases) ? state.redundancyPhrases : [],
     getParticipleToAux: () => (state && state.participleToAux) ? state.participleToAux : new Map(),
     getNNInfinitiveClasses: () => (state && state.nnInfinitiveClasses) ? state.nnInfinitiveClasses : new Map(),
+    getNnCanonicalInfinitives: () => (state && state.nnCanonicalInfinitives) ? state.nnCanonicalInfinitives : new Set(),
+    getEsEnyeMap: () => (state && state.esEnyeMap) ? state.esEnyeMap : new Map(),
+    getFrCedilleMap: () => (state && state.frCedilleMap) ? state.frCedilleMap : new Map(),
+    getFrPluralMap: () => (state && state.frPluralMap) ? state.frPluralMap : new Map(),
+    getAnglicismMap: () => (state && state.anglicismMap) ? state.anglicismMap : new Map(),
+    getAnglicismList: () => (state && Array.isArray(state.anglicismList)) ? state.anglicismList : [],
+    getAnglicismWords: () => (state && state.anglicismWords) ? state.anglicismWords : new Set(),
+    getFalseFriendsMap: () => (state && state.falseFriendsMap) ? state.falseFriendsMap : new Map(),
+    getFalseFriendsList: () => (state && Array.isArray(state.falseFriendsList)) ? state.falseFriendsList : [],
+    getFrAdjPluralMap: () => (state && state.frAdjPluralMap) ? state.frAdjPluralMap : new Map(),
+    getDeAdjPredicativeMap: () => (state && state.deAdjPredicativeMap) ? state.deAdjPredicativeMap : new Map(),
     getEsPresensToVerb: () => (state && state.esPresensToVerb) ? state.esPresensToVerb : new Map(),
     getEsSubjuntivoForms: () => (state && state.esSubjuntivoForms) ? state.esSubjuntivoForms : new Map(),
     getEsImperfectoForms: () => (state && state.esImperfectoForms) ? state.esImperfectoForms : new Map(),
@@ -470,7 +638,19 @@
     getIrregularForms: () => (state && state.irregularForms) ? state.irregularForms : new Map(),
     getDecomposeCompound: () => (state && state.decomposeCompound) ? state.decomposeCompound : null,
     getDecomposeCompoundStrict: () => (state && state.decomposeCompoundStrict) ? state.decomposeCompoundStrict : null,
+    // v3.0.138: nb-sarskriving's plural-compound fallback (Plan 50-04 B)
+    // gates on `vocab.nounLemmaGenus && decomposeCompound` — without this
+    // getter the entire fallback was dead in the browser while the Node
+    // fixture runner (raw buildIndexes output) exercised it. Discovered
+    // via live playground walk: «skole sekk» fired in Node, not in Chrome.
+    getNounLemmaGenus: () => (state && state.nounLemmaGenus) ? state.nounLemmaGenus : new Map(),
+    // Wave C0: plural noun form → genus, for the FR agreement-number rules.
+    getNounPluralGenus: () => (state && state.nounPluralGenus) ? state.nounPluralGenus : new Map(),
     getGrammarTables: () => (state && state.grammarTables) ? state.grammarTables : {},
+    getDeRegularPresent: () => (state && state.deRegularPresent) ? state.deRegularPresent : { byLemma: new Map(), byForm: new Map() },
+    getDeStrongPresent: () => (state && state.deStrongPresent) ? state.deStrongPresent : new Map(),
+    getDeComparatives: () => (state && state.deComparatives) ? state.deComparatives : new Set(),
+    getDeDativePlural: () => (state && state.deDativePlural) ? state.deDativePlural : new Map(),
     getRulePedagogy: () => (state && state.rulePedagogy) ? state.rulePedagogy : new Map(),
     getSPassivForms: () => (state && state.sPassivForms) ? state.sPassivForms : new Map(),
     // Phase 35.1 (UAT regression): pedagogy and class-membership indexes
@@ -499,6 +679,7 @@
     getFrAuxPresensForms: () => (state && state.frAuxPresensForms) ? state.frAuxPresensForms : new Set(),
     getNbToNnVerbs: () => (state && state.nbToNnVerbs) ? state.nbToNnVerbs : new Map(),
     getNbToNnNouns: () => (state && state.nbToNnNouns) ? state.nbToNnNouns : new Map(),
+    getSisterVerbForms: () => (state && state.sisterVerbForms) ? state.sisterVerbForms : new Set(),
     // Delegate to buildFeaturePredicate so external callers see exactly the
     // same logic the wordList filter uses. Pre-fix this wrapper did direct
     // membership only (`enabledFeatures.has(featureId)`), which gave
@@ -513,6 +694,16 @@
     // genericToLangMap. Re-built per call (cheap — small object literal) so
     // we don't need a separate refresh hook.
     isFeatureEnabled: (featureId) => buildFeaturePredicate(currentLang)(featureId),
+    // Predicate for an ARBITRARY language's level preset (independent surfaces
+    // like Lær mer, whose language is decoupled from the dictionary's
+    // currentLang). enabledArr: the lang-prefixed feature ids enabled for that
+    // language (caller reads enabledGrammarFeatures[lang] or the basic-preset
+    // default). Resolves generic ids via the core's language-agnostic
+    // genericToLangMap — same generic→lang logic as buildFeaturePredicate, but
+    // not bound to currentLang.
+    makeFeaturePredicateFor: function (enabledArr) {
+      return core.makeFeaturePredicate(enabledArr);
+    },
   };
 
   init();

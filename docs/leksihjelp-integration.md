@@ -1,507 +1,148 @@
-# Leksihjelp ↔ Skriv Integration — Cross-Repo Reference
+# Leksihjelp ↔ Skriv integration
 
-> **Living document.** Source of truth lives in the Skriv repo
-> (`papertek-skriv/docs/leksihjelp-integration.md`). The leksihjelp repo
-> can link here rather than duplicate.
+> **Status:** active, local-only integration
 >
-> **Status:** Skriv-side scaffolding landed; leksihjelp-side vendoring
-> not started.
-> **Last updated:** 2026-05-09
-> **Stakeholders:** Geir (product owner), Skriv-side agent, leksihjelp-side agent.
+> **Current pin:** see `public/js/leksihjelp/.version`
+>
+> **Last reviewed:** 2026-08-22
 
-## 1. The integration model in one paragraph
+## Purpose
 
-Skriv will embed a **subset** of leksihjelp — dictionary popup +
-spell-check — as a built-in baseline. When the leksihjelp Chrome
-extension is also installed on `skriv.papertek.app`, Skriv detects it
-and **suppresses** its own copy so the extension owns dictionary +
-spell-check (and adds TTS, word prediction, floating widget, side panel,
-premium voices on top, as it does on every other site). Coexistence,
-not integration of state. No shared IndexedDB, no shared auth.
+Skriv embeds the dictionary and writing-check subset of Papertek Leksihjelp so
+students get Norwegian and foreign-language support without an account, server,
+or runtime third-party request. The Chrome extension remains a separate product.
+When it is present, Skriv yields its dictionary and inline marks to the extension
+instead of showing two competing surfaces.
 
-## 2. Decisions (locked)
+## Runtime model
 
-| Decision | Choice |
-|----------|--------|
-| Integration model | **Coexistence** — Skriv embeds a subset; extension stays a separate product |
-| Skriv-embedded features | Dictionary (popup + word-click lookup) + spell-check |
-| Extension-only features | TTS, word prediction, floating widget on non-Skriv pages, side panel, premium voices |
-| Code source | **Vendor** identical files into Skriv via a sync script |
-| Word-click trigger in Skriv | **Liberal** — clicking any word opens the dictionary popup |
-| Spell-check trigger in Skriv | **Auto-run** as the student types (matches extension default) |
-| Vocab data loading | **Lazy fetch** from `papertek-vocabulary.vercel.app/api/vocab/v1/*`, cached in Skriv's IndexedDB |
-| Eksamensmodus when extension present | **Hide Skriv's settings panel** — extension's popup owns the setting (single source of truth) |
-| Skrivespråk vs Oppslagsspråk | **Two independent settings** in Skriv's panel, mirroring the extension |
-| Special-chars panel | **Passive** — `special-chars-panel.js` follows Skrivespråk; no separate "Annet språk?" picker |
-| Mid-document language mixing | **Static Skrivespråk wins** — no per-input auto-detection in Skriv |
-| Restore point | Tag `pre-leksihjelp-integration` in Skriv repo (commit `eedf185`) |
+- All executable code and vocabulary data lives under
+  `public/js/leksihjelp/`.
+- `public/js/leksihjelp-loader.js` runs first and provides the narrow
+  `chrome.runtime` and `chrome.storage` compatibility API expected by the
+  upstream classic scripts.
+- The generated classic-script block in `public/index.html` follows the
+  dependency order in upstream `extension/manifest.json`.
+- Upstream scripts communicate through explicit `window.__lexi*` globals.
+  Skriv's authored integration stays behind `app/leksihjelp-bridge.js`,
+  `app/leksihjelp-settings.js`, and `app/leksihjelp-dictionary.js`.
+- Vocabulary JSON is fetched only from Skriv's own origin. There is no runtime
+  vocabulary API, CDN, analytics, or authentication dependency.
 
-## 3. The seam contract — what Skriv consumes, what leksihjelp publishes
+The embedded subset deliberately omits TTS, prediction, the floating widget,
+extension background code, account UI, and remote synchronization. Upstream's
+personal dictionary and learning-state controls are also disabled in the Skriv
+shim until Skriv has a durable, product-owned storage and UI contract for them.
 
-This is the API surface both repos commit to.
+## Classic-script dependency order
 
-### 3.1 What leksihjelp publishes on `window`
+The sync script filters the upstream manifest to this shape:
 
-When leksihjelp's vendored modules execute on the page (loaded by Skriv
-via `<script>` tags in `index.html`, OR injected by the extension as a
-content script), they publish:
+1. i18n and exam registry
+2. vocabulary core, vocabulary seam, and language detection
+3. rule-feature gating and spell-check core
+4. every manifest-listed `content/spell-rules/*.js`, in manifest order
+5. spell-check engine
+6. pedagogy renderer and personalization store required by the current renderer
+7. spell-check renderer
+8. Skriv's two vendored popup helpers
 
-| Surface | Owner | Used by Skriv to… |
-|---------|-------|-------------------|
-| `window.__lexiVocabCore` | `vocab-seam-core.js` | Build per-language indexes for spell-check + word-prediction |
-| `window.__lexiVocab` | `vocab-seam.js` | Read live indexes after hydration; the *single* surface every consumer (spell-check, dictionary, special-chars driver) reads |
-| `window.__lexiSpellCore` | `spell-check-core.js` | Pure rule engine consumed by `spell-check.js` |
-| `window.__lexiSpellRules` | each rule file in `spell-rules/` | Self-registering array of rule objects |
-| `window.__lexiI18n` | `i18n/strings.js` | UI strings (NB, NN, EN) for popovers and the dictionary popup |
-| `window.__lexiExamRegistry` | `exam-registry.js` | Surface-gating policy — which features are exam-safe |
+The loader remains immediately before the managed block; `app/main.js` remains
+immediately after it. A rule copied to disk but absent from this ordered block
+does not execute, so the order and inventory are generated and tested together.
 
-The wrapper object on `window.__lexiVocab` exposes (per
-`vocab-seam-core.js :: buildIndexes()`):
+## Vendoring contract
 
-```js
-{
-    wordList:         Array<{word, type, ...}>,    // for word prediction
-    validWords:       Set<string>,                  // spell-check known-good
-    verbInfinitive:   Map<string, string>,
-    nounGenus:        Map<string, string>,
-    compoundNouns:    Map<string, object>,
-    typoFix:          Map<string, string>,
-    freq:             Map<string, number>,          // Zipf
-    sisterValidWords: Set<string>,                  // NB/NN cross-dialect
-    registerWords:    Map<string, object>,
-    collocations:     Array<object>,
-    redundancyPhrases: Array<object>,
-    bigrams:          Map<string, number>,
-    pitfalls:         object,
-    isFeatureEnabled: function(id) -> boolean,      // Grammatikknivå gate
-}
+`scripts/sync-leksihjelp.js` is the only supported way to change the generated
+snapshot. Do not hand-edit `public/js/leksihjelp/`, the marked Leksihjelp block
+in `public/index.html`, or the marked Leksihjelp asset block in `public/sw.js`.
+
+The script:
+
+1. Locates a sibling Leksihjelp checkout or reads `LEKSIHJELP_REPO_PATH`.
+2. Parses `extension/manifest.json` once for version and classic-script order.
+3. Validates required files and managed markers before replacing the old
+   snapshot.
+4. Copies the exact manifest-listed rule set plus required seam, renderer, and
+   popup-helper files.
+5. Copies bundled vocabulary data, strips unused audio metadata from the six
+   main language payloads, and scopes upstream CSS under `.skriv-leksihjelp`.
+6. Writes `.version` with the upstream version, commit, complete generated file
+   inventory, classic-script order, and sync timestamp.
+7. Regenerates the managed HTML and service-worker inventories.
+
+Run from the Skriv repository root:
+
+```sh
+node scripts/sync-leksihjelp.js
 ```
 
-### 3.2 What Skriv publishes back to leksihjelp
+Or select a checkout explicitly:
 
-For the seam to behave correctly inside Skriv (no extension), the
-vendored `vocab-store.js` will need to read/write through Skriv's
-IndexedDB rather than the extension's. The contract gives leksihjelp
-three options for the cache adapter:
-
-```js
-vocabStore.getCachedBundle(lang)   // async (lang) -> {schema_version, revision, payload} | null
-vocabStore.putCachedBundle(lang, entry)
-vocabStore.fetchBundle(lang, opts)
-vocabStore.getCachedRevisions()
+```sh
+LEKSIHJELP_REPO_PATH=/absolute/path/to/leksihjelp node scripts/sync-leksihjelp.js
 ```
 
-Skriv's wrapper does not need to override these — Skriv runs the
-extension's exact `vocab-store.js`, which already targets a webapp-
-compatible IndexedDB store name (`lexi-vocab`). Two stores will
-coexist on the Skriv origin: `skriv-documents` (Skriv's existing data)
-and `lexi-vocab` (the vendored cache).
-
-Skriv also publishes the following postMessage:
-
-- `window.postMessage({ type: 'skriv:leksihjelp:openPanel', source: 'skriv' }, origin)`
-  — fired when the user clicks Skriv's 📚 Leksihjelp button while the extension
-  is active. A best-effort request for the extension to open its side panel.
-  See task **L-6**.
-
-### 3.3 Hydration messages
-
-Skriv's bridge module listens for the existing `lexi:hydration` events
-(`{lang, state: 'fetching' | 'ready' | 'error', revision?, reason?}`)
-emitted by `vocab-seam.js` so Skriv can show a loading spinner / error
-toast on first visit while the bundle downloads.
-
-### 3.4 Detection from Skriv's side
-
-Skriv's `leksihjelp-bridge.js` checks three signals to decide who owns
-the dictionary + spell-check on the page (see Section 6 for the full
-algorithm):
-
-1. `window.__lexiVocab` present after a 200ms grace period.
-2. A `lexi:hydration` event has been observed.
-3. (Optional, depends on a small leksihjelp change) A
-   `window.__lexiPresent === 'extension'` sentinel set by the extension's
-   content script. If set, Skriv yields unconditionally. If absent and
-   the seam is present anyway, Skriv assumes its own vendored copy
-   loaded and runs normally.
-
-The sentinel is the cleanest way to disambiguate "Skriv's own seam" from
-"extension's injected seam". See Leksihjelp-side task **L-3** below.
-
-## 4. Vendored file inventory
-
-Files Skriv expects to find under `public/js/leksihjelp/`. The
-**leksihjelp-side claude is responsible** for getting these into Skriv
-via the sync script (Task **L-2**). All paths relative to the leksihjelp
-repo's `extension/` directory, except where noted.
-
-| Skriv path | Leksihjelp source | Notes |
-|------------|-------------------|-------|
-| `i18n/strings.js` | `i18n/strings.js` | UI strings, multi-language |
-| `content/vocab-store.js` | `content/vocab-store.js` | IndexedDB cache + Vocab API fetcher |
-| `content/vocab-seam-core.js` | `content/vocab-seam-core.js` | Pure index builder |
-| `content/vocab-seam.js` | `content/vocab-seam.js` | Hydration policy, publishes `__lexiVocab` |
-| `content/lang-detect.js` | `content/lang-detect.js` | Per-input language auto-detect |
-| `content/spell-check-core.js` | `content/spell-check-core.js` | Pure rule engine |
-| `content/spell-check.js` | `content/spell-check.js` | DOM adapter (dots, popovers) |
-| `content/spell-rules/*.js` | `content/spell-rules/*.js` | All ~80 rule files, drop in verbatim |
-| `popup/dict-state-builder.js` | `popup/dict-state-builder.js` | Pure — builds dictionary view-model |
-| `popup/grammar-features-section.js` | `popup/grammar-features-section.js` | Renders Grammatikknivå checkboxes |
-| `styles/content.css` | `styles/content.css` | Vendored CSS (must be scoped under a parent class — see L-2 below) |
-| `data/nb-baseline.json` | `data/nb-baseline.json` | Norwegian baseline shipped for offline first-load |
-| `exam-registry.js` | `exam-registry.js` | Surface-gating policy |
-
-**Files NOT vendored** (extension-only): `background/*`, `popup/popup.html`,
-`popup/popup.js` (auth + Vipps + subscription UI), `floating-widget.js`,
-`word-prediction.js`, `audio/*`.
-
-## 5. Leksihjelp-side tasks
-
-Tasks owned by the leksihjelp repo. Each links a path back to Skriv's
-expectations.
-
-### L-1. Add `https://skriv.papertek.app` to the Vocab API CORS allowlist
-
-**Where:** `Papertek-forlag-AS/papertek-vocabulary` repo (sibling of
-leksihjelp).
-
-**What:** the `/api/vocab/v1/*` endpoints currently allow the extension
-origin and the leksihjelp.no domain. Add `skriv.papertek.app` and any
-preview domains so Skriv can fetch bundles directly from
-`papertek-vocabulary.vercel.app/api/vocab/v1/core/{lang}` without a
-proxy.
-
-**Done when:** a curl from `skriv.papertek.app` returns the bundle with
-`Access-Control-Allow-Origin: https://skriv.papertek.app` (or `*` if
-the policy permits).
-
-### L-2. Write the sync script `scripts/sync-leksihjelp.js`
-
-**Where:** the **Skriv** repo's `scripts/` directory — even though the
-leksihjelp claude writes it, the script lives in Skriv (it's Skriv's
-build step that pulls files in). Suggest: clone leksihjelp, parse the
-`extension/manifest.json` for the version, `cp` the whitelisted file
-list into `public/js/leksihjelp/`, write a `.version` marker.
-
-**Required behaviour:**
-
-1. Read `LEKSIHJELP_REPO_PATH` env var (defaults to a sibling
-   `../leksihjelp` checkout).
-2. Read leksihjelp's `extension/manifest.json` to extract `version`
-   and the latest commit SHA from `git rev-parse HEAD` in that repo.
-3. Copy the file list in §4 into `public/js/leksihjelp/`.
-4. **Scope the CSS:** wrap every selector in `styles/content.css` under
-   a `.skriv-leksihjelp` parent class to prevent collisions with Skriv's
-   existing UI. (Trivial regex: prefix all selectors that aren't already
-   inside a media query / keyframe.)
-5. Strip or shim any `chrome.*` API calls that block in non-extension
-   contexts. The seam's emission code already handles this gracefully
-   (`if (typeof chrome !== 'undefined' && chrome.runtime…)`); but
-   `service-worker.js` references in `vocab-store.js` need a quick scan.
-6. Write `public/js/leksihjelp/.version` with the leksihjelp version +
-   commit SHA + sync timestamp.
-7. Print a summary table: which files copied, total bytes, version pin.
-
-The Lockdown sync script (`scripts/sync-leksihjelp.js` in the Lockdown
-codebase) is a working reference; mirror its shape if available.
-
-**Done when:**
-
-- Running the sync script populates `public/js/leksihjelp/` with all
-  files in §4.
-- `public/js/leksihjelp/.version` matches leksihjelp's manifest version.
-- A `<script src="/js/leksihjelp/content/vocab-seam.js">` loaded in
-  Skriv publishes `window.__lexiVocab` after hydration.
-
-### L-3. Publish a `__lexiPresent` sentinel in the extension
-
-**Where:** `Papertek-forlag-AS/leksihjelp` repo,
-`extension/content/vocab-seam.js` (or earliest content script that runs).
-
-**What:** a one-line addition like:
-
-```js
-self.__lexiPresent = 'extension';
-```
-
-This lets Skriv's bridge cleanly distinguish "extension is injecting on
-this page" from "Skriv's own vendored seam is running". Without it,
-Skriv has to fall back to heuristics.
-
-**Done when:** opening DevTools on any page with the extension active
-shows `window.__lexiPresent === 'extension'`.
-
-### L-4. (Optional, deferred) Allow Skriv to push settings via `externally_connectable`
-
-**Where:** `Papertek-forlag-AS/leksihjelp` repo, `extension/manifest.json`
-+ `background/service-worker.js`.
-
-**What:** add `"externally_connectable": { "matches": ["https://skriv.papertek.app/*"] }`
-and a message handler so Skriv can push setting changes (Eksamensmodus,
-target language, grammar features) to the extension and have them sync
-back. Initially OUT OF SCOPE — Skriv's first cut hides its own settings
-panel when the extension is detected (single source of truth, extension
-owns it). Revisit only if users complain.
-
-**Done when:** N/A — deferred.
-
-### L-5. (Optional) Update leksihjelp docs to point to this file
-
-**Where:** `Papertek-forlag-AS/leksihjelp` repo,
-`.planning/lockdown-adapter-contract.md` or a new
-`.planning/skriv-adapter-contract.md`.
-
-**What:** a short pointer doc that says "Skriv consumes the same seam
-as Lockdown; see [skriv repo URL]/docs/leksihjelp-integration.md".
-
-### L-6. Open the side panel on Skriv's `skriv:leksihjelp:openPanel` message
-
-**What:** the extension's content script listens on `window` for `message`
-events where `event.data.type === 'skriv:leksihjelp:openPanel'` and forwards to
-the service worker, which calls `chrome.sidePanel.open({ tabId })`.
-
-**Caveat:** `chrome.sidePanel.open()` requires a user gesture in the extension's
-own context; a relayed postMessage may lose that gesture and be rejected by
-Chrome. Also set `chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })`
-so a click on the toolbar icon (which Skriv's guidance toast tells the user
-about) reliably opens the panel. The postMessage path is a best-effort
-enhancement.
-
-**Done when:** clicking Skriv's 📚 Leksihjelp button while the extension is
-active opens (or surfaces a clear path to) the extension's side panel.
-
-**Status:** Skriv side shipped; extension side owned by the leksihjelp repo.
-
-## 6. Skriv-side tasks
-
-State after the current commit:
-
-### S-1. ✅ Plan + restore point
-
-- Tag `pre-leksihjelp-integration` at commit `eedf185`.
-- This document.
-
-### S-2. ✅ Bridge module — `public/js/app/leksihjelp-bridge.js`
-
-Detects whether leksihjelp is "live" on the page and, if so, who owns
-it (extension vs Skriv's own vendored copy). Brokers the active
-Skrivespråk to consumers (special-chars panel, future spell-check).
-
-Contract:
-
-```js
-import { initLeksihjelpBridge } from './leksihjelp-bridge.js';
-const bridge = initLeksihjelpBridge();
-bridge.getStatus(); // 'absent' | 'extension' | 'embedded'
-bridge.onStatusChange(fn);
-bridge.getWritingLang(); // 'nb' | 'nn' | 'de' | 'en' | 'es' | 'fr'
-bridge.setWritingLang(lang); // only valid in 'absent' or 'embedded' status
-bridge.onWritingLangChange(fn);
-bridge.getLookupLang();
-bridge.setLookupLang(lang);
-bridge.getExamMode(); // boolean
-bridge.setExamMode(on);
-```
-
-In **`absent`** status, settings persist in localStorage. In
-**`embedded`**, settings persist in localStorage AND drive the vendored
-seam. In **`extension`**, getters proxy to the extension (read-only for
-now; setters become no-ops with a console warning).
-
-### S-3. ✅ Settings panel — `public/js/app/leksihjelp-settings.js`
-
-Slim slide-in drawer triggered by a `📚 Leksihjelp` top-bar button in
-the editor. Four controls (Eksamensmodus, Skrivespråk, Oppslagsspråk,
-Grammatikknivå). The Grammatikknivå section is a placeholder until the
-vendored `grammar-features-section.js` arrives.
-
-Hidden entirely when bridge status is `extension`.
-
-### S-4. ✅ Top-bar button + drawer mount in `standalone-writer.js`
-
-Renders the `📚 Leksihjelp` button between Hjelpetekst (when present)
-and Verktøy. Visibility tracks `bridge.getStatus()`.
-
-### S-5. ✅ Refactor `special-chars-panel.js` to be passive
-
-- Drops the "Annet språk?" pill UI.
-- Exposes `setActiveLanguage(lang)` and `destroy()`.
-- Initial language comes from `bridge.getWritingLang()`.
-- Updates whenever `bridge.onWritingLangChange` fires.
-
-### S-6. ✅ Vendored bundle wired into Skriv
-
-Once the leksihjelp claude completed L-2 (sync script + initial vendor)
-and L-3 (`__lexiPresent` sentinel guarded on `chrome.runtime.id`):
-
-- `public/js/leksihjelp-loader.js` provides a minimal `chrome.runtime` /
-  `chrome.storage` shim so the vendored content scripts run in Skriv's
-  plain-page context. `bindBridge(api)` keeps `lang.spellcheck` /
-  `lang.dictionary` / `examMode` in lockstep with the bridge.
-- `index.html` loads the bundle in dependency order: loader → i18n →
-  exam-registry → vocab seam → spell-check core → 78 rules → lang-detect
-  → engines → renderer → popup helpers. Loader runs BEFORE every
-  vendored module so the shim is already in place. `<main id="app">`
-  is wrapped with `class="skriv-leksihjelp"` so the scoped CSS applies.
-- `sw.js` cache bumped to `skriv-v55`. Vendored paths live in a separate
-  `LEKSIHJELP_ASSETS[]` precached **best-effort** (individual misses don't
-  block install — the existing fetch handler lazy-caches anything missed
-  on first hit). Keeps Skriv resilient to vendoring drift.
-- L-1 was dropped (Phase 40.2 made vocab bundle-only — no Vocab API
-  fetch at runtime). See `docs/leksihjelp-integration-handoff.md`.
-
-### S-7. ✅ Spell-check inline marks
-
-Renderer auto-attaches to focused contenteditable elements once
-`vocab-seam.js` hydrates. No Skriv-side mounting needed — only:
-
-- Body wrapped with `class="skriv-leksihjelp"` so the scoped CSS
-  applies to `#lexi-spell-overlay` (which the renderer mounts directly
-  on `<body>`, not inside `<main>`). The CSS only matches leksihjelp-
-  specific selectors so it doesn't bleed onto Skriv's UI.
-- `leksihjelp-loader.js` mirrors `bridge.status` → `spellCheckEnabled`
-  in the chrome.storage shim. When the bridge sees the leksihjelp
-  Chrome extension on the page, the embedded renderer turns itself off
-  via the existing `chrome.storage.onChanged` listener — single source
-  of truth for "who renders dots" without two parallel renderers
-  fighting over the same surface.
-- z-index: leksihjelp overlay sits at `2147483645` (max-int-2). Skriv's
-  existing overlays (LIX 30, argument-flow 30, writing-feedback 50,
-  drawers 40) are far below — dots and popovers always sit on top.
-
-Verified: typing "Jeg komer hjem snart" produces 1 dot for *komer →
-kommer*. Clicking the dot opens a popover with suggestions; clicking
-*kommer* fixes the word and removes the dot. Switching Skrivespråk
-to `de` and typing "Ich habe ein hund" produces 4 German dots
-(Akkusativ, capitalisation, V2, kommer→kommen residual). Setting
-`window.__lexiPresent = 'extension'` flips `spellCheckEnabled` to
-`false` so the renderer stops marking.
-
-### S-8. ✅ Dictionary popup
-
-- New module `public/js/app/leksihjelp-dictionary.js`. Single-click any
-  word in the editor → floating popup with translation, part-of-speech,
-  gender (for nouns), and base-form pointer (e.g. clicking *kommer*
-  surfaces *komme*).
-- Word-boundary detection via `caretRangeFromPoint` with a Unicode
-  `\p{L}` regex so Norwegian/German/Spanish/French diacritics match.
-- Entry resolution: `window.__lexiVocab.getWordList()` for the loaded
-  language; falls back to `getVerbInfinitive()` for inflected forms.
-- Skriv-styled popup with its own scoped CSS (not inside the vendored
-  `.skriv-leksihjelp` block) — sits at z-index 2147483646 above the
-  spell-check overlay so popovers stack correctly.
-- Yields entirely when `bridge.status === 'extension'` (early-return in
-  the click handler) — the extension's own dictionary takes over.
-- Closes on Esc, on outside-click (capture-phase), and via the × Lukk
-  button in the popup footer.
-
-### S-9. ✅ Per-document language seeding
-
-Implemented as a soft seed in `standalone-writer.js`'s `launchEditor`:
-
-- German exam docs (have `germanHint`) → seed `bridge.setWritingLang('de')`
-  + `setLookupLang('de')` on first open.
-- Seeding only fires when the persisted localStorage value is unset OR
-  still equals the default `nb`. If the student has explicitly chosen
-  another language in the settings drawer, that choice always wins.
-- Frame-language seeding for skriverammer is not yet wired (Norwegian
-  frames imply nb already; nynorsk is detected by `getCurrentLanguage()`
-  elsewhere). Adding it would be a small follow-up if students start
-  writing nb texts inside an nn frame and the auto-detect proves
-  insufficient.
-
-## 7. Storage keys
-
-### localStorage
-
-| Key | Type | Used by | Purpose |
-|-----|------|---------|---------|
-| `skriv.leksihjelp.writingLang` | string | bridge | Spell-check + special-chars target |
-| `skriv.leksihjelp.lookupLang` | string | bridge | Dictionary target |
-| `skriv.leksihjelp.examMode` | string ('1' or '') | bridge | Eksamensmodus toggle |
-| `skriv.leksihjelp.grammarFeatures.{lang}` | JSON | settings panel | Per-language grammar feature checkbox state |
-| `skriv.leksihjelp.settingsSeen` | string | settings panel | One-time onboarding flag |
-
-### IndexedDB
-
-| DB name | Owner | Purpose |
-|---------|-------|---------|
-| `skriv-documents` | Existing Skriv module | Documents, folders, trash (unchanged) |
-| `lexi-vocab` | Vendored `vocab-store.js` | Vocab bundle cache per language |
-
-## 8. UI surfaces in Skriv (post-integration)
-
-| Surface | Where | Trigger | Visible when |
-|---------|-------|---------|--------------|
-| `📚 Leksihjelp` button | Editor top bar | Click → opens settings drawer; in `extension` mode → fires `skriv:leksihjelp:openPanel` + guidance toast | Always visible |
-| Settings drawer | Slide-in right panel | Triggered by button | Status ∈ {'absent', 'embedded'} |
-| Dictionary popup | Floating, anchored to clicked word | Click any word in editor | Status ∈ {'embedded', 'extension'} (extension renders its own) |
-| Spell-check dots | Inline under words | Auto, debounced | Status ∈ {'embedded', 'extension'} |
-| Special-chars floating panel | Bottom of editor | Auto-shows when Skrivespråk requires foreign chars | Always (driven by bridge.writingLang) |
-
-## 9. Risks & open questions
-
-- **Vendoring drift.** Skriv falls behind leksihjelp's spell-rule
-  improvements if the sync script isn't run regularly. Mitigation:
-  include the leksihjelp version marker in Skriv's editor (e.g. footer
-  info), flag in CI if older than N weeks.
-- **CSS collisions.** Vendored `content.css` was designed to overlay
-  arbitrary websites; some selectors may be too generic for Skriv.
-  Mitigation: the sync script wraps everything under a
-  `.skriv-leksihjelp` parent class (Task L-2.4). If that's too coarse,
-  fall back to BEM-prefixing each rule.
-- **Detection false negatives.** If the extension fails to inject
-  (Chrome's "site allowed" toggle is off), Skriv mounts its own version
-  while the user thinks the extension is active. Acceptable — they get
-  a working dictionary either way. Worth a one-time toast for
-  transparency: "Bruker Skriv sin innebygde leksihjelp" /
-  "Bruker Leksihjelp-utvidelsen".
-- **API key rotation.** The `lk_*` Vocab API key is committed in
-  leksihjelp; when it rotates, Skriv needs to bump too. Sync script
-  reads it; bumping is automatic.
-- **Vocab API outage.** If `papertek-vocabulary.vercel.app` goes down
-  on first visit, Skriv has only `nb-baseline.json` available — German
-  / Spanish / French students can't use dictionary or full spell-check
-  until network is back. Show a graceful fallback message.
-- **Schema-version mismatch.** If leksihjelp ships a new vocab schema
-  before Skriv re-syncs, the seam emits `state: 'error'`. Skriv should
-  surface this as "Leksihjelp må oppdateres — kontakt skoleadmin"
-  rather than silently failing.
-
-## 10. Out of scope
-
-- Skriv-side login / Vipps integration (Skriv stays auth-free).
-- Premium TTS in Skriv (extension only).
-- Word prediction in Skriv (extension only — coverage on every page is
-  an extension-strength feature; replicating it inside Skriv is more
-  noise than benefit).
-- Mobile / touch-optimised dictionary popup (Skriv is desktop-first).
-
-## 11. Cross-repo task tracking
-
-Quick checklist either side can scan:
-
-- [x] ~~**L-1**~~ — *Dropped* (Phase 40.2 made vocab bundle-only — no online dep)
-- [x] **L-2** — Sync script + initial vendor pass (`scripts/sync-leksihjelp.js`)
-- [x] **L-3** — `__lexiPresent` sentinel guarded on `chrome.runtime.id`
-- [ ] **L-4** — `externally_connectable` for Skriv (deferred)
-- [x] **L-5** — Pointer doc in leksihjelp planning
-- [ ] **L-6** — open side panel on `skriv:leksihjelp:openPanel` (Skriv side done)
-- [x] **S-1** — Plan + restore point
-- [x] **S-2** — Bridge module (`leksihjelp-bridge.js`)
-- [x] **S-3** — Settings panel (`leksihjelp-settings.js`)
-- [x] **S-4** — Top-bar button in editor
-- [x] **S-5** — Special-chars panel refactor
-- [x] **S-6** — Loader + chrome shim + bundle wired into index.html + SW bump
-- [x] **S-7** — Spell-check wire-up (renderer auto-attaches; extension yields via spellCheckEnabled)
-- [x] **S-8** — Dictionary popup (`leksihjelp-dictionary.js`; click any word → popup)
-- [x] **S-9** — Per-document language seeding (German exam docs → de)
-
-## 12. References
-
-- Skriv repo: `https://github.com/Papertek-forlag-AS/papertek-skriv`
-- Leksihjelp repo: `https://github.com/Papertek-forlag-AS/leksihjelp`
-- Lockdown adapter contract (template for this work):
-  `https://github.com/Papertek-forlag-AS/leksihjelp/blob/main/.planning/lockdown-adapter-contract.md`
-- Restore point in Skriv: tag `pre-leksihjelp-integration` (commit
-  `eedf185`)
+The script pins the source checkout's current `HEAD`; updating or fetching that
+checkout is a separate, deliberate step. Always inspect its branch, status, and
+remote tracking state before syncing.
+
+## Offline policy
+
+Skriv's critical shell and ES-module graph are atomically precached. Vendored
+Leksihjelp JavaScript, scoped CSS, `.version`, and the compact Bokmål fallback
+are best-effort precached so a vendor-file problem cannot prevent Skriv itself
+from installing. The much larger full-language files are cached on first use by
+the same-origin cache-first fetch handler. This avoids downloading every school
+language during install while preserving offline use for languages already
+opened on the device.
+
+Every vendor resync changes runtime assets and therefore requires:
+
+- a `CACHE_NAME` bump in `public/sw.js`;
+- matching cache-version updates in `specs/ARCHITECTURE.md` and
+  `specs/DATA-MODEL.md`;
+- pin updates in `specs/DEPENDENCIES.md` and `specs/MODULES.md`;
+- the full offline and vendor-contract test suite.
+
+## Skriv bridge and ownership
+
+The bridge reports `absent`, `embedded`, or `extension` status. The extension
+signals ownership through the shared DOM attribute `data-lexi-present`; a
+main-world JavaScript sentinel is insufficient because Chrome content scripts
+run in an isolated world. In extension mode, Skriv hides its settings surface
+and posts the best-effort `skriv:leksihjelp:openPanel` request when the student
+uses the Leksihjelp button.
+
+In embedded mode, the bridge mirrors the active document's writing language,
+the dictionary lookup language, and the limited-assistance flag into the
+in-page storage shim. Writing language is document-owned and also drives the
+editor `lang`, native spellcheck, special characters, and frame selection.
+
+The persistent key contract is documented in `specs/DATA-MODEL.md`. The shim's
+additional upstream settings are in-memory compatibility state, not new Skriv
+storage.
+
+## Verification after a sync
+
+At minimum:
+
+1. Run the complete Skriv Node test suite.
+2. Confirm the vendor-contract test sees the same rule count and order on disk,
+   in `.version`, in `index.html`, and in the eager service-worker inventory.
+3. Open a fresh editor with no console errors and switch writing language
+   between Bokmål and Nynorsk without reloading.
+4. Verify the regression sentence
+   `Dette er ein kort tekst om skulen. Eg skriv for å undersøkje korleis språk fungerer.`
+   produces no Leksihjelp finding.
+5. Verify a real contrast still works: `Dette er eit kort tekst om skulen.`
+   should suggest `ein`, while `Dette er eit kort svar.` is accepted.
+6. Exercise dictionary lookup and grammar-level settings for at least one
+   Norwegian and one foreign language.
+7. Reload once online before testing offline, then confirm the used language
+   still works with the network disabled.
+
+## Cross-repository references
+
+- Skriv: `https://github.com/Papertek-forlag-AS/papertek-skriv`
+- Leksihjelp: `https://github.com/Papertek-forlag-AS/leksihjelp`

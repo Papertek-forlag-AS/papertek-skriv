@@ -40,6 +40,25 @@
     return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
 
+  // Present-tense forms of AVOIR only. être + participle is structurally
+  // ambiguous — "est prescrit/utilisé/décrit" is a present passive, "est
+  // ensoleillé/poli" is copula + adjective, and only a closed set of
+  // intransitive/pronominal verbs form the passé composé with être. avoir +
+  // participle is unambiguously passé composé, so we detect the compound on
+  // avoir alone. This is the dominant precision fix (Phase precision-sweep
+  // 2026-07-16): every recall fixture uses an avoir auxiliary, so dropping the
+  // être branch costs no recall while removing ~12 present-passive FPs.
+  const AVOIR_PRESENT = new Set(['ai', 'as', 'a', 'avons', 'avez', 'ont']);
+
+  // Subject pronouns that can immediately follow the narrative adverb "après"
+  // ("Après tu écrivais…", "Après, il est parti"). "après" is the only cue in
+  // the set that is far more often the *preposition* "after [noun]" ("après le
+  // match", "après de longues négociations", part of "après-midi"). We treat it
+  // as an aspect cue only when a subject pronoun follows — the preposition is
+  // always followed by a determiner/noun/number, so this removes ~25 FPs while
+  // preserving the genuine narrative use.
+  const APRES_SUBJECT_RE = /^(?:je|tu|il|elle|on|nous|vous|ils|elles|j['’])/i;
+
   // Pedagogy is hot-readable from ctx.vocab.frAspectPedagogy on every check
   // call. We don't cache it in module scope — vocab indexes are rebuilt
   // when the language switches, and caching here would stale-pin the
@@ -116,6 +135,13 @@
             adverbs.passeCompose.single.has(word) ||
             adverbs.passeCompose.single.has(stripped)
           ) {
+            // "après" preposition guard: only a cue when a subject pronoun
+            // follows (narrative "Après tu écrivais…"), never the preposition
+            // "après [le/de/une/…]". All other cues are unambiguous adverbs.
+            if (stripped.toLowerCase() === 'apres') {
+              const next = ctx.tokens[i + 1];
+              if (!next || !APRES_SUBJECT_RE.test(next.word)) continue;
+            }
             adverbHits.push({
               type: 'passe_compose',
               adverb: ctx.tokens[i].display,
@@ -193,6 +219,17 @@
 
         if (adverbHits.length === 0) continue;
 
+        // Skip sentences that contain être-imparfait (copula): signals a
+        // descriptive/background context where imparfait is typically correct
+        // even with punctual adverbs like "hier".
+        const ETRE_IMPARFAIT_RE = /^(?:étais|etais|était|etait|étions|etions|étiez|etiez|étaient|etaient)$/i;
+        let hasEtreCopula = false;
+        for (let j = range.start; j < range.end; j++) {
+          const w = ctx.tokens[j].word.replace(/^[a-zçéèêëàâ]['']/i, '');
+          if (ETRE_IMPARFAIT_RE.test(w)) { hasEtreCopula = true; break; }
+        }
+        if (hasEtreCopula) continue;
+
         // Pass 2: for each adverb hit, scan for a verb in the wrong aspect.
         // We allow the verb to be either before or after the adverb but skip
         // tokens inside the adverb's own span.
@@ -209,11 +246,28 @@
               // suffix heuristic (-ais / -ait / -ions / -iez / -aient) to catch
               // verbs whose imparfait form isn't in the index. The fallback is
               // gated on minimum length to avoid common short nouns/adjectives.
+              //
+              // Skip être-copula imparfait: "hier c'était excitant" is correct
+              // (state/quality description), not an aspect error.
+              // Strip leading contraction prefix (c', n', s', j', ...) before testing.
+              const bareVerb = word.replace(/^[a-zçéèêëàâ]['']/i, '');
+              if (/^(?:étais|etais|était|etait|étions|etions|étiez|etiez|étaient|etaient)$/i.test(bareVerb)) continue;
               let verbInfo =
                 (imparfaitToVerb && (imparfaitToVerb.get(word) || imparfaitToVerb.get(stripped))) || null;
               if (!verbInfo && word.length >= 5 && /(?:ais|ait|ions|iez|aient)$/.test(word)) {
-                // Common -ions endings on nouns (questions, opinions) — guard.
-                if (!/^(?:questions|opinions|nations|stations|missions|réunions|emotions|émotions|portions|positions|fractions|conditions|relations|directions|attentions|invitations|inscriptions|expressions|impressions|institutions|propositions|locations|libations|sanctions|reactions|réactions|elections|élections|sessions|conclusions|illusions|tensions|extensions|expansions|fonctions|productions|operations|opérations|champions|millions|billions|trillions)$/i.test(word)) {
+                // The -ais ending also marks nationality nouns/adjectives
+                // (français, anglais, irlandais, japonais…); -ions/-ait hit
+                // many nouns too. A KNOWN noun or adjective is not an imparfait
+                // verb — only let the heuristic fire on otherwise-unknown words.
+                // (Closed -ions noun list kept as a fallback for forms absent
+                // from vocab.)
+                const ng = ctx.vocab && ctx.vocab.nounGenus;
+                const adj = ctx.vocab && ctx.vocab.isAdjective;
+                const knownNonVerb =
+                  (ng && (ng.has(word) || ng.has(stripped))) ||
+                  (adj && (adj.has(word) || adj.has(stripped)));
+                if (!knownNonVerb &&
+                    !/^(?:questions|opinions|nations|stations|missions|réunions|emotions|émotions|portions|positions|fractions|conditions|relations|directions|attentions|invitations|inscriptions|expressions|impressions|institutions|propositions|locations|libations|sanctions|reactions|réactions|elections|élections|sessions|conclusions|illusions|tensions|extensions|expansions|fonctions|productions|operations|opérations|champions|millions|billions|trillions)$/i.test(word)) {
                   verbInfo = { inf: '?', person: '?' };
                 }
               }
@@ -247,11 +301,20 @@
               // leading "*'" prefix and re-checking against auxForms.
               const elidedSplit = word.match(/^[a-zçéèêëàâ]'(.+)$/i);
               const auxCandidate = elidedSplit ? elidedSplit[1] : word;
-              if (auxForms && (auxForms.has(auxCandidate) || auxForms.has(word))) {
+              // avoir-only: see AVOIR_PRESENT note above. être compounds are
+              // too ambiguous with present-passive/copula to flag reliably.
+              if (
+                auxForms &&
+                (auxForms.has(auxCandidate) || auxForms.has(word)) &&
+                (AVOIR_PRESENT.has(auxCandidate) || AVOIR_PRESENT.has(word))
+              ) {
                 let participleIdx = -1;
                 let partInfo = null;
                 for (let k = j + 1; k < Math.min(j + 3, range.end); k++) {
                   const pw = ctx.tokens[k].word;
+                  // "a/ont été …" is an être state (passive or copula), not an
+                  // aspect error — never flag avoir + été.
+                  if (/^(?:été|ete)$/i.test(pw)) break;
                   const info =
                     (participles && (participles.get(pw) || participles.get(stripAccents(pw)))) || null;
                   if (info) {
