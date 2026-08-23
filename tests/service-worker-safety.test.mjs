@@ -86,7 +86,7 @@ test('service worker activation deletes only older Skriv caches and claims clien
     await dispatchExtendable(worker.handlers.get('activate'));
     assert.deepEqual(
         worker.deletedCaches,
-        ['skriv-v75', 'skriv-v76', 'skriv-v77', 'skriv-v78', 'skriv-v79'],
+        ['skriv-v75', 'skriv-v76', 'skriv-v77', 'skriv-v78', 'skriv-v79', 'skriv-v80'],
     );
     assert.equal(worker.claimCalls, 1);
 });

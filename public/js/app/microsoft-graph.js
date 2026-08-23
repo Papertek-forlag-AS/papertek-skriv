@@ -486,7 +486,14 @@ export function createMicrosoftGraphClient(options = {}) {
         const query = new URLSearchParams({
             '$select': `${DRIVE_ITEM_FIELDS},folder`,
         });
-        const item = await requestJson(`/shares/${shareId}/driveItem?${query}`);
+        // A Teams/SharePoint sharing URL may need to be redeemed before Graph
+        // exposes the drive item, even when the signed-in pupil is already a
+        // member of the team. Keep that access scoped to this request.
+        const item = await requestJson(`/shares/${shareId}/driveItem?${query}`, {
+            headers: {
+                Prefer: 'redeemSharingLinkIfNecessary',
+            },
+        });
         if (!item?.folder || !item?.id || !item?.parentReference?.driveId) {
             throw new MicrosoftGraphError('The sharing link does not resolve to a writable folder.', {
                 code: 'invalid-shared-folder',

@@ -70,6 +70,10 @@ test('resolveSharedFolder sends delegated auth and validates a folder driveItem'
     );
     assert.match(calls[0].url, /^https:\/\/graph\.microsoft\.com\/v1\.0\/shares\/u!/);
     assert.equal(requestHeaders(calls[0].init).get('Authorization'), 'Bearer token');
+    assert.equal(
+        requestHeaders(calls[0].init).get('Prefer'),
+        'redeemSharingLinkIfNecessary',
+    );
 
     const invalid = createMicrosoftGraphClient({
         getAccessToken: async () => 'token',

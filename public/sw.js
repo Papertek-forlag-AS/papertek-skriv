@@ -4,7 +4,7 @@
  */
 
 const CACHE_PREFIX = 'skriv-v';
-const CACHE_NAME = 'skriv-v80';
+const CACHE_NAME = 'skriv-v81';
 // MSAL 5's redirect bridge handles raw authorization responses. Microsoft
 // requires both the bridge page and its script to bypass all app caches.
 const MICROSOFT_AUTH_NO_STORE_PATHS = new Set([
