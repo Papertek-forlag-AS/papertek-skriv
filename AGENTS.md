@@ -39,7 +39,7 @@ Before making changes, read the relevant spec files in `specs/`:
 3. **No circular imports.** Dependency graph must be a DAG.
 4. **init/destroy lifecycle.** Every feature module returns `{ destroy(), ...api }`.
 5. **No build step.** Serve ES6 modules directly. CDN for third-party.
-6. **No server, no tracking.** All data stays in IndexedDB. Zero network calls (except CDN libs).
+6. **Local-first, no Papertek server, no tracking.** IndexedDB is authoritative. Network calls are allowed only for vendored/static assets and explicitly configured optional connectors documented in the specs; connectors must be user-initiated and must never block local save or typing.
 7. **All UI strings via `t('key')`.** Add keys to all three locales (nb, nn, en).
 8. **Update sw.js** when adding/removing static assets. Bump cache version.
 

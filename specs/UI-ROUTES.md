@@ -20,6 +20,8 @@ App start
 #/
 ├── new text → create in IndexedDB → #/doc/{id}
 ├── document card → #/doc/{id}
+├── Microsoft 365 (when configured/localhost) → connect/select folder/list remote `.skriv`
+│   └── import → validate → new local **Uten mappe** document → #/doc/{id}
 ├── cleanup title action → #/doc/{id}?focus=title → title field focused
 ├── trash button → #/trash → back → #/
 └── German practice → #/tysk → pick task → German document → #/doc/{id}
@@ -37,6 +39,7 @@ At 1024 px and wider, the desktop layout has three columns: folder sidebar, a na
 
 - App name and short tagline
 - Compact visible interface-language selector (NB/NN/EN)
+- Microsoft 365 button when the deployment is configured (always available on localhost for test configuration)
 - Theme cycle (system/light/dark)
 - Trash with count badge
 - “Ny tekst” primary action
@@ -84,7 +87,7 @@ Below 768 px the sidebar becomes an overlay navigation drawer. The hamburger exp
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
-│ Back | save | Structure | Review | German help (task only) | Leksihjelp | Export │
+│ Back | local save | Structure | Review | German help (task only) | Leksihjelp | Microsoft 365 | Export │
 ├──────────────────────────────────────────────────────────┤
 │ Document title                                           │
 │ Folder badges/picker                  Writing language   │
@@ -107,9 +110,10 @@ Below 768 px the sidebar becomes an overlay navigation drawer. The hamburger exp
 | Review | `insights-drawer.js` | Opens review/support actions |
 | 💡 Help text | `german-hint-drawer.js` | German-task documents only; simple/richer Norwegian prompt support |
 | 📚 Leksihjelp | app Leksihjelp modules | Dictionary/settings, or guidance to the installed extension panel |
+| Microsoft 365 | `microsoft-storage-dialog.js` | Optional account/folder setup, link/sync state, unlink, and conflict-safe **Keep both** |
 | Export | `text-export.js` | TXT, PDF, Word-compatible `.doc` |
 
-Save status is a polite live region. Offline status says the text is saved locally in the browser profile.
+Local save status is a polite live region. Offline status says the text is saved locally in the browser profile. Microsoft status is separate: a delayed, denied, signed-out, missing, or conflicting remote copy never changes the local-saved message or blocks typing/navigation.
 
 ### Document metadata
 
@@ -152,6 +156,18 @@ The default editor does not initialize pace, streak, tour, or scan-heavy analysi
 - The settings drawer controls writing language, lookup language, grammar display, and “Limited assistance”.
 - Limited assistance disables some suggestions/explanations; UI explicitly states that it is not a secure exam mode or locked browser.
 
+### Optional Microsoft 365 dialog
+
+The connector appears when enabled by valid client ID, tenant ID, and bare SharePoint-host metadata, except on localhost where the dialog provides session-only test configuration. A document that already contains local Microsoft metadata keeps its editor button if deployment configuration is removed, so local opt-out never disappears. Local writing remains usable when the connector is absent or disconnected.
+
+- Sign-in is an explicit popup using the configured school tenant, delegated `Files.ReadWrite` only, and the dedicated redirect page. Skriv auto-resumes only one unambiguous account; multiple cached pupils require popup selection. An expired token shows explicit reconnect. Disconnect clears the connector's MSAL app cache without claiming to end browser-wide Microsoft SSO.
+- The student pastes one approved OneDrive or Teams/SharePoint folder link. Before Graph resolution and again on Graph's canonical result, Skriv accepts only credential-free HTTPS URLs on the configured `<tenant>.sharepoint.com` host or its matching `<tenant>-my.sharepoint.com` companion. It resolves the link to a drive/folder target for the session; it does not browse or enumerate Teams and channels.
+- From the library, the dialog lists only `.skriv` files in that folder, bounded to five Graph pages and 200 files. Import uses strict UTF-8 and validation, keeps current school year, clears foreign organization, and enters **Uten mappe**/cleanup desk. Importing the same active item opens its existing local record; an identity in trash must be restored rather than aliased.
+- From the editor, the first explicit link creates one native `.skriv` remote file. Merely connecting, selecting a folder, or firing a stale background timer never opts a local-only document in. Later local saves schedule a non-blocking 2.5-second sync only for already linked documents; unchanged hashes skip upload and later syncs update the same drive item with the upload acknowledgement's eTag. An edit or explicit sync during an in-flight upload queues one follow-up pass. Route teardown first flushes the authoritative local save, then starts one fire-and-forget, existing-link-only final pass before releasing the controller; navigation never waits for Graph.
+- Graph `409 Conflict` and `412 Precondition Failed` become visible conflicts. **Keep both** creates a separately named remote copy and relinks this local document; Skriv never silently forces an overwrite.
+- Stop syncing atomically clears the local link and wins over in-flight acknowledgements or stale timers. It is shown before configuration/account/target prerequisites, so the pupil never signs in or reselects a folder to revoke local sync consent. Local trash/delete and disconnect keep the Microsoft file; remote deletion is not offered.
+- Native remote `.skriv` files are not Word documents, live Office co-authoring, Teams tabs, or Assignment submissions.
+
 ## Export flow
 
 All three exports open a non-blocking self-check dialog. The student may continue regardless of warnings.
@@ -166,3 +182,4 @@ All three exports open a non-blocking self-check dialog. The student may continu
 - A fully cached release works offline.
 - New releases wait behind an explicit update bar; accepting awaits editor save hooks before activation/reload.
 - Core release files are served cache-first from one versioned cache to avoid mixing releases.
+- The MSAL redirect page/bridge are network-only exceptions and therefore unavailable offline; hosting serves both with `Cache-Control: no-store` and no `Cross-Origin-Opener-Policy` header.

@@ -27,3 +27,21 @@ test('every primary store uses the single database opener', async () => {
         assert.doesNotMatch(source, /indexedDB\.open\s*\(/);
     }
 });
+
+test('document updates merge atomically and support stale-metadata guards', async () => {
+    const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const source = await readFile(
+        path.join(repoRoot, 'public/js/app/document-store.js'),
+        'utf8',
+    );
+    const start = source.indexOf('export async function saveDocument');
+    const end = source.indexOf('/**\n * List all documents', start);
+    const saveBlock = source.slice(start, end);
+
+    assert.ok(start >= 0 && end > start);
+    assert.match(saveBlock, /transaction\(STORE_NAME, 'readwrite'\)/);
+    assert.match(saveBlock, /const request = store\.get\(id\)/);
+    assert.match(saveBlock, /store\.put\(updated\)/);
+    assert.match(saveBlock, /options\.expectedFields/);
+    assert.doesNotMatch(saveBlock, /await getDocument\(/);
+});

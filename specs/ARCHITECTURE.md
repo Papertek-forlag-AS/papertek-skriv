@@ -4,7 +4,9 @@
 
 ## Product boundary
 
-Papertek Skriv is a local-first, deliberately small word processor for school writing. It has no account, document server, analytics, or tracking. Documents live in the active browser profile; portability is provided by normal document exports and a whole-library `.skriv` backup.
+Papertek Skriv is a local-first, deliberately small word processor for school writing. It requires no account and has no Papertek document server, analytics, or tracking. Documents live in the active browser profile; portability is provided by normal document exports and a whole-library `.skriv` backup.
+
+A school deployment may additionally enable the opt-in Microsoft 365 connector. After an explicit pupil sign-in and folder choice, the browser can keep individual native `.skriv` copies in a OneDrive or Teams/SharePoint folder through Microsoft Graph. IndexedDB remains the canonical working copy: local saves complete first and never wait for Microsoft. The connector does not provide Word co-authoring, enumerate Teams/channels, or add a Papertek storage backend.
 
 Local-first reduces data exposure but does not make Skriv a locked browser, a secure exam client, or a complete GDPR assessment on behalf of a school.
 
@@ -16,25 +18,28 @@ Local-first reduces data exposure but does not make Skriv a locked browser, a se
 | CSS | Tailwind browser build 3.4.17 + `css/main.css` | Pinned and served locally |
 | Document storage | IndexedDB `skriv-documents` v4 | Documents, trash, folders |
 | Version storage | IndexedDB `skriv-versions` v1 | Bounded document snapshots |
+| Optional school storage | Microsoft Graph v1.0 | Direct delegated browser requests; one `.skriv` file per linked document |
+| Optional Microsoft auth | MSAL Browser 5.17.3 | Vendored authorization code + PKCE client and redirect bridge; session-scoped cache |
 | PDF export | jsPDF 2.5.1 UMD | Pinned local vendor file |
 | Positioning | Floating UI DOM 1.7.5 | Vendored local ES modules |
 | PWA | Manifest + Service Worker | Versioned, atomic offline release cache |
 | i18n | Custom module | Bokmål, Nynorsk, English |
 | Backend/build | None | Static files served as-is |
 
-The application makes no runtime request to a third-party CDN. Same-origin files are cached by the service worker. Leksihjelp is a locally vendored browser bundle.
+The application makes no runtime request to a third-party CDN. Same-origin release files are normally cached by the service worker. Leksihjelp and MSAL Browser are locally vendored. Only an explicitly enabled Microsoft 365 session makes direct cross-origin requests to Microsoft identity, Microsoft Graph, the configured school SharePoint host, and short-lived upload/download URLs. The dedicated MSAL redirect page/bridge and all cross-origin connector traffic bypass the service-worker and browser HTTP caches. `scripts/serve-local.mjs` supplies the redirect-specific headers required for mock-tenant localhost testing.
 
 ## Directory structure
 
 ```text
 public/
 ├── index.html                  SPA shell
+├── microsoft-auth-redirect.html  network-only MSAL popup response bridge
 ├── whitepaper.html             transparency and portability notes
 ├── manifest.json               PWA manifest
-├── sw.js                       Service Worker, current cache `skriv-v78`
+├── sw.js                       Service Worker, current cache `skriv-v80`
 ├── css/main.css                app/editor CSS and responsive rules
 ├── icons/                      install icon
-├── vendor/                     pinned Tailwind and jsPDF distributions
+├── vendor/                     pinned Tailwind, jsPDF, and MSAL Browser distributions
 ├── frames/
 │   ├── nb/                     12 Bokmål writing frames
 │   ├── nn/                     12 Nynorsk writing frames
@@ -56,9 +61,13 @@ public/
 ```text
 app/main.js
 ├── app/document-list.js
-│   └── app/cleanup-desk.js
+│   ├── app/cleanup-desk.js
+│   ├── app/microsoft-storage.js
+│   └── app/microsoft-storage-dialog.js
 ├── app/german-exam-route.js
 └── app/standalone-writer.js
+    ├── app/microsoft-storage.js
+    ├── app/microsoft-storage-dialog.js
     ├── editor-core/student/*
     └── editor-core/shared/*
 ```
@@ -75,13 +84,20 @@ The dependency graph is a DAG. Storage access to `skriv-documents` is centralize
 - `main.js` initializes theme, service-worker updates, interface language, school-level onboarding, and the hash router.
 - Screen teardown is awaited. The editor flushes its latest state before route changes, database upgrades, or an accepted app update.
 - Autosaves are serialized and coalesced; only one IndexedDB write runs at once.
+- An optional Microsoft sync observes completed local saves and runs independently. Navigation and editor teardown await the local flush, never a remote request. Microsoft failures change only the separate remote status and cannot make the local document uneditable.
+- The connector requires delegated `Files.ReadWrite`, exact tenant/client configuration, and a bare global-cloud SharePoint host. Pasted and Graph-resolved URLs must use exactly `<tenant>.sharepoint.com` or its matching `<tenant>-my.sharepoint.com` companion.
+- Its selected target and MSAL account/token cache are session-scoped. A local document stores only a SHA-256 pseudonymous account binding plus remote identity, eTag, sync state, and a nullable in-progress attempt ID; it never stores the Microsoft home-account ID or email address.
+- A linked document is serialized as a validated one-document `.skriv` envelope. Before update/download, Graph metadata must still identify the same `.skriv` item in the selected folder; moved or renamed items fail closed. Updates use the remote eTag with `If-Match`; Graph `409` and `412` become explicit conflicts and the safe resolution is to create a separate “keep both” copy rather than overwrite either version.
+- A remote transfer must remain below 60 MiB. Import rejects oversized drive-item metadata or `Content-Length` and bounds the response stream before UTF-8 decoding, so a missing/false length cannot create an unbounded in-memory read.
+- Connector metadata acknowledgements use an atomic IndexedDB compare-and-swap guard. They cannot overwrite a newer autosave, unlink, or trash transition. An edit or explicit sync arriving during an upload queues one coalesced follow-up pass, so the acknowledged remote hash cannot hide newer local content.
+- Browser backup restore strictly validates the exact Microsoft link schema, rejects duplicate remote item identities, and strips a link when that item is already owned by a different local document.
 - The default editor mounts the writing essentials plus the review drawer, find/replace, and bounded version storage. Scan-heavy optional review modules are dynamically imported only when the student opens them.
 - Writing language belongs to each document and drives native `lang`/spellcheck, Leksihjelp, special characters, and frame language independently of interface language.
 - Version history keeps at most 50 snapshots per document, taken no more often than five minutes unless the text grows by 100 words.
 
 ## PWA and update safety
 
-The current cache is `skriv-v78`.
+The current cache is `skriv-v80`.
 
 1. The service worker atomically precaches the critical app shell and full ES-module graph.
 2. Vendored Leksihjelp code, styles, metadata, and the compact NB fallback are cached best-effort per file. Larger language data is cached on first use by the same-origin fetch handler so installing the word processor does not eagerly download every language.
@@ -89,6 +105,8 @@ The current cache is `skriv-v78`.
 4. A new worker remains waiting. The student explicitly accepts the update.
 5. Every mounted editor registers an awaited flush before `SKIP_WAITING` and reload.
 6. Activation removes only older `skriv-v*` caches, never unrelated origin caches.
+7. Cross-origin Microsoft identity, Graph API, SharePoint, and pre-authenticated upload/download URLs bypass the service-worker cache.
+8. `/microsoft-auth-redirect.html` and `/vendor/msal-redirect-bridge-5.17.3.min.js` are same-origin but explicitly network-only. Hosting must serve both with `Cache-Control: no-store` and no `Cross-Origin-Opener-Policy` response header so MSAL 5 can return a popup response to its opener.
 
 ## Design principles
 
@@ -99,6 +117,7 @@ The current cache is `skriv-v78`.
 5. No build step; pinned third-party distributions are checked in under `public/vendor/` or `editor-core/vendor/`.
 6. All visible strings use i18n and all interactive UI is keyboard-operable.
 7. Browser-profile storage is not a backup; the product exposes `.skriv` library export/merge restore.
+8. Optional integrations preserve the local-first baseline: explicit enablement, least privilege, no Papertek document/token service, no tracking, and no remote action that can block or delete local writing.
 
 ## Routes
 

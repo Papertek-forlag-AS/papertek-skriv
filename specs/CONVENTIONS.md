@@ -1,6 +1,6 @@
 # Conventions
 
-> Last updated: 2026-08-22
+> Last updated: 2026-08-23
 
 ## Feature lifecycle
 
@@ -61,19 +61,39 @@ export function initMyFeature(editor, options = {}) {
 - Autosaves are serialized. A feature calls `schedule()` after content changes and awaits `flush()`/`destroy()` before destructive lifecycle events.
 - A database `versionchange` participates in the same awaited editor-flush event as an app update before closing the connection.
 - Soft delete keeps version snapshots. Permanent delete, empty trash, and expiry purge remove the associated snapshots.
-- Backup restore is merge-only: it must validate before writes, never overwrite a local collision, remap relationships, and be safe to retry.
+- Backup restore is merge-only: it must validate before writes, never overwrite a local collision, remap relationships, and be safe to retry. A collision clone has a new local identity and must drop `microsoft365` so it cannot target the source document's remote item without fresh opt-in.
 - Browser-profile IndexedDB is not durable backup media. UI and documentation must continue to disclose the `.skriv` backup option.
+
+## Optional Microsoft 365 connector
+
+- Microsoft 365 is opt-in and deployment-configured. Missing/invalid client ID, tenant ID, or SharePoint-host metadata must leave the complete local editor usable without starting authentication or Graph requests.
+- Browser authentication uses the checked-in MSAL Browser distribution, authorization code + PKCE, the deployment's exact tenant, delegated `Files.ReadWrite` only, and exactly `{origin}/microsoft-auth-redirect.html`. Never add a client secret, application permission, Teams/directory scope, or a Papertek token proxy to the SPA.
+- `Files.ReadWrite` is the least-privileged delegated permission for the used upload APIs, but the OAuth grant itself is broader than one folder. Skriv's code enforces the selected-folder boundary; governance, consent, and DPIA must assess the actual delegated grant rather than describe it as folder-scoped.
+- Never select an arbitrary entry from MSAL's account cache. Auto-resume only when one account is unambiguous; otherwise require the pupil's explicit popup selection. Disconnect clears the connector's complete MSAL application cache for the tab/session.
+- Production configuration comes from the documented client/tenant/SharePoint-host meta tags. Only localhost may use the three documented session overrides. The host is a bare global-cloud `<tenant>.sharepoint.com` hostname: reject schemes, paths, ports, wildcards, IPs, arbitrary subdomains, and a configured `-my` host.
+- Before and after Graph resolution, accept folder/item URLs only when they are credential-free HTTPS URLs whose hostname equals the configured `<tenant>.sharepoint.com` or its derived `<tenant>-my.sharepoint.com` companion. Never trust Graph to enforce this application boundary on Skriv's behalf.
+- Public configuration values may be deployed in HTML, but secrets, passwords, MFA codes, tokens, folder links, raw MSAL account identifiers, emails, and pupil data never belong in source, logs, screenshots, chat, IndexedDB, or backups.
+- IndexedDB is authoritative. A content edit is saved locally before remote work is scheduled; route teardown and app updates wait for the local flush only. After that flush, editor teardown starts a fire-and-forget final sync only for an existing link and releases the controller when it settles; navigation never waits for Graph. Remote errors must never reject local autosave or make writing unavailable.
+- Keep local-save and Microsoft-sync status separate in the UI. Offline, sign-in, permission, missing-item, rate-limit, and conflict states must say that the local copy is still safe.
+- Remote update/download first verifies that the drive item is still a `.skriv` file in the selected drive/folder with a canonical SharePoint URL. Moved, renamed, foreign, or changed items fail closed. Updates require the last acknowledged eTag through `If-Match`. The upload acknowledgement's eTag is authoritative for the bytes just sent; a failed enrichment read does not invalidate a committed upload, a differing read is immediately a conflict, and Graph `409`/`412` never retry as an unconditional overwrite. The safe resolution is **Keep both**.
+- Asynchronous metadata acknowledgements use `saveDocument`'s atomic `expectedFields` compare-and-swap guard and preserve `updatedAt`. A late request must resolve as superseded rather than overwrite a newer edit/unlink/trash transition. Explicit unlink atomically clears the current link without a stale guard so pupil opt-out wins; scheduled/background sync must require a link again at execution time. A sync request arriving while one upload is in flight must coalesce into a follow-up pass rather than be mistaken for the in-flight result.
+- A selected Microsoft folder and the MSAL account/token cache are session-scoped. `document.microsoft365` may contain only the exact versioned schema with a SHA-256 pseudonymous account binding, bounded remote identity/sync metadata, and a nullable attempt ID; it must not contain tokens, the pasted sharing URL, home-account ID, username, email, display label, or unknown fields. Backup restore rejects duplicate remote identities and removes a link when that item is already owned locally.
+- Native remote files use the validated one-document `.skriv` codec. Decode exact UTF-8, reject connector metadata, and validate HTML/resource safety before browser DOM parsing. Preserve current school year, clear legacy subject, and import into pedagogical **Uten mappe**. Reopening one remote item reuses its active local identity; a trashed identity must be restored instead. Bound folder listing to five Graph pages and 200 `.skriv` files.
+- Local unlink is an unconditional opt-out and must remain available for a linked document without valid deployment configuration, sign-in, or a selected session target. An expired token offers explicit interactive reconnect; localhost test configuration can always be disconnected and cleared from a configured dialog.
+- Remote delete is intentionally outside this connector. Unlinking, local trash, permanent local deletion, or Microsoft disconnect must never delete the Microsoft copy.
+- Cross-origin Microsoft identity, Graph, SharePoint, and pre-authenticated upload/download requests must bypass the Skriv service worker and browser HTTP cache. Fetches omit ambient credentials and referrer data.
+- `/microsoft-auth-redirect.html` and `/vendor/msal-redirect-bridge-5.17.3.min.js` are same-origin exceptions: they must remain outside `ASSETS`, bypass the fetch handler, and be served by the host with `Cache-Control: no-store` and no `Cross-Origin-Opener-Policy` response header. HTML meta directives do not replace these response headers.
 
 ## Service-worker changes
 
 When adding, removing, or renaming a runtime asset:
 
-1. Update `ASSETS` or the managed Leksihjelp inventory in `sw.js`.
+1. Update `ASSETS`, the explicit network-only bypass set, or the managed Leksihjelp inventory in `sw.js`, as appropriate.
 2. Bump `CACHE_NAME`.
 3. Update the current cache version in `ARCHITECTURE.md` and `DATA-MODEL.md`.
 4. Run the offline closure test so all static and dynamic module imports exist in the cache.
 
-Never call `skipWaiting()` during install. A worker waits until an explicit update action completes all registered `skriv:before-app-reload` promises. Fetches for pinned same-origin release assets are cache-first.
+Never call `skipWaiting()` during install. A worker waits until an explicit update action completes all registered `skriv:before-app-reload` promises. Fetches for pinned same-origin release assets are cache-first except for the two documented MSAL response resources; cross-origin connector traffic is never intercepted or cached.
 
 ## Styling and responsive UI
 

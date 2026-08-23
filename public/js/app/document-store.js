@@ -1,6 +1,8 @@
 /**
  * Document storage using IndexedDB.
- * Stores documents locally in the browser — no server, no login.
+ * Stores documents locally in the browser. The optional Microsoft connector
+ * may keep a linked copy elsewhere, but this store remains authoritative for
+ * every writing save and never depends on a login or network connection.
  *
  * Each document: { id, title, html, plainText, wordCount, writingLanguage, createdAt, updatedAt, subject, schoolYear }
  */
@@ -42,6 +44,24 @@ function withDocumentDefaults(doc) {
         ...doc,
         writingLanguage: getDocumentWritingLanguage(doc),
     };
+}
+
+function hasSameStoredValue(left, right) {
+    if (Object.is(left, right)) return true;
+    if (Array.isArray(left) || Array.isArray(right)) {
+        return Array.isArray(left) && Array.isArray(right)
+            && left.length === right.length
+            && left.every((value, index) => hasSameStoredValue(value, right[index]));
+    }
+    if (!left || !right || typeof left !== 'object' || typeof right !== 'object') {
+        return false;
+    }
+
+    const leftKeys = Object.keys(left).sort();
+    const rightKeys = Object.keys(right).sort();
+    return leftKeys.length === rightKeys.length
+        && leftKeys.every((key, index) => key === rightKeys[index]
+            && hasSameStoredValue(left[key], right[key]));
 }
 
 /**
@@ -98,24 +118,62 @@ export async function getDocument(id) {
 
 /**
  * Save (update) a document. Merges provided fields with existing doc.
+ * Metadata-only integrations may preserve the writing timestamp so a remote
+ * acknowledgement does not make the document look locally edited again.
+ *
+ * The read and write share one transaction so metadata acknowledgements can
+ * never overwrite a newer autosave or resurrect a document moved to trash.
+ * `expectedFields` provides an optional compare-and-swap guard for integrations
+ * whose asynchronous work may have been superseded. A failed guard resolves
+ * to `null` without writing.
+ *
+ * @param {string} id
+ * @param {Object} updates
+ * @param {{ preserveUpdatedAt?: boolean, expectedFields?: Object }} [options]
  */
-export async function saveDocument(id, updates) {
+export async function saveDocument(id, updates, options = {}) {
     const db = await openSkrivDatabase();
-    const existing = await getDocument(id);
-    if (!existing) throw new Error(`Document ${id} not found`);
-
-    const updated = {
-        ...existing,
-        ...updates,
-        id, // never overwrite ID
-        updatedAt: new Date().toISOString(),
-    };
 
     return new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readwrite');
-        tx.objectStore(STORE_NAME).put(updated);
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.get(id);
+        let updated = null;
+        let failure = null;
+
+        request.onsuccess = () => {
+            const rawExisting = request.result || null;
+            if (!rawExisting) {
+                failure = new Error(`Document ${id} not found`);
+                tx.abort();
+                return;
+            }
+
+            const expectedFields = options.expectedFields;
+            if (expectedFields && typeof expectedFields === 'object') {
+                const unchanged = Object.entries(expectedFields).every(
+                    ([key, value]) => hasSameStoredValue(rawExisting[key], value),
+                );
+                if (!unchanged) return;
+            }
+
+            const existing = withDocumentDefaults(rawExisting);
+            updated = {
+                ...existing,
+                ...updates,
+                id, // never overwrite ID
+                updatedAt: options.preserveUpdatedAt
+                    ? existing.updatedAt
+                    : new Date().toISOString(),
+            };
+            store.put(updated);
+        };
+        request.onerror = (event) => {
+            failure = event.target.error;
+        };
         tx.oncomplete = () => resolve(updated);
-        tx.onerror = (e) => reject(e.target.error);
+        tx.onerror = (event) => reject(failure || event.target.error);
+        tx.onabort = (event) => reject(failure || event.target.error || tx.error);
     });
 }
 

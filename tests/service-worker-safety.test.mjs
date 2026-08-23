@@ -77,16 +77,22 @@ test('service worker install waits without forcing activation', async () => {
 
 test('service worker activation deletes only older Skriv caches and claims clients', async () => {
     const worker = await loadWorker({
-        cacheNames: ['skriv-v75', 'skriv-v76', 'skriv-v77', 'skriv-v78', 'another-app-cache'],
+        cacheNames: [
+            'skriv-v75', 'skriv-v76', 'skriv-v77', 'skriv-v78', 'skriv-v79',
+            'skriv-v80', 'another-app-cache',
+        ],
     });
 
     await dispatchExtendable(worker.handlers.get('activate'));
-    assert.deepEqual(worker.deletedCaches, ['skriv-v75', 'skriv-v76', 'skriv-v77']);
+    assert.deepEqual(
+        worker.deletedCaches,
+        ['skriv-v75', 'skriv-v76', 'skriv-v77', 'skriv-v78', 'skriv-v79'],
+    );
     assert.equal(worker.claimCalls, 1);
 });
 
 test('service worker serves pinned release assets from cache before the network', async () => {
-    const cachedResponse = { source: 'skriv-v78' };
+    const cachedResponse = { source: 'skriv-v80' };
     const worker = await loadWorker({ cachedResponse });
     let responsePromise;
 
@@ -101,4 +107,47 @@ test('service worker serves pinned release assets from cache before the network'
 
     assert.equal(await responsePromise, cachedResponse);
     assert.equal(worker.fetchCalls, 0);
+});
+
+test('service worker never intercepts Microsoft identity or Graph traffic', async () => {
+    const worker = await loadWorker({ cachedResponse: { unsafe: true } });
+    let responded = false;
+
+    for (const url of [
+        'https://login.microsoftonline.com/tenant/oauth2/v2.0/authorize',
+        'https://graph.microsoft.com/v1.0/drives/example',
+        'https://contoso.sharepoint.com/download/example',
+    ]) {
+        worker.handlers.get('fetch')({
+            request: { method: 'GET', url },
+            respondWith() { responded = true; },
+            waitUntil() {},
+        });
+    }
+
+    assert.equal(responded, false);
+    assert.equal(worker.fetchCalls, 0);
+});
+
+test('MSAL redirect response page and bridge always bypass app caches', async () => {
+    const worker = await loadWorker({ cachedResponse: { unsafe: true } });
+    await dispatchExtendable(worker.handlers.get('install'));
+
+    for (const path of [
+        '/microsoft-auth-redirect.html?auth-response=1',
+        '/vendor/msal-redirect-bridge-5.17.3.min.js',
+    ]) {
+        let responded = false;
+        worker.handlers.get('fetch')({
+            request: { method: 'GET', url: `https://skriv.example${path}` },
+            respondWith() { responded = true; },
+            waitUntil() {},
+        });
+        assert.equal(responded, false, `${path} must stay network-only`);
+    }
+
+    assert.equal(
+        worker.precachedAssets.includes('/vendor/msal-redirect-bridge-5.17.3.min.js'),
+        false,
+    );
 });

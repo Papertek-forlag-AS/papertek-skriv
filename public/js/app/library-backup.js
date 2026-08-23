@@ -46,6 +46,20 @@ const URL_ATTRIBUTES = new Set([
     'href', 'src', 'xlink:href', 'action', 'formaction', 'poster', 'background',
 ]);
 const RESOURCE_URL_ATTRIBUTES = new Set(['src', 'xlink:href', 'poster', 'background']);
+const MICROSOFT_LINK_KEYS = Object.freeze([
+    'version', 'tenantId', 'accountBinding', 'driveId', 'folderId', 'folderName',
+    'folderWebUrl', 'remoteDocumentId', 'itemId', 'fileName', 'webUrl', 'eTag',
+    'cTag', 'lastSyncedAt', 'lastSyncedHash', 'state', 'errorCode', 'attemptId',
+]);
+const MICROSOFT_LINK_STATES = new Set([
+    'pending', 'synced', 'conflict', 'error', 'needs-sign-in',
+    'permission-denied', 'remote-missing', 'account-mismatch',
+    'target-required', 'target-mismatch',
+]);
+const MICROSOFT_GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MICROSOFT_ZERO_GUID = '00000000-0000-0000-0000-000000000000';
+const MICROSOFT_HASH_PATTERN = /^[0-9a-f]{64}$/;
+const MICROSOFT_SHAREPOINT_HOST_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:-my)?\.sharepoint\.com$/i;
 
 function invalidBackup(reason) {
     throw new Error(`invalid-backup:${reason}`);
@@ -104,6 +118,94 @@ function assertId(value, field) {
     if (typeof value !== 'string' || value.length === 0 || value.length > MAX_ID_LENGTH) {
         invalidBackup(field);
     }
+}
+
+function assertNullableString(value, field, max = MAX_ID_LENGTH) {
+    if (value === null) return;
+    if (typeof value !== 'string' || !value || value.length > max) invalidBackup(field);
+}
+
+function assertCanonicalSharePointUrl(value, field, { nullable = false } = {}) {
+    if (nullable && value === null) return;
+    assertNullableString(value, field, 10000);
+    let url;
+    try {
+        url = new URL(value);
+    } catch {
+        invalidBackup(field);
+    }
+    if (url.protocol !== 'https:' || url.username || url.password || url.port
+        || !MICROSOFT_SHAREPOINT_HOST_PATTERN.test(url.hostname)) {
+        invalidBackup(field);
+    }
+}
+
+function validateMicrosoftLink(value, collection) {
+    if (value === undefined || value === null) return;
+    assertPlainRecord(value, `${collection}-microsoft365`);
+    const keys = Object.keys(value).sort();
+    const expected = [...MICROSOFT_LINK_KEYS].sort();
+    if (keys.length !== expected.length
+        || keys.some((key, index) => key !== expected[index])) {
+        invalidBackup(`${collection}-microsoft365-shape`);
+    }
+    if (value.version !== 1) invalidBackup(`${collection}-microsoft365-version`);
+    if (!MICROSOFT_GUID_PATTERN.test(value.tenantId || '')
+        || value.tenantId.toLowerCase() === MICROSOFT_ZERO_GUID) {
+        invalidBackup(`${collection}-microsoft365-tenantId`);
+    }
+    if (!MICROSOFT_HASH_PATTERN.test(value.accountBinding || '')) {
+        invalidBackup(`${collection}-microsoft365-accountBinding`);
+    }
+    for (const field of ['driveId', 'folderId']) {
+        if (value[field] === null) invalidBackup(`${collection}-microsoft365-${field}`);
+        assertNullableString(value[field], `${collection}-microsoft365-${field}`);
+    }
+    if (value.folderName === null) invalidBackup(`${collection}-microsoft365-folderName`);
+    assertNullableString(value.folderName, `${collection}-microsoft365-folderName`, 1000);
+    assertCanonicalSharePointUrl(
+        value.folderWebUrl,
+        `${collection}-microsoft365-folderWebUrl`,
+    );
+    for (const field of ['remoteDocumentId', 'itemId', 'eTag', 'cTag', 'attemptId']) {
+        assertNullableString(value[field], `${collection}-microsoft365-${field}`, 2048);
+    }
+    if (value.fileName !== null) {
+        assertNullableString(value.fileName, `${collection}-microsoft365-fileName`, 512);
+        if (!/\.skriv$/i.test(value.fileName) || /[\\/]/.test(value.fileName)) {
+            invalidBackup(`${collection}-microsoft365-fileName`);
+        }
+    }
+    assertCanonicalSharePointUrl(
+        value.webUrl,
+        `${collection}-microsoft365-webUrl`,
+        { nullable: true },
+    );
+    if (value.lastSyncedAt !== null) {
+        assertNullableString(value.lastSyncedAt, `${collection}-microsoft365-lastSyncedAt`, 1000);
+        if (Number.isNaN(Date.parse(value.lastSyncedAt))) {
+            invalidBackup(`${collection}-microsoft365-lastSyncedAt`);
+        }
+    }
+    if (value.lastSyncedHash !== null
+        && !MICROSOFT_HASH_PATTERN.test(value.lastSyncedHash || '')) {
+        invalidBackup(`${collection}-microsoft365-lastSyncedHash`);
+    }
+    if (!MICROSOFT_LINK_STATES.has(value.state)) {
+        invalidBackup(`${collection}-microsoft365-state`);
+    }
+    if (value.errorCode !== null) {
+        assertNullableString(value.errorCode, `${collection}-microsoft365-errorCode`, 256);
+        if (!/^[a-z0-9._:-]+$/i.test(value.errorCode)) {
+            invalidBackup(`${collection}-microsoft365-errorCode`);
+        }
+    }
+}
+
+function microsoftRemoteIdentity(record) {
+    const link = record?.microsoft365;
+    if (!link?.itemId) return '';
+    return `${String(link.tenantId).toLowerCase()}\0${link.driveId}\0${link.itemId}`;
 }
 
 function decodeUrlEntities(value) {
@@ -184,8 +286,11 @@ function assertSafeHtml(html, field) {
     if (html === undefined) return;
     assertString(html, field, { max: MAX_HTML_LENGTH });
     if (html.includes('\0')) invalidBackup('unsafe-html-null');
+    // Reject active tags and resource-bearing attributes before DOMParser is
+    // constructed. Browser DOMParser documents are inert for script, but may
+    // still start image/frame fetches while parsing hostile imported markup.
+    assertSafeHtmlFallback(html);
     if (typeof DOMParser === 'function') assertSafeHtmlWithDom(html);
-    else assertSafeHtmlFallback(html);
 }
 
 function validateDocumentRecord(record, collection) {
@@ -229,6 +334,7 @@ function validateDocumentRecord(record, collection) {
         assertString(record.germanHint.simple, `${collection}-germanHint-simple`, { optional: true, max: 1000000 });
         assertString(record.germanHint.rich, `${collection}-germanHint-rich`, { optional: true, max: 1000000 });
     }
+    validateMicrosoftLink(record.microsoft365, collection);
 }
 
 function validateFolderRecord(folder) {
@@ -300,11 +406,17 @@ function validateBackupData(data) {
     if (data.versions.length > MAX_VERSIONS) invalidBackup('version-count');
 
     const documentIds = new Set();
+    const microsoftRemoteItems = new Set();
     for (const [collection, records] of [['documents', data.documents], ['trash', data.trash]]) {
         for (const record of records) {
             validateDocumentRecord(record, collection);
             if (documentIds.has(record.id)) invalidBackup('duplicate-document-id');
             documentIds.add(record.id);
+            const remoteIdentity = microsoftRemoteIdentity(record);
+            if (remoteIdentity && microsoftRemoteItems.has(remoteIdentity)) {
+                invalidBackup('duplicate-microsoft-item');
+            }
+            if (remoteIdentity) microsoftRemoteItems.add(remoteIdentity);
         }
     }
     for (const folder of data.folders) validateFolderRecord(folder);
@@ -376,6 +488,11 @@ function canonicalString(value) {
 
 function recordsEqual(left, right) {
     return canonicalString(left) === canonicalString(right);
+}
+
+function withoutMicrosoftLink(record) {
+    const { microsoft365: _microsoft365, ...localOnlyRecord } = record;
+    return localOnlyRecord;
 }
 
 function stableHash(value) {
@@ -513,8 +630,15 @@ export function buildLibraryRestorePlan(data, existingData) {
     }
 
     const existingEntries = new Map();
+    const existingRemoteOwners = new Map();
     for (const [storeName, records] of [['documents', existingData.documents || []], ['trash', existingData.trash || []]]) {
-        for (const record of records) existingEntries.set(record.id, { storeName, record });
+        for (const record of records) {
+            existingEntries.set(record.id, { storeName, record });
+            const remoteIdentity = microsoftRemoteIdentity(record);
+            if (remoteIdentity && !existingRemoteOwners.has(remoteIdentity)) {
+                existingRemoteOwners.set(remoteIdentity, { storeName, id: record.id });
+            }
+        }
     }
 
     const documentIdMap = new Map();
@@ -530,16 +654,29 @@ export function buildLibraryRestorePlan(data, existingData) {
                 ...sourceRecord,
                 folderIds: (sourceRecord.folderIds || []).map(folderId => folderIdMap.get(folderId)),
             };
+            // A conflict clone has a new local identity and must require a new
+            // explicit Microsoft opt-in. Otherwise two local records can point
+            // at and autosync over the same remote drive item.
+            const conflictRecord = withoutMicrosoftLink(remapped);
             const existingAtOriginalId = existingEntries.get(sourceRecord.id);
+            const remoteIdentity = microsoftRemoteIdentity(remapped);
+            const remoteOwner = remoteIdentity
+                ? existingRemoteOwners.get(remoteIdentity)
+                : null;
+            const remoteOwnedElsewhere = remoteOwner
+                && (remoteOwner.id !== sourceRecord.id || remoteOwner.storeName !== storeName);
+            const safeRemapped = remoteOwnedElsewhere
+                ? withoutMicrosoftLink(remapped)
+                : remapped;
             const baseId = stableConflictId(`document_${storeName}`, sourceRecord);
             const replay = findVerifiedReplay(
                 existingEntries,
                 baseId,
                 (candidateId, occupied) => occupied.storeName === storeName
                     && recordsEqual(occupied.record, {
-                        ...remapped,
+                        ...conflictRecord,
                         id: candidateId,
-                        title: `${remapped.title || 'Uten tittel'} (gjenopprettet)`,
+                        title: `${conflictRecord.title || 'Uten tittel'} (gjenopprettet)`,
                     }),
             );
             if (replay) {
@@ -551,7 +688,7 @@ export function buildLibraryRestorePlan(data, existingData) {
 
             if (existingAtOriginalId
                 && existingAtOriginalId.storeName === storeName
-                && recordsEqual(existingAtOriginalId.record, remapped)) {
+                && recordsEqual(existingAtOriginalId.record, safeRemapped)) {
                 documentIdMap.set(sourceRecord.id, sourceRecord.id);
                 skipped++;
                 continue;
@@ -560,17 +697,20 @@ export function buildLibraryRestorePlan(data, existingData) {
             const hasConflict = !!existingAtOriginalId;
             if (!hasConflict) {
                 documentIdMap.set(sourceRecord.id, sourceRecord.id);
-                existingEntries.set(sourceRecord.id, { storeName, record: remapped });
-                (storeName === 'documents' ? documentWrites : trashWrites).push(remapped);
+                existingEntries.set(sourceRecord.id, { storeName, record: safeRemapped });
+                (storeName === 'documents' ? documentWrites : trashWrites).push(safeRemapped);
+                if (remoteIdentity && !remoteOwnedElsewhere) {
+                    existingRemoteOwners.set(remoteIdentity, { storeName, id: sourceRecord.id });
+                }
                 imported++;
                 continue;
             }
 
             const targetId = firstAvailableConflictId(existingEntries, baseId);
             const restored = {
-                ...remapped,
+                ...conflictRecord,
                 id: targetId,
-                title: `${remapped.title || 'Uten tittel'} (gjenopprettet)`,
+                title: `${conflictRecord.title || 'Uten tittel'} (gjenopprettet)`,
             };
             documentIdMap.set(sourceRecord.id, targetId);
             existingEntries.set(targetId, { storeName, record: restored });

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicRoot = path.join(repoRoot, 'public');
@@ -11,6 +12,8 @@ const publicRoot = path.join(repoRoot, 'public');
 const PINNED_VENDOR_HASHES = new Map([
     ['vendor/tailwindcss-3.4.17.js', '176e894661aa9cdc9a5cba6c720044cbbf7b8bd80d1c9a142a7c24b1b6c50d15'],
     ['vendor/jspdf-2.5.1.umd.min.js', 'ad6f488d08db2b2ab965c0a97e077602509e48121d0cd422fe7f681ad9cf8f0a'],
+    ['vendor/msal-browser-5.17.3.min.js', '9b890db3ff7c399318b805665a13fb89006ced0baaac351ffd1c77bd39e5b652'],
+    ['vendor/msal-redirect-bridge-5.17.3.min.js', '3c26e0500ca46e53386c95c120b22a7fc9023ab55142206c4130c54379ecf5d1'],
 ]);
 
 function normalizeAsset(asset) {
@@ -45,6 +48,27 @@ test('pinned browser distributions match their reviewed SHA-256 hashes', async (
         const actual = createHash('sha256').update(contents).digest('hex');
         assert.equal(actual, expected, `${relativePath} changed without a dependency review`);
     }
+});
+
+test('MSAL 5 uses a dedicated no-store redirect bridge page', async () => {
+    const redirect = await readFile(
+        path.join(publicRoot, 'microsoft-auth-redirect.html'),
+        'utf8',
+    );
+    assert.match(redirect, /Cache-Control" content="no-store/);
+    assert.match(redirect, /msal-redirect-bridge-5\.17\.3\.min\.js/);
+    assert.match(redirect, /broadcastResponseToMainFrame\(\)/);
+    assert.doesNotMatch(redirect, /js\/app\/main\.js|location\.hash|indexedDB/);
+
+    const inlineScripts = [...redirect.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+    const bridgeCall = inlineScripts.at(-1)?.[1] || '';
+    let closeCalls = 0;
+    assert.doesNotThrow(() => runInNewContext(bridgeCall, {
+        globalThis: { close() { closeCalls += 1; } },
+        Promise,
+        Error,
+    }));
+    assert.equal(closeCalls, 1, 'a missing bridge closes the popup instead of stranding sign-in');
 });
 
 function localImports(source) {

@@ -53,6 +53,9 @@ import {
 } from './document-store.js';
 import { createFolderPicker, createFolderBadges } from './folder-picker.js';
 import { getAllFolders } from './folder-store.js';
+import { isMicrosoftLocalhost } from './microsoft-config.js';
+import { createMicrosoftStorage } from './microsoft-storage.js';
+import { showMicrosoftStorageDialog } from './microsoft-storage-dialog.js';
 
 const WRITING_LANGUAGE_LABEL_KEYS = {
     nb: 'language.nb',
@@ -94,6 +97,47 @@ export async function launchEditor(container, docId, onBack, options = {}) {
     );
 
     let onExportOutsideClick = null;
+    let microsoftButton = null;
+
+    function renderMicrosoftState(state = 'local-only') {
+        if (!microsoftButton) return;
+        const normalized = [
+            'local-only', 'syncing', 'synced', 'conflict', 'pending',
+            'needs-sign-in', 'permission-denied', 'remote-missing',
+            'account-mismatch', 'target-required', 'target-mismatch', 'error',
+        ].includes(state) ? state : 'error';
+        const dot = microsoftButton.querySelector('[data-microsoft-state-dot]');
+        const dotClasses = {
+            'local-only': 'bg-stone-300 dark:bg-stone-600',
+            syncing: 'bg-sky-500 animate-pulse',
+            synced: 'bg-emerald-500',
+            conflict: 'bg-amber-500',
+            pending: 'bg-sky-400',
+            'needs-sign-in': 'bg-amber-500',
+            'permission-denied': 'bg-red-500',
+            'remote-missing': 'bg-amber-500',
+            'account-mismatch': 'bg-red-500',
+            'target-required': 'bg-amber-500',
+            'target-mismatch': 'bg-red-500',
+            error: 'bg-red-500',
+        };
+        dot.className = `w-2 h-2 rounded-full flex-shrink-0 ${dotClasses[normalized]}`;
+        const label = t(`microsoft.state.${normalized}`);
+        microsoftButton.title = label;
+        microsoftButton.setAttribute('aria-label', `${t('microsoft.button')}: ${label}`);
+        microsoftButton.dataset.microsoftState = normalized;
+    }
+
+    const microsoftStorage = createMicrosoftStorage({
+        onStatus(event) {
+            if (!event?.documentId || event.documentId === docId) {
+                renderMicrosoftState(event?.state || event?.link?.state);
+            }
+        },
+    });
+    const showMicrosoftButton = microsoftStorage.isConfigured()
+        || isMicrosoftLocalhost()
+        || Boolean(doc.microsoft365);
 
     container.innerHTML = '';
 
@@ -130,6 +174,11 @@ export async function launchEditor(container, docId, onBack, options = {}) {
                 title="${escapeAttr(t('leksihjelp.buttonTitle'))}" aria-label="${escapeAttr(t('leksihjelp.buttonTitle'))}">
                 <span aria-hidden="true">📚</span>
                 <span class="btn-label">${t('leksihjelp.button')}</span>
+            </button>
+            <button id="btn-microsoft" class="${showMicrosoftButton ? '' : 'hidden '}text-xs px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors flex items-center gap-1.5"
+                title="${escapeAttr(t('microsoft.buttonTitle'))}" aria-label="${escapeAttr(t('microsoft.buttonTitle'))}">
+                <span data-microsoft-state-dot class="w-2 h-2 rounded-full flex-shrink-0 bg-stone-300 dark:bg-stone-600" aria-hidden="true"></span>
+                <span class="btn-label">${t('microsoft.button')}</span>
             </button>
         </div>
         <div class="relative flex-shrink-0">
@@ -277,6 +326,8 @@ export async function launchEditor(container, docId, onBack, options = {}) {
     // --- Element references ---
     const titleInput = titleRow.querySelector('#doc-title');
     const saveStatusEl = topBar.querySelector('#save-status');
+    microsoftButton = topBar.querySelector('#btn-microsoft');
+    renderMicrosoftState(doc.microsoft365?.state || (doc.microsoft365 ? 'pending' : 'local-only'));
 
     // --- Auto-save (separate module) ---
     const getDocumentState = () => {
@@ -298,6 +349,7 @@ export async function launchEditor(container, docId, onBack, options = {}) {
             await saveDocument(docId, state);
             doc.title = state.title;
             doc.writingLanguage = state.writingLanguage;
+            microsoftStorage.scheduleDocumentSync(docId);
         },
         getState: getDocumentState,
         statusEl: saveStatusEl,
@@ -308,6 +360,33 @@ export async function launchEditor(container, docId, onBack, options = {}) {
             offline: `<div class="flex items-center gap-1.5" title="${escapeAttr(t('skriv.savedLocally'))}"><svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg><span class="hidden sm:inline">${t('skriv.offline')}</span></div>`,
             error: t('skriv.saveError'),
         },
+    });
+
+    microsoftButton.addEventListener('click', async () => {
+        const didSave = await autoSave.flush();
+        if (!didSave) {
+            showToast(t('skriv.saveError'), { duration: 3000 });
+            return;
+        }
+
+        try {
+            await showMicrosoftStorageDialog({
+                storage: microsoftStorage,
+                documentId: docId,
+                onConfigurationChanged: () => globalThis.location.reload(),
+                onDocumentChanged(updatedDocument) {
+                    renderMicrosoftState(
+                        updatedDocument?.microsoft365?.state
+                        || updatedDocument?.link?.state
+                        || updatedDocument?.state,
+                    );
+                },
+            });
+            const current = await microsoftStorage.getDocumentSyncState(docId);
+            renderMicrosoftState(current?.state || current?.link?.state);
+        } catch {
+            showToast(t('microsoft.error.generic'), { duration: 3000 });
+        }
     });
 
     // A waiting service worker asks every active editor to flush before it is
@@ -840,6 +919,16 @@ export async function launchEditor(container, docId, onBack, options = {}) {
                 throw new Error('Could not save document before leaving the editor');
             }
 
+            // Navigation never waits for Microsoft, but the final local save
+            // must still get a chance to reach an already linked remote copy.
+            // Defer controller teardown until this fire-and-forget pass (and
+            // any coalesced in-flight follow-up) settles.
+            void Promise.resolve(microsoftStorage.syncDocument(docId, {
+                requireExistingLink: true,
+            })).catch(() => null).finally(() => {
+                Promise.resolve(microsoftStorage.destroy?.()).catch(() => {});
+            });
+
             document.removeEventListener('skriv:before-app-reload', onBeforeAppReload);
             document.removeEventListener('skriv:app-reload-cancelled', onAppReloadCancelled);
             toolbarApi.destroy();
@@ -975,6 +1064,7 @@ export async function launchEditor(container, docId, onBack, options = {}) {
     // --- Wire editor input to auto-save ---
     editor.addEventListener('input', autoSave.schedule);
     titleInput.addEventListener('input', autoSave.schedule);
+    if (doc.microsoft365) microsoftStorage.scheduleDocumentSync(docId);
 
     // --- Placeholder CSS ---
     const style = document.createElement('style');

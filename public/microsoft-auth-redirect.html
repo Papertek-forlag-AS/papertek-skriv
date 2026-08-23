@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Microsoft Authentication</title>
+</head>
+<body>
+    <script src="/vendor/msal-redirect-bridge-5.17.3.min.js"></script>
+    <script>
+        try {
+            const bridge = globalThis.msalRedirectBridge;
+            if (typeof bridge?.broadcastResponseToMainFrame !== 'function') {
+                throw new Error('MSAL redirect bridge unavailable');
+            }
+            Promise.resolve(bridge.broadcastResponseToMainFrame()).catch(() => {
+                globalThis.close();
+            });
+        } catch {
+            globalThis.close();
+        }
+    </script>
+</body>
+</html>

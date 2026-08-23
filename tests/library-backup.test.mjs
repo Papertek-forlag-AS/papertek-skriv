@@ -26,6 +26,30 @@ function backupText(data) {
     });
 }
 
+function microsoftLink(overrides = {}) {
+    return {
+        version: 1,
+        tenantId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        accountBinding: 'a'.repeat(64),
+        driveId: 'drive',
+        folderId: 'folder',
+        folderName: 'Skriv',
+        folderWebUrl: 'https://contoso.sharepoint.com/sites/Class/Documents/Skriv',
+        remoteDocumentId: 'remote-document',
+        itemId: 'remote-item',
+        fileName: 'document.skriv',
+        webUrl: 'https://contoso.sharepoint.com/sites/Class/Documents/Skriv/document.skriv',
+        eTag: 'remote-etag',
+        cTag: 'remote-ctag',
+        lastSyncedAt: '2026-08-23T12:00:00.000Z',
+        lastSyncedHash: 'b'.repeat(64),
+        state: 'synced',
+        errorCode: null,
+        attemptId: null,
+        ...overrides,
+    };
+}
+
 test('library backup round-trips all supported stores', () => {
     const data = {
         documents: [{ id: 'doc-1', title: 'Tekst', html: '<p>Hei</p>' }],
@@ -85,6 +109,27 @@ test('library backup validates record types and unique live/trash document IDs',
     assert.throws(() => parseLibraryBackup(backupText({
         settings: { skriv_theme: 42 },
     })), /invalid-backup:setting-skriv_theme/);
+});
+
+test('library backup strictly validates Microsoft metadata and unique remote identities', () => {
+    assert.throws(() => parseLibraryBackup(backupText({
+        documents: [{
+            id: 'unknown-key',
+            microsoft365: { ...microsoftLink(), accessToken: 'must-never-persist' },
+        }],
+    })), /invalid-backup:documents-microsoft365-shape/);
+
+    assert.throws(() => parseLibraryBackup(backupText({
+        documents: [{
+            id: 'raw-account',
+            microsoft365: microsoftLink({ accountBinding: 'student@school.example' }),
+        }],
+    })), /invalid-backup:documents-microsoft365-accountBinding/);
+
+    assert.throws(() => parseLibraryBackup(backupText({
+        documents: [{ id: 'live', microsoft365: microsoftLink() }],
+        trash: [{ id: 'trash', microsoft365: microsoftLink() }],
+    })), /invalid-backup:duplicate-microsoft-item/);
 });
 
 test('library backup rejects missing, cyclic, too-deep, and dangling folder references', () => {
@@ -167,6 +212,34 @@ test('library backup accepts normal editor markup and rejects active HTML', () =
     }
 });
 
+test('remote resources are rejected before a browser DOMParser can fetch them', () => {
+    const hadDomParser = Object.hasOwn(globalThis, 'DOMParser');
+    const originalDomParser = globalThis.DOMParser;
+    let constructed = 0;
+    globalThis.DOMParser = class UnsafeConstructionSentinel {
+        constructor() {
+            constructed += 1;
+            throw new Error('DOMParser must not see resource-bearing markup');
+        }
+    };
+
+    try {
+        for (const html of [
+            '<img src="https://tracker.example/pupil.png">',
+            '<iframe src="https://internal.example/action"></iframe>',
+        ]) {
+            assert.throws(
+                () => parseLibraryBackup(backupText({ documents: [{ id: 'unsafe', html }] })),
+                /invalid-backup:unsafe-html/,
+            );
+        }
+        assert.equal(constructed, 0);
+    } finally {
+        if (hadDomParser) globalThis.DOMParser = originalDomParser;
+        else delete globalThis.DOMParser;
+    }
+});
+
 test('folder conflicts use a stable map without overwriting local folders', () => {
     const data = libraryData({
         folders: [
@@ -223,7 +296,13 @@ test('folder conflicts use a stable map without overwriting local folders', () =
 
 test('document conflict IDs are deterministic and verify prior restore content', () => {
     const data = libraryData({
-        documents: [{ id: 'doc', title: 'Backup', html: '<p>Backup</p>', folderIds: [] }],
+        documents: [{
+            id: 'doc',
+            title: 'Backup',
+            html: '<p>Backup</p>',
+            folderIds: [],
+            microsoft365: microsoftLink(),
+        }],
     });
     const existing = libraryData({
         documents: [{ id: 'doc', title: 'Local', html: '<p>Local</p>', folderIds: [] }],
@@ -241,6 +320,7 @@ test('document conflict IDs are deterministic and verify prior restore content',
     const restored = restore.documentWrites[0];
     assert.equal(restored.id, `${firstCandidate}_2`);
     assert.equal(restored.title, 'Backup (gjenopprettet)');
+    assert.equal(restored.microsoft365, undefined, 'a conflict clone needs fresh cloud opt-in');
 
     const afterRestore = libraryData({ documents: [...occupied.documents, restored] });
     const retry = buildLibraryRestorePlan(data, afterRestore);
@@ -254,6 +334,28 @@ test('document conflict IDs are deterministic and verify prior restore content',
     );
     assert.equal(retryAfterOriginalWasDeleted.documentWrites.length, 0);
     assert.equal(retryAfterOriginalWasDeleted.documentIdMap.get('doc'), restored.id);
+});
+
+test('restore strips a remote link already owned by another local document', () => {
+    const link = microsoftLink();
+    const data = libraryData({
+        documents: [{ id: 'incoming', title: 'Backup', folderIds: [], microsoft365: link }],
+    });
+    const existing = libraryData({
+        documents: [{ id: 'local-owner', title: 'Local', folderIds: [], microsoft365: link }],
+    });
+
+    const first = buildLibraryRestorePlan(data, existing);
+    assert.equal(first.documentWrites.length, 1);
+    assert.equal(first.documentWrites[0].id, 'incoming');
+    assert.equal(first.documentWrites[0].microsoft365, undefined);
+
+    const retry = buildLibraryRestorePlan(
+        data,
+        libraryData({ documents: [...existing.documents, ...first.documentWrites] }),
+    );
+    assert.equal(retry.documentWrites.length, 0, 'the local-only collision is idempotent');
+    assert.equal(retry.documentIdMap.get('incoming'), 'incoming');
 });
 
 test('version restore maps document IDs and deduplicates snapshots across retries', () => {

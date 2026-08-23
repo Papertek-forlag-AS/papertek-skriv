@@ -4,7 +4,13 @@
  */
 
 const CACHE_PREFIX = 'skriv-v';
-const CACHE_NAME = 'skriv-v78';
+const CACHE_NAME = 'skriv-v80';
+// MSAL 5's redirect bridge handles raw authorization responses. Microsoft
+// requires both the bridge page and its script to bypass all app caches.
+const MICROSOFT_AUTH_NO_STORE_PATHS = new Set([
+    '/microsoft-auth-redirect.html',
+    '/vendor/msal-redirect-bridge-5.17.3.min.js',
+]);
 const ASSETS = [
     '/',
     '/index.html',
@@ -13,6 +19,7 @@ const ASSETS = [
     '/css/main.css',
     '/vendor/tailwindcss-3.4.17.js',
     '/vendor/jspdf-2.5.1.umd.min.js',
+    '/vendor/msal-browser-5.17.3.min.js',
     '/icons/icon-192.svg',
     '/js/app/main.js',
     '/js/app/db.js',
@@ -34,6 +41,12 @@ const ASSETS = [
     '/js/app/leksihjelp-settings.js',
     '/js/app/leksihjelp-dictionary.js',
     '/js/app/library-backup.js',
+    '/js/app/microsoft-config.js',
+    '/js/app/microsoft-auth.js',
+    '/js/app/microsoft-graph.js',
+    '/js/app/microsoft-document-codec.js',
+    '/js/app/microsoft-storage.js',
+    '/js/app/microsoft-storage-dialog.js',
     '/js/editor-core/config.js',
     '/js/editor-core/vendor/floating-ui-utils.js',
     '/js/editor-core/vendor/floating-ui-core.js',
@@ -400,6 +413,7 @@ self.addEventListener('fetch', (event) => {
 
     const url = new URL(event.request.url);
     if (url.origin !== self.location.origin) return;
+    if (MICROSOFT_AUTH_NO_STORE_PATHS.has(url.pathname)) return;
 
     event.respondWith(
         caches.match(event.request).then((cached) => {

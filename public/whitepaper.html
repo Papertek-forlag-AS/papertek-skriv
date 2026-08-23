@@ -32,7 +32,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 Tilbake til Skriv
             </a>
-            <span class="text-xs text-stone-400">Whitepaper v1.1 &middot; August 2026</span>
+            <span class="text-xs text-stone-400">Whitepaper v1.2 &middot; August 2026</span>
         </div>
     </nav>
 
@@ -94,6 +94,12 @@
                     viktig fordi sletting av nettleserdata, tilbakestilling av profilen eller tap av enheten ellers
                     kan føre til tap av lokale dokumenter.
                 </p>
+                <p>
+                    En skole kan i tillegg aktivere en <strong>valgfri Microsoft 365-kobling</strong>. Etter at
+                    eleven selv kobler til skolekontoen og velger en godkjent mappe, kan Skriv lagre én separat
+                    .skriv-kopi per dokument direkte i OneDrive eller Teams/SharePoint. Den lokale kopien er fortsatt
+                    arbeidskopien, og Papertek mottar verken dokumentet eller Microsoft-tokenet.
+                </p>
             </div>
         </section>
 
@@ -149,11 +155,18 @@
                         <h3 class="font-semibold text-stone-900 mb-1">Fungerer offline</h3>
                         <p class="text-sm text-stone-500">PWA-teknologi gjør at appen virker uten nett etter en vellykket første innlasting. Nye versjoner må hentes når enheten er på nett.</p>
                     </div>
+                    <div class="bg-white border border-stone-200 rounded-xl p-5">
+                        <div class="text-2xl mb-2">&#9729;&#65039;</div>
+                        <h3 class="font-semibold text-stone-900 mb-1">Valgfri skolelagring</h3>
+                        <p class="text-sm text-stone-500">En skoleaktivert Microsoft 365-kobling kan synkronisere native .skriv-filer til én valgt OneDrive- eller Teams/SharePoint-mappe.</p>
+                    </div>
                 </div>
 
                 <p>
-                    Skriv krever ingen innlogging eller lisens for å begynne å skrive. Skoler bør likevel ha rutiner
-                    for elevens nettleserprofil, lokale sikkerhetskopier og behandling av eksporterte filer.
+                    Skriv krever ingen innlogging eller lisens for å begynne å skrive. Microsoft-tilkobling er et
+                    eksplisitt tillegg i skoleoppsett der den er aktivert; lokal bruk fungerer uavhengig av den.
+                    Skoler bør ha rutiner for elevens nettleserprofil, sikkerhetskopier og behandling av eksporterte
+                    og eventuelt synkroniserte filer.
                 </p>
             </div>
         </section>
@@ -173,16 +186,18 @@
                     <div><span class="text-emerald-700 font-semibold">Frontend:</span> HTML, CSS og JavaScript (vanilla)</div>
                     <div><span class="text-emerald-700 font-semibold">UI:</span> Tailwind CSS 3.4.17 og Floating UI DOM 1.7.5 (lokale filer)</div>
                     <div><span class="text-emerald-700 font-semibold">Lagring:</span> IndexedDB (lokal i nettleserprofilen)</div>
+                    <div><span class="text-emerald-700 font-semibold">Valgfri skolelagring:</span> Microsoft Graph til valgt OneDrive/SharePoint-mappe</div>
+                    <div><span class="text-emerald-700 font-semibold">Microsoft-innlogging:</span> MSAL Browser 5.17.3 (lokal fil, PKCE)</div>
                     <div><span class="text-emerald-700 font-semibold">Offline:</span> Service Worker (PWA)</div>
                     <div><span class="text-emerald-700 font-semibold">PDF:</span> jsPDF 2.5.1 (lokal fil, kjøres i nettleseren)</div>
-                    <div><span class="text-emerald-700 font-semibold">Dokument-backend:</span> Ingen</div>
+                    <div><span class="text-emerald-700 font-semibold">Papertek-dokument-backend:</span> Ingen</div>
                 </div>
 
                 <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Frontend-only</h3>
                 <p>
                     Skriv er en ren frontend-applikasjon. Redigering, automatisk lagring, sikkerhetskopiering og
-                    PDF-generering skjer i nettleseren. Appen har ingen dokumentdatabase i skyen og gjør ingen
-                    runtime-kall til CDN-er. Dette betyr at:
+                    PDF-generering skjer i nettleseren. Appen har ingen Papertek-database eller tokenserver for
+                    dokumenter og gjør ingen runtime-kall til CDN-er. Dette betyr at:
                 </p>
                 <ul class="list-disc list-inside space-y-1 text-stone-700 ml-2">
                     <li>Dokumentinnhold lastes ikke automatisk opp til Papertek</li>
@@ -193,6 +208,49 @@
                 <p>
                     Første besøk og senere oppdateringer krever at de statiske appfilene lastes ned fra nettstedet.
                     Service Workeren mellomlagrer deretter appskallet og de lokale avhengighetene for offline-bruk.
+                </p>
+
+                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Valgfri, direkte Microsoft 365-kobling</h3>
+                <p>
+                    Når en skole har konfigurert koblingen og eleven aktivt bruker den, snakker nettleseren direkte
+                    med Microsofts identitetstjeneste og Microsoft Graph. Den lokalt distribuerte MSAL Browser-filen
+                    bruker autorisasjonskodeflyt med PKCE, en sesjonsavgrenset konto-/tokenbuffer og den dedikerte
+                    svaradressen <code>/microsoft-auth-redirect.html</code>. Skriv ber bare om den
+                    delegerte Graph-tillatelsen <code>Files.ReadWrite</code>. Papertek er ikke mellomledd for konto,
+                    token eller dokumentinnhold.
+                </p>
+                <p class="mt-3">
+                    Selve OAuth-tillatelsen <code>Files.ReadWrite</code> er bredere enn én mappe og gir den
+                    innloggede appen tilgang til brukerens filer. Skriv håndhever valgt mappe i egen kode, men
+                    skoleeiers samtykke, styring og personvernvurdering må ta utgangspunkt i den faktiske
+                    delegerte tillatelsen – ikke omtale den som teknisk mappeavgrenset.
+                </p>
+                <p>
+                    Eleven oppgir lenken til én mappe som vedkommende allerede har tilgang til. Skriv lister ikke
+                    organisasjonens Teams eller kanaler. Skolen konfigurerer et bart SharePoint-vertsnavn, og Skriv
+                    godtar bare HTTPS-lenker på nøyaktig <code>&lt;tenant&gt;.sharepoint.com</code> eller den tilhørende
+                    <code>&lt;tenant&gt;-my.sharepoint.com</code>-verten, både før og etter Graph-oppslag. Hvert koblet
+                    dokument lagres som en validert native
+                    <code>.skriv</code>-fil; dette er ikke Word-format, Word-samskriving, en Teams-fane eller en
+                    innlevering i Teams Assignments. Hver overføring må være mindre enn 60 MiB, og fjernlisten er
+                    avgrenset til fem Graph-sider og 200 Skriv-filer. Tilgangen følger Microsoft-mappens egne
+                    rettigheter; en delt Teams-mappe blir ikke privat av Skriv. Service Workeren mellomlagrer ikke
+                    trafikk til Microsoft.
+                </p>
+                <p>
+                    IndexedDB er alltid den kanoniske arbeidskopien. Lokal automatisk lagring fullføres før en
+                    eventuell fjernsynkronisering planlegges, og skriving eller navigasjon venter aldri på Microsoft.
+                    Metadata lagres med en atomisk sammenlign-og-bytte-kontroll, og en ny redigering mens opplasting
+                    pågår køer en ny synkroniseringsrunde. En sen kvittering kan derfor ikke overskrive nyere lokal
+                    tekst eller gjenopprette en frakoblet/slettet post. Opplastingskvitteringens eTag er autoritativ
+                    for byteinnholdet som nettopp ble sendt, og oppdateringer bruker denne med
+                    <code>If-Match</code>. Ved Graph-konflikt (<code>409</code> eller <code>412</code>) overskriver
+                    Skriv ikke noen versjon automatisk; eleven kan i stedet velge å beholde begge som separate filer.
+                </p>
+                <p>
+                    Den dedikerte MSAL-svarsiden og den lokalt leverte svarbroen er bevisst nettverksressurser, ikke
+                    offline-cache. Driftsmiljøet må levere begge med <code>Cache-Control: no-store</code> og uten
+                    <code>Cross-Origin-Opener-Policy</code>-responsheader, slik at popupen kan svare hovedvinduet.
                 </p>
 
                 <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Delt kodebase</h3>
@@ -264,7 +322,7 @@
                         <tbody class="divide-y divide-stone-200">
                             <tr>
                                 <td class="p-3 text-stone-600">Innlogging</td>
-                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen krav</span></td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ingen krav for lokal bruk; eksplisitt skolekonto for valgfri Microsoft 365</span></td>
                             </tr>
                             <tr>
                                 <td class="p-3 text-stone-600">Datalagring</td>
@@ -272,7 +330,7 @@
                             </tr>
                             <tr>
                                 <td class="p-3 text-stone-600">Skysynkronisering</td>
-                                <td class="p-3"><span class="text-emerald-700 font-semibold">Ikke en del av denne versjonen</span></td>
+                                <td class="p-3"><span class="text-emerald-700 font-semibold">Valgfri, til én valgt Microsoft 365-mappe</span></td>
                             </tr>
                             <tr>
                                 <td class="p-3 text-stone-600">Sporing / analyse</td>
@@ -297,6 +355,19 @@
                     skjer først når brukeren velger det.
                 </p>
                 <p>
+                    Den valgfrie Microsoft 365-koblingen endrer dataflyten for dokumentene eleven uttrykkelig kobler
+                    til eller importerer. Da går konto- og filtrafikk direkte mellom nettleseren og Microsoft, under
+                    skolens Microsoft 365-avtaler, tilgangsstyring og behandlingsansvar. Skriv bruker delegerte
+                    <code>Files.ReadWrite</code>; ingen apprettigheter eller uavhengig tjenestetilgang uten den
+                    innloggede brukeren. MSALs kontoopplysninger og token lagres i nettleserens sesjonslager. Den
+                    lokale dokumentposten og en helbibliotek-sikkerhetskopi inneholder ikke e-postadresse eller
+                    Microsofts rå home-account-ID, men en pseudonym SHA-256-kontobinding og avgrensede metadata om
+                    fjernkopien (blant annet tenant-, drive-, mappe- og element-ID, navn/kanoniske URL-er, eTag,
+                    tidspunkt, hash og synkroniseringsstatus). Dette er ikke innloggingshemmeligheter, men kan fortsatt
+                    være person- eller organisasjonstilknyttede opplysninger og må beskyttes som elevarbeid. Den
+                    enkelte fjernfilen inneholder ikke koblingsmetadataene. Skriv tilbyr ikke sletting av fjernfilen.
+                </p>
+                <p>
                     Lokal lagring betyr samtidig at tilgang til nettleserprofilen, administrasjon av enheten,
                     utvidelser, skadevare, delte profiler og sletting av nettleserdata er en del av risikobildet.
                     En eksportert .skriv-fil inneholder elevens faktiske innhold og må lagres og deles deretter.
@@ -305,6 +376,10 @@
                     Arkitekturen kan redusere dataflyt og leverandøreksponering, men den avgjør ikke alene om en
                     konkret bruk er i tråd med GDPR eller andre krav. Skolen må vurdere formål, behandlingsgrunnlag,
                     enhets- og profilforvaltning, tilgang, sikkerhetskopiering og innleveringsrutiner i sin kontekst.
+                    Før Microsoft-koblingen aktiveres, må skoleeier i tillegg vurdere og dokumentere den konkrete
+                    flyten til Microsoft 365, tilgang, lagringssted, oppbevaring, sletting, databehandleravtaler og
+                    behovet for personvernkonsekvensvurdering. Et elevklikk på «koble til» er ikke i seg selv skolens
+                    behandlingsgrunnlag.
                 </p>
             </div>
         </section>
@@ -384,12 +459,20 @@
                     På delte enheter må skolen også sørge for at elever ikke bruker samme ubeskyttede profil.
                 </p>
 
-                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Fremtidige tjenester må bevare valgfriheten</h3>
+                <h3 class="text-lg font-semibold text-stone-900 mt-8 mb-2">Microsoft 365 er et tillegg, ikke den lokale grunnmuren</h3>
                 <p>
-                    Dette whitepaperet lover ikke en bestemt skyløsning, identitetsleverandør eller tidslinje.
-                    Dersom synkronisering eller andre serverbaserte tjenester vurderes senere, krever det en egen
-                    vurdering av personvern, sikkerhet, avtaler og forvaltning. Lokal bruk og dokumentert eksport
-                    bør fortsatt være grunnlaget, slik at elevens arbeid ikke låses til én leverandør.
+                    En godkjent skole kan aktivere direkte synkronisering av enkeltdokumenter til Microsoft 365.
+                    Koblingen er valgfri, beholder IndexedDB som arbeidskopi og bruker et dokumentert .skriv-format.
+                    En importert fjernfil legges bevisst i inneværende skoleår og «Uten mappe», slik at eleven
+                    organiserer den lokalt. Å
+                    stoppe synkronisering, slette dokumentet lokalt eller koble fra kontoen sletter ikke Microsoft-
+                    kopien. Hele biblioteket kan fortsatt sikkerhetskopieres uten Microsoft.
+                </p>
+                <p>
+                    Nye skytjenester, Teams-/kanalopplisting, bredere Graph-tilganger, Word-rundtur eller
+                    bakgrunnstilgang er ikke en del av denne avgrensede koblingen. Slike endringer krever en ny
+                    teknisk, sikkerhetsmessig, juridisk og organisatorisk vurdering. Lokal bruk og dokumentert eksport
+                    forblir grunnlaget, slik at elevens arbeid ikke låses til én leverandør.
                 </p>
 
                 <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 my-6">
@@ -417,8 +500,9 @@
                             <span class="text-emerald-600 text-xl">&#128176;</span> Ingen kostnad
                         </h3>
                         <p class="text-stone-600 text-sm">
-                            Denne versjonen av Skriv kan brukes uten lisenskostnad, brukerbetaling eller konto.
-                            Skoler kan prøve verktøyet uten en anskaffelse av skylagring eller brukerlisenser.
+                            Lokal bruk av denne versjonen av Skriv krever ingen Papertek-lisens, brukerbetaling eller
+                            konto. Den valgfrie Microsoft-koblingen forutsetter skolens egne Microsoft 365-lisenser,
+                            godkjenning og forvaltning.
                         </p>
                     </div>
 
@@ -427,9 +511,9 @@
                             <span class="text-emerald-600 text-xl">&#128272;</span> Redusert dataeksponering
                         </h3>
                         <p class="text-stone-600 text-sm">
-                            Skriv har ingen konto eller dokument-backend og laster ikke automatisk opp elevteksten.
-                            Skolen må fortsatt vurdere nettleserprofil, enhet, eksportfiler, innlevering og eget
-                            ansvar etter gjeldende regler.
+                            Skriv har ingen Papertek-konto eller dokument-backend og laster ikke opp elevteksten til
+                            Papertek. Uten en aktiv Microsoft-kobling forblir dokumentene lokale. Skolen må fortsatt
+                            vurdere nettleserprofil, enhet, eksport/synkronisering, innlevering og eget ansvar.
                         </p>
                     </div>
 
@@ -465,11 +549,23 @@
 
                     <div class="bg-white border border-stone-200 rounded-xl p-6">
                         <h3 class="font-semibold text-stone-900 mb-2 flex items-center gap-2">
+                            <span class="text-emerald-600 text-xl">&#9729;&#65039;</span> Styrt Microsoft-valg
+                        </h3>
+                        <p class="text-stone-600 text-sm">
+                            Skoleeier kan velge å aktivere en avgrenset, direkte Microsoft 365-kobling med delegert
+                            Files.ReadWrite. Den krever eget app-oppsett, risiko- og personvernvurdering og rutiner for
+                            konto, tilgang, oppbevaring og delte enheter; lokal bruk fungerer også uten koblingen.
+                        </p>
+                    </div>
+
+                    <div class="bg-white border border-stone-200 rounded-xl p-6">
+                        <h3 class="font-semibold text-stone-900 mb-2 flex items-center gap-2">
                             <span class="text-emerald-600 text-xl">&#9889;</span> Null oppsett
                         </h3>
                         <p class="text-stone-600 text-sm">
-                            Eleven kan åpne en nettadresse og begynne uten konto. Første innlasting og oppdateringer
-                            krever nett, og skolen bør avklare støttede profiler, lokal lagring og backup-rutiner.
+                            Eleven kan åpne en nettadresse og begynne lokalt uten konto. Første innlasting og
+                            oppdateringer krever nett, og skolen bør avklare støttede profiler, lokal lagring og
+                            backup-rutiner. Microsoft-lagring er ikke null-oppsett og må aktiveres av skolen.
                         </p>
                     </div>
                 </div>
@@ -483,7 +579,7 @@
                 <div>
                     <p class="font-semibold text-stone-900">Papertek Forlag AS</p>
                     <p class="text-sm text-stone-400 mt-1">
-                        Whitepaper v1.1 &middot; August 2026
+                        Whitepaper v1.2 &middot; August 2026
                     </p>
                 </div>
                 <div class="flex items-center gap-4 text-sm">

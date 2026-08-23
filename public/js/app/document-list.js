@@ -9,7 +9,7 @@ import {
     trashDocument, restoreDocument, listTrashedDocuments,
     permanentlyDelete, emptyTrash, getTrashCount, getRetentionDays,
 } from './trash-store.js';
-import { escapeHtml } from '../editor-core/shared/html-escape.js';
+import { escapeAttr, escapeHtml } from '../editor-core/shared/html-escape.js';
 import { countWords } from '../editor-core/shared/word-counter.js';
 import { showInPageConfirm } from '../editor-core/shared/in-page-modal.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
@@ -24,6 +24,9 @@ import {
     getCurrentSchoolYear, getAllFolders, setDocFolders,
     isPersonalFolder, PERSONAL_FOLDER_NAME,
 } from './folder-store.js';
+import { isMicrosoftLocalhost } from './microsoft-config.js';
+import { createMicrosoftStorage } from './microsoft-storage.js';
+import { showMicrosoftStorageDialog } from './microsoft-storage-dialog.js';
 
 /**
  * Render the document list into a container.
@@ -32,6 +35,9 @@ import {
  */
 export async function renderDocumentList(container, onOpenDocument) {
     container.innerHTML = '';
+
+    const microsoftStorage = createMicrosoftStorage();
+    const showMicrosoftButton = microsoftStorage.isConfigured() || isMicrosoftLocalhost();
 
     const trashCount = await getTrashCount();
     const docs = await listDocuments();
@@ -147,6 +153,9 @@ export async function renderDocumentList(container, onOpenDocument) {
             </div>
             <div class="flex items-center gap-2">
                 <span id="ui-language-selector"></span>
+                <button id="btn-microsoft" class="${showMicrosoftButton ? '' : 'hidden '}px-3 py-2.5 text-stone-400 hover:text-emerald-600 dark:text-stone-500 dark:hover:text-emerald-400 rounded-lg text-sm transition-colors" title="${escapeAttr(t('microsoft.buttonTitle'))}" aria-label="${escapeAttr(t('microsoft.buttonTitle'))}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 18h10a4 4 0 00.8-7.919A6 6 0 006.34 8.53 4.5 4.5 0 007 18z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 13h6m-3-3v6"/></svg>
+                </button>
                 <button id="btn-theme" class="px-3 py-2.5 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg text-sm transition-colors" title="${t('theme.toggle')}">
                     ${getThemeIconSVG()}
                 </button>
@@ -209,6 +218,18 @@ export async function renderDocumentList(container, onOpenDocument) {
         const newTheme = cycleTheme();
         header.querySelector('#btn-theme').innerHTML = getThemeIconSVG();
         showToast(t(`theme.${newTheme}`), { duration: 1500 });
+    });
+
+    header.querySelector('#btn-microsoft').addEventListener('click', () => {
+        showMicrosoftStorageDialog({
+            storage: microsoftStorage,
+            onConfigurationChanged: () => globalThis.location.reload(),
+            onImported: (importedDocument) => {
+                if (importedDocument?.id) onOpenDocument(importedDocument.id);
+            },
+        }).catch(() => {
+            showToast(t('microsoft.error.generic'), { duration: 3000 });
+        });
     });
 
     header.querySelector('#btn-trash').addEventListener('click', () => {
@@ -337,6 +358,7 @@ export async function renderDocumentList(container, onOpenDocument) {
         if (dragLeaveTimer) clearTimeout(dragLeaveTimer);
         searchBar?.destroy?.();
         cleanupDesk.destroy();
+        Promise.resolve(microsoftStorage.destroy?.()).catch(() => {});
         desktopSidebar.destroy?.();
         mobileSidebarInstance.destroy?.();
         document.removeEventListener('keydown', handleMobileSidebarKeydown);
