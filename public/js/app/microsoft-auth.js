@@ -5,7 +5,10 @@ import {
     validateMicrosoftConfig,
 } from './microsoft-config.js';
 
-export const MICROSOFT_GRAPH_SCOPES = Object.freeze(['Files.ReadWrite']);
+// Teams channel files live in a group-owned SharePoint site rather than the
+// pupil's personal drive. Delegated Files.ReadWrite.All is therefore required
+// to reach files the signed-in pupil can already access through Teams.
+export const MICROSOFT_GRAPH_SCOPES = Object.freeze(['Files.ReadWrite.All']);
 export const MSAL_BROWSER_PATH = '/vendor/msal-browser-5.17.3.min.js';
 
 let msalLoadPromise = null;

@@ -220,7 +220,7 @@ The connector is disabled without valid client/tenant/bare-SharePoint-host confi
 
 Transfers are limited symmetrically to less than 60 MiB. Upload size is checked on exact UTF-8 bytes. Import checks Graph `driveItem.size`, `Content-Length`, and the accumulated response stream before fatal UTF-8 decoding; missing length metadata cannot turn the import into an unbounded `response.text()` read. Every authenticated Graph request and preauthenticated transfer uses `cache: no-store`, omits ambient credentials/referrers, and bypasses the service worker. Remote listing stops with a localized error beyond five Graph pages or 200 `.skriv` files.
 
-The Graph scope is exactly delegated `Files.ReadWrite`. There is no app-only credential, Papertek proxy/backend, analytics endpoint, Teams/channel enumeration, or application-library CDN download. Cross-origin responses and the two same-origin redirect resources are outside the Skriv service-worker cache.
+The Graph scope is exactly delegated `Files.ReadWrite.All`, which is required for group-owned Teams/SharePoint files and remains bounded by the signed-in pupil's own access. Skriv additionally enforces its selected-folder boundary in code. There is no app-only credential, Papertek proxy/backend, analytics endpoint, Teams/channel enumeration, or application-library CDN download. Cross-origin responses and the two same-origin redirect resources are outside the Skriv service-worker cache.
 
 ## Invariants
 

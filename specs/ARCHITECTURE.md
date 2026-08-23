@@ -36,7 +36,7 @@ public/
 ├── microsoft-auth-redirect.html  network-only MSAL popup response bridge
 ├── whitepaper.html             transparency and portability notes
 ├── manifest.json               PWA manifest
-├── sw.js                       Service Worker, current cache `skriv-v81`
+├── sw.js                       Service Worker, current cache `skriv-v82`
 ├── css/main.css                app/editor CSS and responsive rules
 ├── icons/                      install icon
 ├── vendor/                     pinned Tailwind, jsPDF, and MSAL Browser distributions
@@ -85,7 +85,7 @@ The dependency graph is a DAG. Storage access to `skriv-documents` is centralize
 - Screen teardown is awaited. The editor flushes its latest state before route changes, database upgrades, or an accepted app update.
 - Autosaves are serialized and coalesced; only one IndexedDB write runs at once.
 - An optional Microsoft sync observes completed local saves and runs independently. Navigation and editor teardown await the local flush, never a remote request. Microsoft failures change only the separate remote status and cannot make the local document uneditable.
-- The connector requires delegated `Files.ReadWrite`, exact tenant/client configuration, and a bare global-cloud SharePoint host. Pasted and Graph-resolved URLs must use exactly `<tenant>.sharepoint.com` or its matching `<tenant>-my.sharepoint.com` companion.
+- The connector requires delegated `Files.ReadWrite.All` so it can reach both the pupil's own OneDrive files and Teams' group-owned SharePoint files that the signed-in pupil can already access. It also requires exact tenant/client configuration and a bare global-cloud SharePoint host. Pasted and Graph-resolved URLs must use exactly `<tenant>.sharepoint.com` or its matching `<tenant>-my.sharepoint.com` companion.
 - Its selected target and MSAL account/token cache are session-scoped. A local document stores only a SHA-256 pseudonymous account binding plus remote identity, eTag, sync state, and a nullable in-progress attempt ID; it never stores the Microsoft home-account ID or email address.
 - A linked document is serialized as a validated one-document `.skriv` envelope. Before update/download, Graph metadata must still identify the same `.skriv` item in the selected folder; moved or renamed items fail closed. Updates use the remote eTag with `If-Match`; Graph `409` and `412` become explicit conflicts and the safe resolution is to create a separate “keep both” copy rather than overwrite either version.
 - A remote transfer must remain below 60 MiB. Import rejects oversized drive-item metadata or `Content-Length` and bounds the response stream before UTF-8 decoding, so a missing/false length cannot create an unbounded in-memory read.
@@ -97,7 +97,7 @@ The dependency graph is a DAG. Storage access to `skriv-documents` is centralize
 
 ## PWA and update safety
 
-The current cache is `skriv-v81`.
+The current cache is `skriv-v82`.
 
 1. The service worker atomically precaches the critical app shell and full ES-module graph.
 2. Vendored Leksihjelp code, styles, metadata, and the compact NB fallback are cached best-effort per file. Larger language data is cached on first use by the same-origin fetch handler so installing the word processor does not eagerly download every language.

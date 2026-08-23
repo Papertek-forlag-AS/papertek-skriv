@@ -172,7 +172,7 @@ test('session overrides are accepted only on localhost and are easy to clear', (
     );
 });
 
-test('Microsoft auth uses the narrow delegated scope, session cache, account picker, and clearCache', async () => {
+test('Microsoft auth uses the Teams-capable delegated scope, session cache, account picker, and clearCache', async () => {
     const calls = [];
     const account = { homeAccountId: 'student.tenant', username: 'student@example.no' };
     let instance;
@@ -208,7 +208,7 @@ test('Microsoft auth uses the narrow delegated scope, session cache, account pic
         loadMsal: async () => ({ PublicClientApplication }),
     });
 
-    assert.deepEqual(MICROSOFT_GRAPH_SCOPES, ['Files.ReadWrite']);
+    assert.deepEqual(MICROSOFT_GRAPH_SCOPES, ['Files.ReadWrite.All']);
     assert.equal(await auth.isConnected(), false);
     assert.equal(await auth.connect(), account);
     assert.equal(await auth.isConnected(), true);
@@ -218,7 +218,7 @@ test('Microsoft auth uses the narrow delegated scope, session cache, account pic
 
     assert.equal(instance.config.cache.cacheLocation, 'sessionStorage');
     assert.deepEqual(calls.find(([name]) => name === 'loginPopup')[1], {
-        scopes: ['Files.ReadWrite'],
+        scopes: ['Files.ReadWrite.All'],
         prompt: 'select_account',
     });
     assert.equal(calls.find(([name]) => name === 'clearCache')[1], undefined);
@@ -279,7 +279,7 @@ test('auth refuses an app-root or cross-purpose redirect fallback', async () => 
     );
 });
 
-test('auth source lazy-loads pinned MSAL and contains no broad file scope or browser credential', async () => {
+test('auth source lazy-loads pinned MSAL and contains no site scope or browser credential', async () => {
     const source = await readFile(
         new URL('../public/js/app/microsoft-auth.js', import.meta.url),
         'utf8',
@@ -289,7 +289,8 @@ test('auth source lazy-loads pinned MSAL and contains no broad file scope or bro
     assert.match(source, /cacheLocation: 'sessionStorage'/);
     assert.match(source, /prompt: 'select_account'/);
     assert.match(source, /clearCache\(/);
-    assert.doesNotMatch(source, /Files\.ReadWrite\.All|Sites\.ReadWrite\.All/);
+    assert.match(source, /Files\.ReadWrite\.All/);
+    assert.doesNotMatch(source, /Sites\.ReadWrite\.All/);
     assert.doesNotMatch(source, /clientSecret|client_secret/);
 });
 
