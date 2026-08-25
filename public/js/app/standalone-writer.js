@@ -907,7 +907,12 @@ export async function launchEditor(container, docId, onBack) {
             exportType: 'docx',
         });
         if (proceed) {
-            downloadDocx(editor, { title: getTitle() });
+            try {
+                await downloadDocx(editor, { title: getTitle() });
+            } catch (err) {
+                console.error('Word export failed:', err);
+                showToast(t('export.docxFailed'), { duration: 5000 });
+            }
         }
     });
 

@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v80';
+const CACHE_NAME = 'skriv-v81';
 const ASSETS = [
     '/',
     '/index.html',
@@ -44,6 +44,7 @@ const ASSETS = [
     '/js/editor-core/shared/aria-live.js',
     '/js/editor-core/student/editor-toolbar.js',
     '/js/editor-core/student/text-export.js',
+    '/js/editor-core/student/docx-export.js',
     '/js/editor-core/student/find-replace.js',
     '/js/editor-core/student/toc-manager.js',
     '/js/editor-core/student/reference-manager.js',
@@ -133,6 +134,13 @@ const ASSETS = [
 // Generated via scripts/sync-leksihjelp.js — keep in sync with the file
 // listing in public/js/leksihjelp/. Failures here do NOT block install:
 // the fetch handler will lazy-cache any path missed at install time.
+// Large optional assets, precached best-effort like the leksihjelp bundle:
+// a miss never blocks install, and the fetch handler lazy-caches on first
+// use. The docx bundle (~800 kB) is only needed when a pupil exports Word.
+const OPTIONAL_ASSETS = [
+    '/vendor/docx.iife.js',
+];
+
 const LEKSIHJELP_ASSETS = [
     '/js/leksihjelp/.version',
     '/js/leksihjelp/i18n/strings.js',
@@ -264,9 +272,9 @@ self.addEventListener('install', (event) => {
             // Settle each leksihjelp asset independently — Promise.all on
             // .catch'd inner promises is the standard "wait, don't fail" idiom.
             await Promise.all(
-                LEKSIHJELP_ASSETS.map((path) =>
+                [...LEKSIHJELP_ASSETS, ...OPTIONAL_ASSETS].map((path) =>
                     cache.add(path).catch((err) => {
-                        console.warn('[sw] leksihjelp precache miss:', path, err && err.message);
+                        console.warn('[sw] best-effort precache miss:', path, err && err.message);
                     })
                 )
             );

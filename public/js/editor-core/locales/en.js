@@ -28,6 +28,9 @@ export default {
         },
         pdfNotLoaded: 'PDF library is not loaded. Try downloading as .txt instead.',
         page: 'Page {{num}}',
+        pageLabel: 'Page',
+        pageOf: 'of',
+        docxFailed: 'Could not create the Word file. Try again, or download PDF.',
     },
 
     backup: {
@@ -444,7 +447,6 @@ export default {
         hasSources: 'Sources have been added',
         introConclusion: 'Introduction and conclusion are written',
         spellCheck: 'Spelling and language have been checked',
-        docFormatNote: 'The Word file (.doc) opens in Word on PC/Mac, but not in Word on the web or Google Docs. Choose PDF if you are handing in.',
         droefting: {
             question: 'The thesis is presented in the introduction',
             argFor: 'At least one argument for with claim, evidence and explanation',
@@ -492,7 +494,7 @@ export default {
         backToDocuments: 'My documents',
         downloadTxt: 'Download .txt',
         downloadPdf: 'Download PDF',
-        downloadDocx: 'Download Word (.doc)',
+        downloadDocx: 'Download Word (.docx)',
         titlePlaceholder: 'Give your document a title...',
         wordsWritten: {
             one: '{{count}} word written',
