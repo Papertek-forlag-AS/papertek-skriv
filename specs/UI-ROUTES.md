@@ -13,12 +13,24 @@ Hash-based SPA routing in `main.js`. No history API.
 | `#/tysk`         | German exam spinner | `german-exam-route.js` (`renderGermanExamScreen`) | Tysk 1 / Tysk 2 randomised writing-task spinner; on pick creates a doc in folder "Tysk" and routes to `#/doc/{id}` |
 | `#/avsnitt`      | Paragraph trainer | `paragraph-trainer-route.js` (`renderParagraphTrainerScreen`) | Three-step paragraph drill (trestegsmodellen): random topic deck, three labelled writing fields, self-check checklist, assembled-paragraph preview. No documents created — attempt persists in localStorage |
 
+## Standalone pages (outside the SPA router)
+
+| Path               | Module            | Description |
+|------------------- |------------------ |------------ |
+| `/stabekk.html`    | `stabekk-page.js` | Stabekk one-pager: hosts the paragraph trainer without the Skriv shell (no router, sidebar, or onboarding). Slim header with school badge and its own theme-cycle button. School level is fixed via the `STABEKK_LEVEL` constant in the module. Stabekk accent colors come from the page's own Tailwind config, which remaps the emerald scale (anchored in Pantone 640 C `#0082ba`, Akershus fylkeskommune's main brand color) — the trainer module is shared with `#/avsnitt` unchanged. Same origin, so trainer draft/deck in localStorage is shared with `#/avsnitt` |
+| `/whitepaper.html` | (static HTML)     | Legal/transparency page |
+
 **Navigation flow:**
 
 ```
-App init
+App init → route()
   └── First visit (no school level) → Onboarding modal (must pick level)
-        └── Picks level → saves to localStorage → continues to #/
+        ├── Gated per route: shown for every screen EXCEPT #/avsnitt —
+        │   deep links to the paragraph trainer skip the question (the
+        │   level has no function there; trainer falls back to the 'us'
+        │   starter tier). Modal appears on first navigation into the
+        │   app proper instead.
+        └── Picks level → saves to localStorage → continues to the route
 
 #/ (Document list)
   ├── Click document → #/doc/{id}

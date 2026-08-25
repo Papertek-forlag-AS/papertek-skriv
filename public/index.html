@@ -24,12 +24,14 @@
     <link rel="stylesheet" href="/css/main.css?v=74">
 
     <script>
-        // Init theme early to prevent flash
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        // Init theme early to prevent flash. Mirrors shared/theme.js:
+        // 'skriv_theme' is 'light' | 'dark' | 'system'/unset (= follow OS).
+        (function () {
+            var theme = localStorage.getItem('skriv_theme');
+            var dark = theme === 'dark' ||
+                (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', dark);
+        })();
     </script>
 </head>
 

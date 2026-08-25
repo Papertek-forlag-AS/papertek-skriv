@@ -19,12 +19,6 @@ async function init() {
     initServiceWorker();
     await initI18n();
 
-    // First-time onboarding: ask student for school level
-    if (!hasSchoolLevel()) {
-        const levelId = await showOnboardingModal();
-        setSchoolLevel(levelId);
-    }
-
     // Purge expired trash documents on startup (silent, non-blocking)
     purgeExpired().catch(() => {});
 
@@ -36,6 +30,16 @@ async function init() {
 
     let currentScreen = null;
     let routeCounter = 0;
+
+    // First-time onboarding: ask student for school level. Gated per route
+    // instead of at init so pure practice surfaces reached by deep link
+    // (#/avsnitt) skip the question — the level has no function there.
+    // The modal appears on first navigation into the app proper instead.
+    async function ensureSchoolLevel() {
+        if (hasSchoolLevel()) return;
+        const levelId = await showOnboardingModal();
+        setSchoolLevel(levelId);
+    }
 
     async function route() {
         const localRouteCounter = ++routeCounter;
@@ -50,6 +54,11 @@ async function init() {
         }
 
         const hash = window.location.hash || '#/';
+
+        if (hash !== '#/avsnitt') {
+            await ensureSchoolLevel();
+            if (localRouteCounter !== routeCounter) return;
+        }
 
         if (hash.startsWith('#/doc/')) {
             const docId = hash.slice(6);

@@ -114,6 +114,13 @@ app/main.js
         ├── app/school-level.js
         ├── shared/i18n.js
         └── shared/html-escape.js
+
+app/stabekk-page.js        (second entry point — loaded by stabekk.html, not main.js)
+  ├── shared/i18n.js
+  ├── shared/theme.js
+  ├── shared/toast-notification.js
+  ├── app/sw-manager.js
+  └── student/paragraph-trainer.js   (same subtree as under paragraph-trainer-route above)
 ```
 
 **Invariant:** No circular dependencies. No upward imports (shared never imports from student or app).
