@@ -241,12 +241,37 @@ export async function renderDocumentList(container, onOpenDocument) {
     const mobileSidebarInstance = createSidebar(mobileSidebar, sidebarOptions);
 
     if (docs.length === 0) {
+        // First-run empty state: point the pupil at the tools, not just
+        // at an empty list — the trainer and tysk routes are otherwise
+        // only discoverable via the sidebar.
+        const emptyCardClass = 'flex flex-col items-start gap-1.5 p-4 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-sm transition-all text-left w-full';
         listEl.innerHTML = `
-            <div class="text-center py-16">
+            <div class="text-center py-10">
                 <div class="text-5xl mb-4 opacity-30">&#9997;&#65039;</div>
-                <p class="text-stone-400 text-sm">${t('skriv.noDocuments')}</p>
+                <p class="text-stone-400 text-sm mb-8">${t('skriv.noDocuments')}</p>
+                <div class="grid gap-3 sm:grid-cols-3 max-w-2xl mx-auto">
+                    <button id="empty-new-doc" class="${emptyCardClass}">
+                        <span class="text-2xl" aria-hidden="true">&#128221;</span>
+                        <span class="text-sm font-semibold text-stone-800 dark:text-stone-100">${t('skriv.newDocument')}</span>
+                        <span class="text-xs text-stone-500 dark:text-stone-400">${t('skriv.emptyNewDocDesc')}</span>
+                    </button>
+                    <a href="#/avsnitt" class="${emptyCardClass}">
+                        <span class="text-2xl" aria-hidden="true">&#129521;</span>
+                        <span class="text-sm font-semibold text-stone-800 dark:text-stone-100">${t('paragraphTrainer.sidebar')}</span>
+                        <span class="text-xs text-stone-500 dark:text-stone-400">${t('skriv.emptyTrainerDesc')}</span>
+                    </a>
+                    <a href="#/tysk" class="${emptyCardClass}">
+                        <span class="text-2xl" aria-hidden="true">&#127891;</span>
+                        <span class="text-sm font-semibold text-stone-800 dark:text-stone-100">${t('germanExam.sidebar')}</span>
+                        <span class="text-xs text-stone-500 dark:text-stone-400">${t('skriv.emptyGermanDesc')}</span>
+                    </a>
+                </div>
             </div>
         `;
+        listEl.querySelector('#empty-new-doc').addEventListener('click', async () => {
+            const doc = await createDocument();
+            onOpenDocument(doc.id);
+        });
         mainContent.appendChild(footer);
         return;
     }
