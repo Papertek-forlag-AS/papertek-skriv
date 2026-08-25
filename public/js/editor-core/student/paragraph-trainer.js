@@ -56,7 +56,63 @@ const STEPS = [
     { key: 'closing', starterKey: 'closing', spinnerBuckets: ['avslutning'] },
 ];
 
-const CHECK_COUNT = 4;
+// ─── Live checklist heuristics ───────────────────────────────────────────
+// The checklist items are verified automatically from the text. They are
+// FORM checks (one sentence, a causal marker present, a shared keyword),
+// so the hints phrase them as writing tips rather than verdicts — the
+// model can see structure, not whether the content is good.
+
+// Causal / justification markers (nb + nn variants in one list).
+const CAUSAL_MARKERS = [
+    'fordi', 'derfor', 'difor', 'siden', 'sidan', 'ettersom',
+    'grunnen er', 'grunnen til', 'dermed', 'slik at', 'det fører til',
+];
+
+// Example markers (nb + nn variants).
+const EXAMPLE_MARKERS = [
+    'for eksempel', 'f.eks', 'til dømes', 'blant annet', 'mellom anna',
+    'et eksempel', 'eit døme', 'som da ', 'som då ', 'et godt eksempel',
+];
+
+// Small words ignored when looking for an echoed keyword between the
+// topic sentence and the closing sentence.
+const ECHO_STOPWORDS = new Set([
+    'dette', 'derfor', 'difor', 'fordi', 'likevel', 'skal', 'ikke', 'ikkje',
+    'være', 'vere', 'blir', 'vert', 'har', 'kan', 'ganske', 'veldig',
+    'også', 'over', 'under', 'etter', 'alle', 'noen', 'nokre', 'mange',
+    'mener', 'meiner', 'synes', 'synest',
+]);
+
+function countSentences(text) {
+    return text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.split(/\s+/).length >= 2).length;
+}
+
+function contentWords(text) {
+    return new Set(
+        text.toLowerCase().replace(/[^a-zæøåäöüé\s-]/gi, ' ').split(/\s+/)
+            .filter(w => w.length >= 4 && !ECHO_STOPWORDS.has(w))
+    );
+}
+
+/**
+ * Evaluate the four checklist items against the three step texts.
+ * @param {string[]} steps - [topic, support, closing]
+ * @returns {Array<{pass: boolean, written: boolean}>}
+ */
+export function evaluateChecks(steps) {
+    const [topic, support, closing] = steps.map(s => (s || '').trim());
+    const supportLower = ` ${support.toLowerCase()} `;
+    const topicWords = contentWords(topic);
+    const echoed = [...contentWords(closing)].some(w => topicWords.has(w));
+    const wc = topic ? topic.split(/\s+/).length : 0;
+
+    return [
+        { pass: !!topic && countSentences(topic) === 1 && wc >= 3 && wc <= 30, written: !!topic },
+        { pass: CAUSAL_MARKERS.some(m => supportLower.includes(m)), written: !!support },
+        { pass: EXAMPLE_MARKERS.some(m => supportLower.includes(m)), written: !!support },
+        { pass: !!closing && echoed, written: !!closing },
+    ];
+}
 
 // ─── Deck persistence (same scheme as german-exam-spinner) ───────────────
 
@@ -167,6 +223,10 @@ function saveDraft(draft) {
  * @param {HTMLElement} container
  * @param {object} [options]
  * @param {() => string|null} [options.getLevel] - Returns school level ('ungdomsskole'|'barneskole'|'vg1'|'vg2'|'vg3')
+ * @param {(doc: {title: string, text: string}) => void|Promise} [options.onSaveDocument] -
+ *   When provided, a "Lagre som dokument" button appears next to Copy; the
+ *   host decides what saving means (Skriv creates a document and opens the
+ *   editor; the standalone school pages omit the callback and the button).
  * @returns {{ destroy: () => void }}
  */
 export function initParagraphTrainer(container, options = {}) {
@@ -175,7 +235,6 @@ export function initParagraphTrainer(container, options = {}) {
 
     let currentTopic = null;
     let stepTexts = ['', '', ''];
-    let checks = new Array(CHECK_COUNT).fill(false);
     let previewOpen = false;
 
     // Sliding window of currently-visible starter chips per step. Initial
@@ -239,16 +298,15 @@ export function initParagraphTrainer(container, options = {}) {
         if (Array.isArray(draft.steps)) {
             stepTexts = STEPS.map((_, i) => typeof draft.steps[i] === 'string' ? draft.steps[i] : '');
         }
-        if (Array.isArray(draft.checks)) {
-            checks = checks.map((_, i) => draft.checks[i] === true);
-        }
+        // Older drafts stored manual checkbox state in draft.checks; the
+        // checklist is verified live from the text now, so it is ignored.
     } else {
         currentTopic = drawTopic();
         persist();
     }
 
     function persist() {
-        saveDraft({ topicId: currentTopic.id, steps: stepTexts, checks });
+        saveDraft({ topicId: currentTopic.id, steps: stepTexts });
     }
 
     container.innerHTML = '';
@@ -287,12 +345,7 @@ export function initParagraphTrainer(container, options = {}) {
         const total = TRAINER_TOPICS.length;
         const remaining = (loadDeck() || []).length;
 
-        const checklistItems = Array.from({ length: CHECK_COUNT }, (_, i) => `
-            <label class="flex items-start gap-2 text-sm cursor-pointer">
-                <input type="checkbox" data-check="${i}" ${checks[i] ? 'checked' : ''}
-                    class="mt-0.5 h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500">
-                <span>${escapeHtml(t(`paragraphTrainer.check${i + 1}`))}</span>
-            </label>`).join('');
+        const checklistItems = `<div data-checklist>${checklistRowsHtml()}</div>`;
 
         root.innerHTML = `
             <h1 class="text-2xl font-bold mb-1">${escapeHtml(t('paragraphTrainer.screenTitle'))}</h1>
@@ -328,10 +381,10 @@ export function initParagraphTrainer(container, options = {}) {
                 ${STEPS.map((_, i) => stepCardHtml(i)).join('')}
             </div>
 
-            <!-- Self-check checklist -->
+            <!-- Live checklist — verified from the text as the pupil writes -->
             <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-4 shadow-sm mb-5">
                 <h2 class="text-base font-semibold mb-2">${escapeHtml(t('paragraphTrainer.checklistTitle'))}</h2>
-                <div class="space-y-2">${checklistItems}</div>
+                ${checklistItems}
             </div>
 
             <!-- Assembled paragraph preview -->
@@ -346,6 +399,11 @@ export function initParagraphTrainer(container, options = {}) {
                             class="text-sm px-3 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
                             ${escapeHtml(t('paragraphTrainer.copy'))}
                         </button>
+                        ${options.onSaveDocument ? `
+                        <button type="button" data-save-doc
+                            class="text-sm px-3 py-1 rounded-lg border border-emerald-600 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors">
+                            ${escapeHtml(t('paragraphTrainer.saveAsDocument'))}
+                        </button>` : ''}
                     </div>
                 </div>
                 <div data-preview class="${previewOpen ? 'mt-3' : 'hidden mt-3'} border-l-4 border-emerald-300 pl-3">
@@ -405,6 +463,25 @@ export function initParagraphTrainer(container, options = {}) {
         return stepTexts.map(s => s.trim()).filter(Boolean).join(' ');
     }
 
+    // Build the live checklist rows: ✅ when the form check passes, ⚪ plus
+    // a tip when the pupil has written in the relevant step without it.
+    function checklistRowsHtml() {
+        const results = evaluateChecks(stepTexts);
+        return results.map((r, i) => `
+            <div class="flex items-start gap-2 text-sm py-1">
+                <span aria-hidden="true">${r.pass ? '✅' : '⚪'}</span>
+                <span class="${r.pass ? 'text-stone-700 dark:text-stone-200' : 'text-stone-500 dark:text-stone-400'}">
+                    ${escapeHtml(t(`paragraphTrainer.check${i + 1}`))}
+                    ${!r.pass && r.written ? `<span class="block text-xs text-amber-600 dark:text-amber-400 mt-0.5">${escapeHtml(t(`paragraphTrainer.checkHint${i + 1}`))}</span>` : ''}
+                </span>
+            </div>`).join('');
+    }
+
+    function updateChecklist() {
+        const el = root.querySelector('[data-checklist]');
+        if (el) el.innerHTML = checklistRowsHtml();
+    }
+
     function updateWordCounts() {
         STEPS.forEach((_, i) => {
             const el = root.querySelector(`[data-word-count="${i}"]`);
@@ -446,7 +523,6 @@ export function initParagraphTrainer(container, options = {}) {
         }
         currentTopic = drawTopic();
         stepTexts = ['', '', ''];
-        checks = new Array(CHECK_COUNT).fill(false);
         persist();
         render();
     }
@@ -461,14 +537,7 @@ export function initParagraphTrainer(container, options = {}) {
             persist();
             updateWordCounts();
             updatePreview();
-        }
-    });
-
-    root.addEventListener('change', (e) => {
-        const check = e.target.closest('[data-check]');
-        if (check) {
-            checks[Number(check.getAttribute('data-check'))] = check.checked;
-            persist();
+            updateChecklist();
         }
     });
 
@@ -487,6 +556,7 @@ export function initParagraphTrainer(container, options = {}) {
                 persist();
                 updateWordCounts();
                 updatePreview();
+                updateChecklist();
             }
             input.focus();
             return;
@@ -517,6 +587,21 @@ export function initParagraphTrainer(container, options = {}) {
                 showToast(t('paragraphTrainer.copied'), { duration: 2000 });
             }).catch(() => {
                 showToast(t('paragraphTrainer.copyFailed'), { duration: 3000 });
+            });
+            return;
+        }
+        if (e.target.closest('[data-save-doc]') && options.onSaveDocument) {
+            const text = assembledText();
+            if (!text) {
+                showToast(t('paragraphTrainer.previewEmpty'), { duration: 2000 });
+                return;
+            }
+            Promise.resolve(options.onSaveDocument({
+                title: currentTopic[contentLang],
+                text,
+            })).catch((err) => {
+                console.error('Save as document failed:', err);
+                showToast(t('paragraphTrainer.saveFailed'), { duration: 3000 });
             });
         }
     });
