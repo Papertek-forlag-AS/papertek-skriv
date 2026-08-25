@@ -121,12 +121,11 @@ app/main.js
         ├── shared/i18n.js
         └── shared/html-escape.js
 
-app/stabekk-page.js        (second entry point — loaded by stabekk.html, not main.js)
+app/school-page.js         (second entry point — loaded by school.html, not main.js; stabekk.html redirects here)
   ├── shared/i18n.js
   ├── shared/theme.js
   ├── shared/toast-notification.js
-  ├── app/sw-manager.js
-  └── student/paragraph-trainer.js   (same subtree as under paragraph-trainer-route above)
+  └── student/paragraph-trainer.js   (same subtree as under paragraph-trainer-route above; no sw-manager — the page deliberately does not register the PWA service worker)
 ```
 
 **Invariant:** No circular dependencies. No upward imports (shared never imports from student or app).

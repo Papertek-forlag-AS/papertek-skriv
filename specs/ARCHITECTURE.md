@@ -28,8 +28,9 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── stabekk.html            ← Standalone Stabekk one-pager (paragraph trainer only, own accent palette)
-├── sw.js                   ← Service Worker (cache v83)
+├── school.html             ← Standalone per-school one-pager (paragraph trainer, ?skole=<id> picks config)
+├── stabekk.html            ← Redirect to school.html?skole=stabekk (kept for shared links/QR)
+├── sw.js                   ← Service Worker (cache v84)
 ├── vendor/                 ← Pinned self-hosted libraries
 │   └── docx.iife.js        (docx 9.5.0, MIT — real .docx export)
 ├── icons/                  ← PWA icon (192)
@@ -55,7 +56,7 @@ public/
     │   ├── onboarding-modal.js   ← First-time level selection modal
     │   ├── german-exam-route.js  ← Route + screen wiring for #/tysk
     │   ├── paragraph-trainer-route.js ← Route + screen wiring for #/avsnitt
-    │   ├── stabekk-page.js       ← Entry point for stabekk.html (standalone paragraph trainer)
+    │   ├── school-page.js        ← Entry point for school.html (standalone paragraph trainer, config-driven school)
     │   ├── leksihjelp-bridge.js  ← Brokers leksihjelp status + Skrivespråk/Oppslagsspråk
     │   └── leksihjelp-settings.js ← Slide-in drawer with the four leksihjelp controls
     ├── editor-core/
@@ -102,7 +103,8 @@ public/
 | `#/doc/{id}`    | Editor         | `standalone-writer.js`  |
 | `#/tysk`        | German exam spinner | `german-exam-route.js` |
 | `#/avsnitt`     | Paragraph trainer | `paragraph-trainer-route.js` |
-| `/stabekk.html` | Standalone paragraph trainer (Stabekk) | `stabekk-page.js` |
+| `/school.html?skole=<id>` | Standalone paragraph trainer (per school) | `school-page.js` |
+| `/stabekk.html` | Redirect to `/school.html?skole=stabekk` | (static) |
 
 ## CDN dependencies
 
