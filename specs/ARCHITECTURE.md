@@ -29,7 +29,7 @@ public/
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
 ├── stabekk.html            ← Standalone Stabekk one-pager (paragraph trainer only, own accent palette)
-├── sw.js                   ← Service Worker (cache v81)
+├── sw.js                   ← Service Worker (cache v82)
 ├── vendor/                 ← Pinned self-hosted libraries
 │   └── docx.iife.js        (docx 9.5.0, MIT — real .docx export)
 ├── icons/                  ← PWA icon (192)

@@ -119,21 +119,170 @@
         const auxInfo = AUX_LOOKUP.get(t.word);
         if (!auxInfo) continue;
 
-        // Scan forward up to 5 tokens for a past participle
+        // Scan forward up to 5 tokens for a past participle.
+        // Stop at coordinating conjunctions — they start a new clause,
+        // so the participle belongs to a different auxiliary.
+        const COORD_CONJ = new Set(['und', 'oder', 'aber', 'sondern', 'denn']);
+        // Reflexive verbs ALWAYS form the Perfekt with haben — "Er hat sich
+        // erkältet", "Ich habe mich gewaschen" — regardless of the lexical
+        // verb's intransitive-motion auxiliary in participleToAux. A reflexive
+        // pronoun between the aux and the participle pins the required aux to
+        // haben. Without this, "er habe sich erkältet" flagged habe→bin
+        // (erkälten's participle carries aux=sein in the bank, but the
+        // reflexive construction overrides that).
+        const REFLEX_PRON = new Set(['mich', 'dich', 'sich', 'uns', 'euch']);
+        let sawReflexive = false;
         const maxScan = Math.min(i + 6, tokens.length);
         for (let j = i + 1; j < maxScan; j++) {
           const candidate = tokens[j];
           const candidateLower = candidate.word;
+          if (REFLEX_PRON.has(candidateLower)) sawReflexive = true;
+
+          // Stop at a clause boundary (comma/semicolon/sentence end) — German
+          // relative + subordinate clauses are always comma-set, so a participle
+          // past the comma belongs to a DIFFERENT auxiliary. Fixes the textbook
+          // "Das ist das Buch, das ich gelesen habe." flagging the matrix "ist"
+          // against the relative-clause participle "gelesen".
+          if (ctx.text && /[,;:.!?\n]/.test(ctx.text.slice(tokens[j - 1].end, candidate.start))) break;
+
+          if (COORD_CONJ.has(candidateLower)) break;
 
           // Check if this token is a known participle
-          const requiredAux = participleToAux.get(candidateLower);
+          let requiredAux = participleToAux.get(candidateLower);
           if (!requiredAux) continue;
+          // Reflexive construction → haben overrides the lexical aux (incl. 'both').
+          if (sawReflexive) requiredAux = 'haben';
 
-          // Skip 'both' — no way to tell transitive vs intransitive
-          if (requiredAux === 'both') break;
+          // "gefallen" homograph: participleToAux carries sein (from fallen — "ist
+          // gefallen"), but the transitive-ish verb gefallen "to please" takes
+          // HABEN and a DATIVE experiencer ("Das Konzert hat mir gefallen", "Dem
+          // Publikum hat es gefallen"). A dative pronoun/marker near the participle
+          // disambiguates to the please-reading → haben.
+          if (candidateLower === 'gefallen') {
+            const DATIVE_MARK = new Set(['mir', 'dir', 'ihm', 'ihr', 'uns', 'euch', 'ihnen', 'dem', 'der', 'den', 'meinem', 'deinem', 'seinem', 'ihrem', 'unserem', 'eurem']);
+            for (let d = Math.max(0, i - 5); d <= j; d++) {
+              if (DATIVE_MARK.has(tokens[d].word)) { requiredAux = 'haben'; break; }
+            }
+          }
+
+          // Track B (Phase 47): for 'both'-aux verbs (fahren/laufen/schwimmen),
+          // resolve to a concrete aux by scanning for a strong-accusative
+          // marker between aux and participle. Strong-acc markers are
+          // case-unambiguous in form: den/einen/keinen/jeden/diesen/jenen/
+          // welchen/manchen and the pronouns ihn/mich/dich. (Ambiguous-case
+          // tokens like das/die/sie/es are excluded to avoid FPs when they
+          // are nominative subjects.) With a strong-acc present → transitive
+          // → haben is correct. Without one → intransitive/directional →
+          // sein is correct.
+          if (requiredAux === 'both') {
+            // F47-1 (v3.0.41): scope the strong-acc escape to motion verbs
+            // that genuinely take direct objects in modern German. For
+            // gelaufen/geschwommen, the transitive-haben reading is
+            // archaic/edge ("den Marathon gelaufen", "den Fluss
+            // geschwommen") and a "den/einen/…" later in the clause is
+            // far more often a temporal/locative phrase or a separate
+            // sentence fragment. Keep the escape ON for fahren/fliegen
+            // (and their separable derivatives), where transitive
+            // perfekt-haben is everyday standard (Auto fahren,
+            // Flugzeug fliegen).
+            const TRUE_TRANSITIVE_MOTION = new Set([
+              'gefahren', 'weggefahren', 'geflogen', 'ausgezogen',
+              // ziehen/umziehen are aux='both' in the verbbank: motion → sein
+              // ("Ich bin nach Berlin gezogen", "Ich bin umgezogen"), but a
+              // direct object → haben ("Ich habe das Seil gezogen", "Ich habe
+              // mich umgezogen"). Enable the strong-accusative resolver so it
+              // decides per clause instead of defaulting to sein.
+              'gezogen', 'umgezogen',
+            ]);
+            const allowStrongAccEscape = TRUE_TRANSITIVE_MOTION.has(candidateLower);
+            const STRONG_ACC = new Set(['den', 'einen', 'keinen', 'jeden', 'diesen', 'jenen', 'welchen', 'manchen', 'meinen', 'deinen', 'seinen', 'ihren', 'unseren', 'euren', 'ihn', 'mich', 'dich']);
+            // F47-1 residual (v3.0.42): ambiguous-case markers (das/die,
+            // possessives) are accusative when they sit in the mid-clause
+            // slot between aux and a TRUE_TRANSITIVE_MOTION participle,
+            // followed by a capitalized noun. "Wir haben das Auto
+            // gefahren." = transitive haben → silent. Scoped to the
+            // motion-verb escape branch; STRONG_ACC stays unchanged
+            // globally so nominative-subject detection elsewhere is
+            // unaffected.
+            const STRONG_ACC_AMBIGUOUS = new Set([
+              'das', 'die',
+              'mein', 'meine', 'dein', 'deine', 'sein', 'seine',
+              'ihr', 'ihre', 'unser', 'unsere', 'euer', 'eure',
+            ]);
+            let hasAcc = false;
+            if (allowStrongAccEscape) {
+              const scanEnd = Math.min(j + 6, tokens.length);
+              for (let k = i + 1; k < scanEnd; k++) {
+                if (STRONG_ACC.has(tokens[k].word)) { hasAcc = true; break; }
+                if (STRONG_ACC_AMBIGUOUS.has(tokens[k].word) && k + 1 < tokens.length) {
+                  // Look ahead for a capitalized noun, optionally past one
+                  // intervening lowercase adjective.
+                  for (let m = k + 1; m <= Math.min(k + 2, tokens.length - 1); m++) {
+                    const w = tokens[m].display || tokens[m].word;
+                    if (w && /^[A-ZÄÖÜ]/.test(w)) { hasAcc = true; break; }
+                  }
+                  if (hasAcc) break;
+                }
+              }
+            }
+            // Resolve: transitive → haben; intransitive → sein.
+            const resolvedAux = hasAcc ? 'haben' : 'sein';
+            if (auxInfo.aux === resolvedAux) break; // already correct
+            const correctFormBoth = getCorrectAux(auxInfo, resolvedAux);
+            if (!correctFormBoth) break;
+            if (ctx.suppressedFor && ctx.suppressedFor.structural &&
+                ctx.suppressedFor.structural.has(t.start)) break;
+            out.push({
+              rule_id: rule.id,
+              priority: rule.priority,
+              start: t.start,
+              end: t.end,
+              original: t.display,
+              fix: matchCase ? matchCase(t.display, correctFormBoth) : correctFormBoth,
+              participle: candidate.display,
+              message: `Perfekt: "${t.display} ... ${candidate.display}" skulle vart "${correctFormBoth} ... ${candidate.display}"`,
+            });
+            break;
+          }
 
           // Check if the auxiliary matches
           if (auxInfo.aux === requiredAux) break; // Correct auxiliary — no flag
+
+          // Zustandspassiv / predicate-adjective guard (direction B: sein-aux +
+          // a participle whose Perfekt takes HABEN). The Perfekt of a haben-verb
+          // is "hat geschlossen" — never "ist geschlossen" — so "sein +
+          // haben-participle" is a valid STATAL PASSIVE ("Das Museum ist
+          // geschlossen" = is closed) or predicate adjective ("Ich bin
+          // enttäuscht", "Er ist geboren"), not a mis-auxiliaried Perfekt. Only
+          // treat it as a perfect-tense error when the subject is a bare
+          // personal pronoun AND the participle is not a common predicate
+          // adjective — that is the "ich bin gemacht" (attempted Perfekt) shape
+          // the fixtures pin, distinct from the thing-subject Zustandspassiv the
+          // corpus is full of.
+          if (auxInfo.aux === 'sein' && requiredAux === 'haben') {
+            const PERSONAL_PRON = new Set(['ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'man']);
+            const STATIVE_PARTICIPLE = new Set([
+              'geboren', 'enttäuscht', 'überrascht', 'interessiert', 'aufgeregt',
+              'informiert', 'angezogen', 'begeistert', 'erstaunt', 'überzeugt',
+              'verliebt', 'verletzt', 'erschöpft', 'gestresst', 'entspannt',
+              'gewöhnt', 'betrunken', 'gelangweilt', 'besorgt', 'verärgert',
+              'gespannt', 'zufrieden', 'gefangen',
+              // Impersonal "es ist verboten/erlaubt …" and other common
+              // predicate-adjective participles (Zustandspassiv with any subject,
+              // incl. the impersonal pronoun "es").
+              'verboten', 'erlaubt', 'geschlossen', 'geöffnet', 'reserviert',
+              'besetzt', 'versichert', 'geregelt', 'geschützt', 'erhalten',
+              'verheiratet', 'geschieden', 'bekannt', 'gewohnt',
+              // "Ich bin verloren" = I am lost (predicate adjective) —
+              // Ordbank sweep 2026-07.
+              'verloren',
+            ]);
+            const prevTok = i > 0 ? tokens[i - 1] : null;
+            const nextTok = tokens[i + 1] || null;
+            const subjPron = (prevTok && PERSONAL_PRON.has(prevTok.word))
+              || (nextTok && PERSONAL_PRON.has(nextTok.word));
+            if (!subjPron || STATIVE_PARTICIPLE.has(candidateLower)) break;
+          }
 
           // Wrong auxiliary! Suggest the correct one.
           const correctForm = getCorrectAux(auxInfo, requiredAux);

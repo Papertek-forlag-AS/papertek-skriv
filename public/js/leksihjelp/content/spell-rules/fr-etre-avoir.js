@@ -113,9 +113,19 @@
   // Determine what auxiliary a participle requires.
   // Returns 'etre', 'avoir', 'both', or null (unknown).
   function getRequiredAux(participleLower, vocabMap) {
+    // être's OWN past participle "été" conjugates with AVOIR (j'ai été, il a
+    // été), and "avoir + été + participle" is the passive voice ("le vol a été
+    // annulé"). Never suggest "est été". This must override any data/fallback
+    // misclassification of "été" as an être-verb participle.
+    if (participleLower === 'été' || participleLower === 'ete') return 'avoir';
     // 1. Data-driven lookup (ctx.vocab.participleToAux)
     if (vocabMap && vocabMap.size > 0) {
       const direct = vocabMap.get(participleLower);
+      // v3.0.121 (synthetic-wave FP "il a amélioré" → est): when the mapped
+      // infinitive is REFLEXIVE (s'améliorer), être only applies with the
+      // reflexive pronoun present — plain améliorer takes avoir. Without
+      // sight of the pronoun here, treat as undecidable.
+      if (direct && direct.inf && /^s['’]|^se\s/.test(direct.inf)) return 'both';
       if (direct) return normalizeAux(direct);
       // Try accent-stripped
       const stripped = stripAccents(participleLower);
@@ -156,6 +166,32 @@
     };
     return SUBJECT_MAP[pw] || null;
   }
+
+  // Determiners that, right after a copula form of être, open a predicate noun
+  // phrase ("c'est mon moment préféré", "il est un bon élève") — not a passé
+  // composé. Used to stop the participle scan before an adjectival participle.
+  const DETERMINER_AFTER_AUX = new Set([
+    'le', 'la', 'les', 'un', 'une', 'des', 'du',
+    'mon', 'ma', 'mes', 'ton', 'ta', 'tes', 'son', 'sa', 'ses',
+    'notre', 'nos', 'votre', 'vos', 'leur', 'leurs',
+    'ce', 'cet', 'cette', 'ces',
+  ]);
+
+  // Words that may legitimately sit BETWEEN the auxiliary and the participle in
+  // a passé composé (adverbs + post-verbal negation): "il a déjà mangé", "il
+  // n'a pas mangé", "elle a bien dormi". Anything else that isn't a participle
+  // means we've left the participle zone — stop the scan (see check loop).
+  // Without this the scan ran on for ~6 tokens and matched a far-off function
+  // word whose accent-stripped form collides with an être participle ("a
+  // conseillé de NE pas…" → né, "a éclaté ENTRE les voisins" → entré).
+  const PARTICIPLE_ZONE_SKIP = new Set([
+    'pas', 'plus', 'jamais', 'rien', 'guère', 'point',
+    'déjà', 'deja', 'bien', 'mal', 'trop', 'très', 'tres', 'tout', 'toute',
+    'vraiment', 'toujours', 'encore', 'souvent', 'presque', 'enfin',
+    'tellement', 'vite', 'beaucoup', 'parfois', 'longtemps', 'finalement',
+    'immédiatement', 'aussitôt', 'soudain', 'peut-être', 'sûrement', 'certainement',
+    'en', 'y',
+  ]);
 
   const rule = {
     id: 'fr-etre-avoir',
@@ -208,6 +244,15 @@
             auxForm = afterApo;
             // Detect person from the prefix (j' -> je -> 1s)
             const prefix = w.slice(0, apoIdx);
+            // "c'est / c'était" (ce + être) is the copula, never a passé-composé
+            // auxiliary — "C'est mon moment préféré" must not flag est→a off the
+            // adjectival participle "préféré". Skip entirely.
+            if (prefix === 'c') { auxInfo = null; auxForm = null; }
+            // "s'est / s'était" (se + être) is a REFLEXIVE passé composé, which
+            // is ALWAYS formed with être ("elle s'est fait mal", "il s'est
+            // levé") — never flag the auxiliary against the lexical verb's
+            // avoir requirement. Skip entirely.
+            if (prefix === 's') { auxInfo = null; auxForm = null; }
             const ELIDED_PERSON = { j: '1s', l: '3s', s: '3s' };
             subjectPerson = ELIDED_PERSON[prefix] || null;
           }
@@ -224,6 +269,12 @@
 
         if (!auxInfo) continue;
 
+        // Two-token reflexive: "ils se sont levés", "elles se sont tues" — the
+        // reflexive pronoun "se" directly before the auxiliary marks a
+        // pronominal verb, always être. (The apostrophe "s'est" form is handled
+        // above; this covers the plural "se sont/se sont".)
+        if (i > 0 && tokens[i - 1].word === 'se') continue;
+
         // Scan forward up to 5 tokens for a past participle.
         // Phase 42: stop at sentence boundary — the new se-taire participle
         // form `tu` collides with the subject pronoun `Tu`, so without this
@@ -232,9 +283,14 @@
         const maxScan = Math.min(i + 6, tokens.length);
         let crossedBoundary = false;
         for (let j = i + 1; j < maxScan; j++) {
-          if (j > i + 1 && ctx.text) {
+          // Boundary between the previous token and this candidate (checked for
+          // EVERY step, including the first gap after the auxiliary): sentence
+          // punctuation or a quote mark means the candidate is in another clause
+          // / a quoted mention, not this auxiliary's participle ("On dit
+          // « j'habite a… » entre amis" must not match "entre" → entré).
+          if (ctx.text) {
             const gap = ctx.text.slice(tokens[j - 1].end, tokens[j].start);
-            if (/[.!?;]/.test(gap)) { crossedBoundary = true; break; }
+            if (/[.!?;«»“”"]/.test(gap)) { crossedBoundary = true; break; }
           }
           const candidate = tokens[j];
           const candidateLower = candidate.word;
@@ -246,14 +302,36 @@
               candidateLower === 'elle' || candidateLower === 'on' || candidateLower === 'nous' ||
               candidateLower === 'vous' || candidateLower === 'ils' || candidateLower === 'elles') continue;
 
+          // A determiner right after the copula opens a predicate noun phrase,
+          // not a passé composé: "est mon moment préféré", "est un bon élève".
+          // The "participle" that follows (préféré) is adjectival — stop the
+          // scan so être isn't mistaken for an auxiliary.
+          if (DETERMINER_AFTER_AUX.has(candidateLower)) break;
+
           const requiredAux = getRequiredAux(candidateLower, participleToAux);
-          if (!requiredAux) continue;
+          if (!requiredAux) {
+            // Not a participle. If it's an adverb/negation that can sit before
+            // the participle, keep scanning; otherwise we've left the participle
+            // zone (the verb wasn't a passé composé) — stop, so a far-off
+            // collision word ("…de ne pas", "…éclaté entre") isn't mismatched.
+            if (PARTICIPLE_ZONE_SKIP.has(candidateLower)) continue;
+            break;
+          }
 
           // Skip 'both' — no way to tell transitive vs intransitive
           if (requiredAux === 'both') break;
 
           // Check if the auxiliary matches
           if (auxInfo.aux === requiredAux) break; // Correct — no flag
+
+          // Only flag the high-confidence direction: avoir used where être is
+          // required ("j'ai allé" → je suis allé). The reverse — être + an
+          // avoir-verb participle — is overwhelmingly a PASSIVE / état, not an
+          // error ("le bureau est rangé" = is tidy; "la porte est fermée" = is
+          // closed), so suppressing it kills a large FP class at negligible
+          // recall cost (être-used-where-avoir-needed, "je suis mangé", is a
+          // rare student error).
+          if (auxInfo.aux === 'etre') break;
 
           // Wrong auxiliary! Suggest the correct one.
           // Use detected person if available, otherwise use auxInfo.person

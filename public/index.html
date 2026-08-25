@@ -66,109 +66,202 @@
     <script src="/js/leksihjelp/exam-registry.js"></script>
     <script src="/js/leksihjelp/content/vocab-seam-core.js"></script>
     <script src="/js/leksihjelp/content/vocab-seam.js"></script>
+    <script src="/js/leksihjelp/content/pause-domain.js"></script>
+    <script src="/js/leksihjelp/content/rule-features.js"></script>
     <script src="/js/leksihjelp/content/spell-check-core.js"></script>
 
-    <!-- Pre-pass infrastructure (priority 1-9) -->
+    <!-- Spell rules (order mirrors leksihjelp extension/manifest.json) -->
     <script src="/js/leksihjelp/content/spell-rules/grammar-tables.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/quotation-suppression.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/redundancy.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/register.js"></script>
-
-    <!-- nb rules -->
-    <script src="/js/leksihjelp/content/spell-rules/nb-propernoun-guard.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-capitalization.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-perfekt-aux.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-compound-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-grammar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-wann-wenn.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-codeswitch.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-modal-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-sarskriving.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-grammar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-grammar-advanced.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-capitalization.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-preposition.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-false-friend.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-spelling-consistency.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-spelling-variety.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-accent-guard.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-coordination.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-grammar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-subject-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-fr-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-fr-modal-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-contraction.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-elision.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-etre-avoir.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-avoir-idiom.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-cedille.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-plural.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-plus-bon.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-aucun.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-beau-bel.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-adj-plural.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-grammar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-preposition.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-codeswitch.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-dialect-mix.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-aa-og.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-anglicism.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-apostrophe-genitive.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-comma.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-propernoun-guard.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-adjective-agreement.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-compound-gender.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-demonstrative-gender.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-double-definiteness.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-gender.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-homophones.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-definiteness-advisory.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-transitive-intransitive.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-modal-verb.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-possessive-definite.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-riksmal-lexical.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-sarskriving.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-sentence-boundary.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-triple-letter.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-typo-curated.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-typo-fuzzy.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/nb-v2.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-nn-passiv-s.js"></script>
-
-    <!-- nn rules -->
-    <script src="/js/leksihjelp/content/spell-rules/nn-plural-leakage.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-aa-og.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-sarskriving.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-sarskriving-tentative.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/universal-agreement.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-dialect-mix.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-place-preposition.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nn-verb-leakage.js"></script>
-
-    <!-- de rules -->
-    <script src="/js/leksihjelp/content/spell-rules/de-capitalization.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/de-gender.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/de-compound-gender.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/de-grammar.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/de-modal-verb.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/de-perfekt-aux.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nn-plural-leakage.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nn-form-consistency.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-riksmal-lexical.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-typo-curated.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-runon-words.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-triple-letter.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-typo-fuzzy.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-homophones.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-a-an.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-homophones.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/universal-context-typo.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/register.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/collocation.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/redundancy.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-ser-estar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-por-para.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-personal-a.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/de-prep-case.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/de-separable-verb.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/de-v2.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/de-verb-final.js"></script>
-
-    <!-- en rules -->
-    <script src="/js/leksihjelp/content/spell-rules/en-a-an.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/en-confused-pairs.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/en-double-comparative.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/en-grammar.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/en-grammar-advanced.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/en-homophones.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/en-morphology.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/en-subject-verb.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/en-word-family.js"></script>
-
-    <!-- es rules -->
-    <script src="/js/leksihjelp/content/spell-rules/es-accent-guard.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-coordination.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-grammar.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-gustar.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-imperfecto-hint.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-personal-a.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-por-para.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-pro-drop.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-ser-estar.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-subjuntivo.js"></script>
-
-    <!-- fr rules -->
-    <script src="/js/leksihjelp/content/spell-rules/fr-adj-gender.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/fr-aspect-hint.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-modal-infinitive-final.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-participle-final.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-subject-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-strong-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-komparativ.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-dative-plural.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-dative-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-negation.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-kein-noun.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-reflexive.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-akkusativ-pronoun.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-adjective-declension.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-wechselpraep.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-possessive-genitive.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-dative-possessive.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-accusative-possessive.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-dat-prep-pronoun.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-acc-prep-pronoun.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-wechsel-prep-pronoun.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-prep-contraction.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-dass-das.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-comma-subord.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-wo-wohin.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-zu-infinitive.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-nach-hause.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-dativ-objekt.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-sehr-komparativ.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-sowohl-als-auch.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-je-desto.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-trotz-conjunction.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-ob-indirect.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/de-viel-viele.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/fr-bags.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/fr-clitic-order.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/fr-contraction.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/fr-elision.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/fr-etre-avoir.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/fr-grammar.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/fr-pp-agreement.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/fr-preposition.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-v2.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-subjuntivo.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-imperfecto-hint.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/fr-subjonctif.js"></script>
-
-    <!-- shared rules -->
-    <script src="/js/leksihjelp/content/spell-rules/es-fr-gender.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/es-fr-modal-verb.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/collocation.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/universal-agreement.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/universal-context-typo.js"></script>
-
-    <!-- doc-drift post-pass (priority 80+) -->
+    <script src="/js/leksihjelp/content/spell-rules/fr-aspect-hint.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-pro-drop.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-gustar.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-mucho-muchos.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-todo-todos.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-tener-edad.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-ir-a-infinitivo.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-double-negation.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-enye.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-haber-impersonal.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-demonstrative-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-apocope.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-possessive-number.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-conmigo-contigo.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-numeral-cien.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-cardinal-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-cualquier.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-ambos.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-otro.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/es-varios.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-tout-tous.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-clitic-order.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-morphology.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-word-family.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-article-profession.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-subject-verb.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-adj-gender.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-negation.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-relative-qui-que.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-accord-possessif.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-tout-le-monde.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-on-singulier.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-pays-preposition.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-aller-infinitif.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-ce-cet-cette.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-quel-accord.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-venir-de.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-ville-preposition.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-si-conditionnel.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-moyen-transport.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-jouer-a-de.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-on-ont.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-son-sont.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-ce-ces.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-quel-pluriel.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/fr-leur-leurs.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/doc-drift-de-address.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/doc-drift-fr-address.js"></script>
-    <script src="/js/leksihjelp/content/spell-rules/doc-drift-nb-passiv-overuse.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/doc-drift-nb-register.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/doc-drift-nn-infinitive.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/doc-drift-nb-passiv-overuse.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-anglicism.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-possessive-definite.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-confused-pairs.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/en-double-comparative.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-adverbial-split.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-comma.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-comma-leddsetning.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-sentence-boundary.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/sentence-case.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-apostrophe-genitive.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-nn-reflexive-possessive.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-nn-infinitive-after-aa.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-negation-order.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-subordinate-order.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-impersonal-det.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-noun-plural-quantifier.js"></script>
+    <script src="/js/leksihjelp/content/spell-rules/nb-bare-infinitive-present.js"></script>
 
     <!-- Lang detect must load before engines/renderers -->
     <script src="/js/leksihjelp/content/lang-detect.js"></script>
 
-    <!-- Engines + renderers (engines BEFORE renderers — Phase 43 split) -->
+    <!-- Engines + renderers (engines BEFORE renderers — Phase 43 split).
+         pedagogy-render + personalization-store must precede the renderer,
+         which hard-requires their globals (3.8.x). -->
     <script src="/js/leksihjelp/content/spell-check-engine.js"></script>
+    <script src="/js/leksihjelp/content/pedagogy-render.js"></script>
+    <script src="/js/leksihjelp/content/personalization-store.js"></script>
     <script src="/js/leksihjelp/content/spell-check-renderer.js"></script>
 
     <!-- Dictionary popup helpers -->

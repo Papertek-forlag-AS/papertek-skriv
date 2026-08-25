@@ -4,11 +4,21 @@
  * Flags English-style apostrophe before genitive -s:
  *   "katten's mat" → "kattens mat"
  *
+ * Special handling:
+ * - Words whose stem ends in s, x, or z get the s-less fix shape per
+ *   Språkrådet (apostrophe only): "Lars's" → "Lars'", "Marx's" → "Marx'".
+ *   The fully correct form "Vesaas' bok" (no trailing s in source) stays
+ *   silent because the trailing-`<apo>s` guard below only matches when the
+ *   user wrote "<stem>'s".
+ *
  * Exceptions (no flag):
- * - Words ending in s, x, or z before the apostrophe — apostrophe IS
- *   correct per Språkrådet: "Vesaas' forfatterskap"
  * - English contractions: it's, he's, she's, that's, what's, let's,
  *   there's, here's, who's, where's, how's, one's
+ *
+ * Phase 50-01 also extended tokenizer (spell-check-core.js WORD_RE) to
+ * accept U+2019 (curly apostrophe — macOS/iOS/Word smart-quote default)
+ * as a word-internal joiner, and the apoIdx lookup below honors both
+ * U+0027 (ASCII) and U+2019.
  *
  * Rule ID: 'nb-apostrophe-genitive'
  */
@@ -55,23 +65,35 @@
 
         const w = t.word;  // lowercase
         // Must contain exactly one apostrophe followed by "s" at the end.
-        const apoIdx = w.indexOf("'");
-        if (apoIdx === -1) continue;
-        if (w !== w.slice(0, apoIdx) + "'s") continue;
+        // Phase 50-01 bug 1: accept both ASCII apostrophe (U+0027) and right
+        // single quotation mark (U+2019, the macOS/iOS/Word smart-quote
+        // auto-replacement). WORD_RE in spell-check-core.js already treats
+        // both as word-internal joiners, so the token comes through whole.
+        let apoIdx = w.indexOf("'");
+        if (apoIdx === -1) apoIdx = w.indexOf("’");
+        if (apoIdx < 0) continue;
+        const apoChar = w[apoIdx];
+        if (w !== w.slice(0, apoIdx) + apoChar + 's') continue;
         // The part before the apostrophe.
         if (apoIdx === 0) continue;  // bare "'s" — skip
 
-        // Skip English contractions.
-        if (ENGLISH_CONTRACTIONS.has(w)) continue;
+        // Skip English contractions (compare against normalised ASCII-apostrophe form).
+        const wAscii = apoChar === "'" ? w : w.slice(0, apoIdx) + "'" + w.slice(apoIdx + 1);
+        if (ENGLISH_CONTRACTIONS.has(wAscii)) continue;
 
-        // Språkrådet exception: if the stem ends in s, x, or z,
-        // apostrophe is correct.
+        // Språkrådet handling: if the stem ends in s, x, or z, the CORRECT
+        // genitive form is just the apostrophe with no trailing s (e.g.
+        // "Vesaas' forfatterskap", "Marx' teori"). Phase 50-01 bug 2:
+        // previously hard-skipped these, which let `Lars's bursdag` silently
+        // pass. Now we still flag them but with the s-less fix shape.
         const stem = w.slice(0, apoIdx);
         const lastChar = stem[stem.length - 1];
-        if (lastChar === 's' || lastChar === 'x' || lastChar === 'z') continue;
+        const sxzStem = (lastChar === 's' || lastChar === 'x' || lastChar === 'z');
 
-        // Build the fix: remove the apostrophe → "katten's" → "kattens"
-        const fixLower = stem + 's';
+        // Build the fix:
+        // - sxz stem: drop the trailing s ("Lars's" → "Lars'")
+        // - other:    drop the apostrophe ("katten's" → "kattens")
+        const fixLower = sxzStem ? stem + "'" : stem + 's';
         const fix = matchCase(t.display, fixLower);
         out.push({
           rule_id: 'nb-apostrophe-genitive',

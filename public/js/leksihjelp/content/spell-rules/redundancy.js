@@ -39,6 +39,13 @@
       { trigger: 'fremtidige planer', suggestion: 'planer' },
       { trigger: 'gjenta om igjen', suggestion: 'gjenta' },
       { trigger: 'ekstra bonus', suggestion: 'bonus' },
+      // Plan 50-04 sub-step A: adverb doubling (real student class
+      // surfaced in 2026-05-19 browser walk).
+      { trigger: 'veldig veldig', suggestion: 'veldig' },
+      { trigger: 'helt helt', suggestion: 'helt' },
+      { trigger: 'ganske ganske', suggestion: 'ganske' },
+      { trigger: 'kjempe kjempe', suggestion: 'kjempe' },
+      { trigger: 'litt litt', suggestion: 'litt' },
     ],
     nn: [
       { trigger: 'gratis gåve', suggestion: 'gåve' },
@@ -121,6 +128,7 @@
             if (!suppressed) {
               findings.push({
                 rule_id: 'redundancy',
+                priority: rule.priority,
                 start: absStart,
                 end: absEnd,
                 original: ctx.text.slice(absStart, absEnd),

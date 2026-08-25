@@ -109,9 +109,16 @@ const FILE_INVENTORY = [
     'content/vocab-seam.js',
     'content/lang-detect.js',
 
-    // Spell-check — engine/renderer pair (Phase 43 split)
+    // Spell-check — engine/renderer pair (Phase 43 split) plus the
+    // 3.8.x renderer/engine dependencies: pause state, per-rule grammar
+    // feature gating, pedagogy panel HTML, and the personalization store
+    // (renderer hard-requires __lexiPersonalization/__lexiPedagogyRender).
+    'content/pause-domain.js',
+    'content/rule-features.js',
     'content/spell-check-core.js',
     'content/spell-check-engine.js',
+    'content/pedagogy-render.js',
+    'content/personalization-store.js',
     'content/spell-check-renderer.js',
 
     // Exam-mode registry — Skriv's settings panel surfaces it

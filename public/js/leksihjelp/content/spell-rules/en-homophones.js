@@ -20,13 +20,18 @@
     'going', 'doing', 'making', 'getting', 'having', 'being', 'seeing', 'saying', 'thinking', 'coming',
     'good', 'bad', 'happy', 'sad', 'ready', 'welcome', 'beautiful', 'smart', 'here', 'there',
     'a', 'an', 'the', 'my', 'his', 'her', 'our', 'their',
-    'to', 'too', 'so', 'very', 'really', 'just', 'not', 'always', 'never', 'already'
+    'to', 'too', 'so', 'very', 'really', 'just', 'not', 'always', 'never', 'already',
+    'supposed', 'allowed', 'expected', 'meant', 'able', 'right', 'wrong', 'sure', 'late', 'early'
   ]);
 
   const NOUN_INDICATORS = new Set([
     'car', 'house', 'dog', 'cat', 'book', 'friend', 'name', 'job', 'time', 'life', 'day', 'way',
     'school', 'work', 'family', 'money', 'problem', 'idea', 'hand', 'eye', 'head', 'face',
-    'food', 'water', 'bed', 'toy', 'toys', 'tail'
+    'food', 'water', 'bed', 'toy', 'toys', 'tail',
+    // v3.0.121 (synthetic-corpus miss "There team"): everyday possessees
+    'team', 'mother', 'father', 'brother', 'sister', 'parents', 'children',
+    'teacher', 'room', 'phone', 'game', 'games', 'class', 'homework',
+    'cabin', 'garden', 'plan', 'plans', 'trip',
   ]);
 
   const rule = {
@@ -43,12 +48,14 @@
       if (finding.subType === 'your-youre') {
         return {
           nb: `<strong>You're</strong> betyr "you are" (du er). <strong>Your</strong> betyr "din/ditt/dine" (eiendomsord).`,
+          nn: `<strong>You're</strong> tyder "you are" (du er). <strong>Your</strong> tyder "din/ditt/dine" (eigedomsord).`,
           en: `<strong>You're</strong> means "you are". <strong>Your</strong> means it belongs to you.`,
         };
       }
       if (finding.subType === 'there-their-theyre') {
         return {
           nb: `<strong>There</strong> betyr "der". <strong>Their</strong> betyr "deres" (eiendomsord). <strong>They're</strong> betyr "they are" (de er).`,
+          nn: `<strong>There</strong> tyder "der". <strong>Their</strong> tyder "deira" (eigedomsord). <strong>They're</strong> tyder "they are" (dei er).`,
           en: `<strong>There</strong> is a place. <strong>Their</strong> means it belongs to them. <strong>They're</strong> means "they are".`,
         };
       }
@@ -72,10 +79,11 @@
       if (finding.subType === 'then-than') {
         return {
           nb: `<strong>Than</strong> brukes ved sammenligning (større enn). <strong>Then</strong> brukes om tid (og så, deretter).`,
+          nn: `<strong>Than</strong> blir brukt ved samanlikning (større enn). <strong>Then</strong> blir brukt om tid (og så, deretter).`,
           en: `<strong>Than</strong> is used for comparisons (bigger than). <strong>Then</strong> is used for time (and then).`,
         };
       }
-      return { nb: finding.message, en: finding.message };
+      return { nb: finding.message, nn: finding.message, en: finding.message };
     },
     check(ctx) {
       const { tokens, vocab, cursorPos, suppressed } = ctx;
@@ -93,7 +101,12 @@
 
         // 1. your vs you're
         if (word === 'your' && next) {
-          if (VERB_INDICATORS.has(next) || next === 'welcome') {
+          // "on/to/at your right/left" is the possessive-noun idiom (your
+          // right-hand side), not "you're right" — Ordbank sweep 2026-07.
+          const prevW = i > 0 ? tokens[i - 1].word : '';
+          const locative = (next === 'right' || next === 'left') &&
+            (prevW === 'on' || prevW === 'to' || prevW === 'at' || prevW === 'from');
+          if (!locative && (VERB_INDICATORS.has(next) || next === 'welcome')) {
             out.push({
               rule_id: 'homophone',
               subType: 'your-youre',
@@ -160,7 +173,23 @@
           }
         }
         else if (word === 'their') {
-          if (!next) {
+          // v3.0.121 (synthetic-corpus miss "Their is a big market"):
+          // their + copula/existential verb → There.
+          if (next === 'is' || next === 'are' || next === 'was' || next === 'were') {
+            out.push({
+              rule_id: 'homophone',
+              subType: 'there-their-theyre',
+              priority: rule.priority,
+              start: t.start,
+              end: t.end,
+              original: t.display,
+              fix: matchCase(t.display, 'there'),
+              suggestions: [matchCase(t.display, 'there')],
+              message: `Did you mean "there"?`
+            });
+            if (suppressed) suppressed.add(i);
+          }
+          else if (!next) {
             out.push({
               rule_id: 'homophone',
               subType: 'there-their-theyre',
@@ -238,7 +267,12 @@
           }
         }
         else if (word === "it's" && next) {
-          if (NOUN_INDICATORS.has(next) || (!VERB_INDICATORS.has(next) && !next.endsWith('ing') && next !== 'a' && next !== 'an' && next !== 'the' && next !== 'not' && next !== 'going' && next !== 'been')) {
+          // Ordbank sweep 2026-07: the old negative-default arm (!verb &&
+          // !-ing && !article…) flagged every "it's + adjective" — the most
+          // common CORRECT use ("it's cold", "it's impossible to…"). 12 FPs
+          // on the clean corpus. Require a positive noun signal: a curated
+          // possessee noun, or "own" ("it's own" → "its own").
+          if (NOUN_INDICATORS.has(next) || next === 'own') {
              out.push({
               rule_id: 'homophone',
               subType: 'its-its',
@@ -259,9 +293,25 @@
           // Look for comparative adjectives ending in -er (bigger, smaller, faster) or "more" / "less" / "other" / "rather"
           // Phase 40-06: also catch "more <X> then" / "less <X> then" patterns where comparator is two tokens back
           //              (e.g. "more exciting then i thought" → "more exciting than i thought")
+          //
+          // CURATED_COMPARATIVES is a fallback for high-frequency comparatives
+          // missing from EN validWords (upstream data gaps — e.g. `taller`
+          // not enumerated as an inflection of `tall`). Mirrors the SAFE_WORDS
+          // pattern in universal-context-typo and the ALWAYS_DEPONENT pattern
+          // in nb-nn-passiv-s — a small allowlist that closes a known FN class
+          // without making the heuristic itself looser.
+          const CURATED_COMPARATIVES = new Set([
+            'taller', 'shorter', 'bigger', 'smaller', 'larger', 'longer',
+            'older', 'younger', 'newer', 'faster', 'slower', 'harder',
+            'softer', 'richer', 'poorer', 'wiser', 'sadder', 'happier',
+            'easier', 'prettier', 'uglier', 'hotter', 'colder', 'brighter',
+            'darker', 'deeper', 'higher', 'lower', 'wider', 'thicker',
+            'thinner', 'stronger', 'weaker', 'lighter', 'heavier',
+          ]);
           const prev2 = i > 1 ? tokens[i - 2].word.toLowerCase() : null;
           const isComparativePrev = (
             prev === 'more' || prev === 'less' || prev === 'other' || prev === 'rather' || prev === 'better' ||
+            CURATED_COMPARATIVES.has(prev) ||
             (prev.length > 3 && prev.endsWith('er') && validWords.has(prev) && !prev.endsWith('ver') && !prev.endsWith('her'))
           );
           const isComparativePrev2 = (prev2 === 'more' || prev2 === 'less');

@@ -28,6 +28,50 @@
     return host.__lexiGrammarTables && host.__lexiGrammarTables.detectDrift;
   }
 
+  // POS-context gate: a token only counts as an infinitive register marker
+  // when it appears in an infinitive context. The -a / -e ending alone is
+  // ambiguous in NN (preteritum / perfektum participle / f-gender definite
+  // noun all also surface in -a), so context-free classification produces
+  // FPs on homographs (måtte=preteritum-of-må, auka=past, merke=noun, etc.).
+  //
+  // An infinitive context requires the immediate preceding non-skip token
+  // to be either 'å' (the infinitive marker) or a finite modal/catenative
+  // that licenses a bare infinitive. Adverbs and negation between licensor
+  // and infinitive are allowed.
+  const INF_LICENSORS = new Set([
+    // Present-tense modals
+    'kan', 'kann', 'skal', 'vil', 'må', 'bør', 'lyt',
+    // Past-tense modals (also infinitives themselves — only counted as
+    // licensor for the FOLLOWING token; their own classification still
+    // requires the same gate applied to them)
+    'kunne', 'skulle', 'ville', 'måtte', 'burde', 'laut',
+    // High-frequency catenatives that take bare infinitive complements
+    'prøver', 'prøvde', 'prøvar', 'prøvde',
+    'byrjar', 'byrja',
+    'plar', 'pla',
+    'brukar', 'bruka',
+    'held', 'heldt',
+    'fekk', 'får',
+    'torer', 'torde',
+    'orkar', 'orka',
+    'lærer', 'lærte',
+  ]);
+
+  const INF_INTERVENORS = new Set(['ikkje', 'ikke', 'berre', 'bare', 'alltid', 'aldri', 'gjerne', 'no', 'då', 'da']);
+
+  function hasInfinitiveContext(tokens, i) {
+    // Walk backwards up to 4 tokens; skip permissible adverbs/negation.
+    // First non-skip token must be 'å' or a licensor.
+    for (let j = i - 1; j >= Math.max(0, i - 4); j--) {
+      const w = tokens[j].word;
+      if (INF_INTERVENORS.has(w)) continue;
+      if (w === 'å') return true;
+      if (INF_LICENSORS.has(w)) return true;
+      return false;
+    }
+    return false;
+  }
+
   const rule = {
     id: 'doc-drift-nn-infinitive',
     kind: 'document',
@@ -79,6 +123,11 @@
         const tok = ctx.tokens[i];
         const entry = infMap.get(tok.word);
         if (!entry) continue;
+
+        // POS-context gate: skip homograph matches that aren't in an
+        // infinitive position (e.g. måtte as preteritum-of-må, auka as
+        // perfektum participle, merke as noun in idioms).
+        if (!hasInfinitiveContext(ctx.tokens, i)) continue;
 
         markers.push({
           register: entry.register,

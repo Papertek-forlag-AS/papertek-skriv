@@ -210,6 +210,67 @@
   color: var(--lh-accent, #11B49A);
 }
 
+/* Site-pause menu popover on the TTS bubble */
+.skriv-leksihjelp #lexi-tts-widget .lh-widget-pause-menu {
+  position: absolute;
+  top: 38px;
+  right: 8px;
+  z-index: 10;
+  width: 230px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.skriv-leksihjelp #lexi-tts-widget .lh-widget-pause-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1f2937;
+}
+.skriv-leksihjelp #lexi-tts-widget .lh-widget-pause-row {
+  display: flex;
+  gap: 6px;
+}
+.skriv-leksihjelp #lexi-tts-widget .lh-widget-pause-btn {
+  flex: 1 1 0;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.skriv-leksihjelp #lexi-tts-widget .lh-widget-pause-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+.skriv-leksihjelp #lexi-tts-widget .lh-widget-pause-forever {
+  width: 100%;
+}
+.skriv-leksihjelp #lexi-tts-widget .lh-widget-pause-note {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #6b7280;
+}
+.skriv-leksihjelp #lexi-tts-widget .lh-widget-pause-tts-only {
+  background: none;
+  border: none;
+  padding: 2px 0;
+  color: var(--lh-accent, #11B49A);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ── Text area with font controls ── */
 .skriv-leksihjelp #lexi-tts-widget .lh-text-area-wrapper {
   position: relative;
@@ -912,6 +973,16 @@
     background: rgba(255, 255, 255, 0.12);
   }
 
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-add-word {
+    background: rgba(34, 197, 94, 0.18);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.45);
+  }
+
+  .skriv-leksihjelp #lexi-spell-overlay .lh-spell-add-word:hover {
+    background: rgba(34, 197, 94, 0.32);
+  }
+
   /* UX-01 + UX-02 dark-mode variants (Phase 5 Plan 05) — match palette of the
      existing dark popover styles above. */
   .skriv-leksihjelp #lexi-spell-overlay .lh-spell-explain {
@@ -983,6 +1054,7 @@
 }
 
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-typo { background: #ef4444; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-runon-words { background: #ef4444; }  /* same red as typo — run-on words are a typo class */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-aa_og { background: #dc2626; } /* red-600 — high-severity å/og grammar error */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-homophone { background: #f97316; } /* orange-500 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-context-typo { background: #f97316; }
@@ -999,16 +1071,76 @@
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-contraction { background: #38bdf8; }
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-preposition { background: #38bdf8; }
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-sarskriving { background: #8b5cf6; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-sarskriving-tentative { background: #fbbf24; }  /* amber-400 — Phase 45 tentative compound, sub-warning */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-sarskriving_de { background: #8b5cf6; }         /* purple — same severity as nb sarskriving */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-sarskriving_de_hint { background: #fbbf24; }    /* amber-400 — ambiguous imperative+noun at sentence start */
+/* Phase 45-02: small amber pill rendered in the popover header for tentative compound findings, so students see at a glance this is a suggestion (vote Ja/Nei) rather than a confident correction. */
+.skriv-leksihjelp .lh-spell-tentative-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  margin-right: 6px;
+  border-radius: 8px;
+  background: #fef3c7;
+  color: #92400e;
+  vertical-align: middle;
+}
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-dialect-mix { background: #0ea5e9; }  /* sky-500 — Phase 05.1 Gap D */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-nn-verb-leakage { background: #f59e0b; }  /* amber-500 — NB verb leakage in NN */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-nn-plural-leakage { background: #f59e0b; }  /* amber-500 — NB plural leakage in NN */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-nn-reflexive-possessive { background: #f59e0b; }  /* amber-500 — reflexive sin/si/sitt/sine vs hans/hennar/hennes/deira/deres */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-nn-infinitive-after-aa { background: #f59e0b; }  /* amber-500 — finite verb form after infinitive marker "å" */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-apostrophe-genitive { background: #f59e0b; }  /* amber-500 — English-style apostrophe before genitive -s */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-quotation-suppression { background: transparent; } /* pre-pass, never surfaces */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-register { background: #f59e0b; }  /* amber — P2 warn, Phase 6 REG-01 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-collocation { background: #f59e0b; }  /* amber — P2 warn, Phase 6 REG-02 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-redundancy { background: #f97316; }  /* P3 hint, Phase 6 REG-03 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-v2 { background: #f59e0b; }  /* amber — P2 warn, Phase 7 WO-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb_neg_order { background: #f59e0b; }  /* amber — P2 warn, negation-before-verb */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-v2 { background: #f59e0b; }  /* amber — P2 warn, Phase 7 WO-02 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-verb-final { background: #f59e0b; }  /* amber — P2 warn, Phase 7 WO-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-subject-verb { background: #a855f7; }  /* purple — grammar agreement (ich kannst→kann) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-strong-verb { background: #db2777; }  /* pink — strong-verb stem change (du fahrst→fährst) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-komparativ { background: #ca8a04; }  /* yellow-amber — komparativ wie→als */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-adjective-declension { background: #f59e0b; }  /* amber — P2 warn, ADJDECL-DE-01 predicative declension */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-dative-plural { background: #a855f7; }  /* purple — grammar case (seit drei Jahre→Jahren) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-dative-verb { background: #0d9488; }  /* teal — dative-verb object (helfe dich→dir) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-negation { background: #65a30d; }  /* lime — kein/nicht negation (nicht ein→kein) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-kein-noun { background: #65a30d; }  /* lime — kein/nicht negation (nicht Zeit→keine Zeit) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-reflexive { background: #7c3aed; }  /* violet — reflexive advisory (er freut mich→sich) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-akkusativ-pronoun { background: #9333ea; }  /* purple — object-pronoun advisory (sehe er→ihn) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-wechselpraep { background: #0ea5e9; }  /* sky blue — hint, Wechselpräposition case self-check */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-possessive-genitive { background: #f97316; }  /* orange — hint, possessive pronoun in nominative form after noun */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-dative-possessive { background: #fb923c; }   /* orange-400 — hint, possessive pronoun wrong case after dative preposition */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-accusative-possessive { background: #fbbf24; } /* amber-400 — hint, possessive missing acc -n ending after accusative preposition */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-dat-prep-pronoun { background: #34d399; }     /* emerald-400 — hint, nominative personal pronoun after dative preposition */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-acc-prep-pronoun { background: #60a5fa; }     /* blue-400 — hint, nominative personal pronoun after accusative preposition */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-wechsel-prep-pronoun { background: #a78bfa; } /* violet-400 — hint, nominative personal pronoun after Wechselpräposition */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-prep-contraction { background: #14b8a6; }     /* teal-500 — hint, prep+article should be contracted (in dem → im) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-dass-das { background: #f87171; }             /* red-400 — error, 'das' written where 'dass' is required */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-comma-subord { background: #fdba74; }         /* orange-300 — hint, missing comma before subordinating conjunction */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-wo-wohin { background: #c084fc; }             /* purple-400 — hint, wo (location) vs wohin (direction) confusion */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-zu-infinitive { background: #67e8f9; }        /* cyan-300 — hint, missing zu before infinitive after zu-governing verb */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-nach-hause { background: #86efac; }           /* green-300 — hint, nach Hause (motion) vs zu Hause (location) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-dativ-objekt { background: #fca5a5; }         /* red-300 — hint, accusative pronoun as indirect object of ditransitive verb */
+/* de-wechselpraep opt-in toggle inside its "Lær mer" popover */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #0b3e44;
+  cursor: pointer;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-toggle input { cursor: pointer; flex: none; }
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-bags { background: #f97316; }  /* P3 hint, Phase 7 WO-04 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-perfekt-aux { background: #f59e0b; }  /* amber — P2 warn, Phase 8 DE-03 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-compound-gender { background: #f59e0b; }  /* amber — P2 warn, Phase 17 COMP-04 */
@@ -1021,13 +1153,44 @@
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-ser-estar { background: #f59e0b; }  /* amber — P2 warn, Phase 9 ES-01 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-por-para { background: #f59e0b; }  /* amber — P2 warn, Phase 9 ES-02 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-personal-a { background: #f59e0b; }  /* amber — P2 warn, Phase 9 ES-03 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-double-negation { background: #f59e0b; }  /* amber — P2 warn, NEG-01 double negation */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-enye { background: #38bdf8; }  /* blue — P1 error, ENYE-01 ñ-omission spelling */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-haber-impersonal { background: #f59e0b; }  /* amber — P2 warn, HABER-01 impersonal haber */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-demonstrative-gender { background: #f59e0b; }  /* amber — P2 warn, DEM-01 demonstrative gender */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-apocope { background: #f59e0b; }  /* amber — P2 warn, APOC-01 apocope before noun */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-possessive-number { background: #f59e0b; }  /* amber — P2 warn, POSS-01 possessive number */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-conmigo-contigo { background: #f59e0b; }  /* amber — P2 warn, CONM-01 con+pronoun contraction */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-numeral-cien { background: #f59e0b; }  /* amber — P2 warn, CIEN-01 ciento apocope */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-cardinal-gender { background: #f59e0b; }  /* amber — P2 warn, CARD-01 hundreds gender */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-cualquier { background: #f59e0b; }  /* amber — P2 warn, CUAL-01 cualquiera apocope */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-ambos { background: #f59e0b; }  /* amber — P2 warn, AMBOS-01 ambos/ambas gender */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-otro { background: #f59e0b; }  /* amber — P2 warn, OTRO-01 otro determiner gender */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-varios { background: #f59e0b; }  /* amber — P2 warn, VARIOS-01 varios/varias gender */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-elision { background: #38bdf8; }  /* blue — P1 error, Phase 10 FR-01 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-etre-avoir { background: #f59e0b; }  /* amber — P2 warn, Phase 10 FR-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-avoir-idiom { background: #f59e0b; }  /* amber — P2 warn, AVOIR-01 être→avoir idiom */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-cedille { background: #38bdf8; }  /* blue — P1 error, CEDILLE-01 ç-omission spelling */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-plural { background: #38bdf8; }  /* blue — P1 error, PLUR-FR-01 irregular plural */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-adj-plural { background: #38bdf8; }  /* blue — P1 error, ADJPLUR-FR-01 -al adjective plural */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-beau-bel { background: #f59e0b; }  /* amber — P2 warn, BEL-01 euphonic prenominal */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-plus-bon { background: #f59e0b; }  /* amber — P2 warn, PLUSBON-01 irregular comparative */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-aucun { background: #f59e0b; }  /* amber — P2 warn, AUCUN-01 aucun/aucune gender */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-pp-agreement { background: #f97316; }  /* P3 hint, Phase 10 FR-03 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-subjuntivo { background: #f59e0b; }  /* amber — P2 warn, Phase 11 MOOD-01 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-imperfecto-hint { background: #f97316; }  /* P3 hint, Phase 11 MOOD-02 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-subjonctif { background: #f59e0b; }  /* amber — P2 warn, Phase 11 MOOD-03 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-aspect-hint { background: #f97316; }  /* P3 hint, Phase 32-01 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-modal-infinitive-final { background: #f97316; }  /* P3 hint, v3.0.113 modal+infinitive placement */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-participle-final { background: #f97316; }  /* P3 hint, v3.0.117 perfekt participle placement */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-codeswitch { background: #dc2626; }  /* P1 error, v3.0.118 Norwegian word in German text */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-wann-wenn { background: #f59e0b; }  /* P2 warning, v3.0.118 wann/wenn confusion */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-sehr-komparativ { background: #a3e635; }  /* lime-400 — hint, sehr before comparative → viel */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-sowohl-als-auch { background: #f472b6; }  /* pink-400 — hint, sowohl...und → als auch */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-je-desto { background: #38bdf8; }         /* sky-400 — hint, je...je → je...desto */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-trotz-conjunction { background: #fb7185; } /* rose-400 — hint, trotz + pronoun → obwohl */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-ob-indirect { background: #818cf8; }       /* indigo-400 — hint, dass → ob in indirect yes/no question after fragen */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-de-viel-viele { background: #34d399; }        /* emerald-400 — hint, viel → viele before plural nouns */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-subject-verb { background: #dc2626; }  /* P1 error, v3.0.122 ES person agreement */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-pro-drop { background: #f97316; }  /* P3 hint, Phase 12 PRON-01 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-gustar { background: #f59e0b; }  /* amber — P2 warn, Phase 12 PRON-02 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-clitic-order { background: #f59e0b; }  /* amber — P2 warn, Phase 12 PRON-03 */
@@ -1039,6 +1202,39 @@
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-morphology { background: #e67e22 !important; }  /* warning tier — Phase 14 MORPH-01 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-word-family { background: #e67e22 !important; }  /* warning tier — Phase 14 MORPH-03 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-adj-gender { background: #e67e22 !important; }  /* warning tier — Phase 14 MORPH-02 */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-mucho-muchos { background: #fb923c; }  /* orange-400 — hint, mucho/poco → muchos/muchas before plural nouns */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-todo-todos { background: #a3e635; }  /* lime-400 — hint, todo/toda → todos/todas before plural nouns */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-tener-edad { background: #f97316; }  /* orange-500 — warning, soy/eres N años → tengo/tienes N años */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-es-ir-a-infinitivo { background: #f59e0b; }  /* amber-400 — warning, voy estudiar → voy a estudiar */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-article-profession { background: #60a5fa; }  /* blue-400 — warning, copula + profession missing a/an */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-tout-tous { background: #6ee7b7; }  /* emerald-300 — hint, tout → tous/toutes before plural nouns */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-negation { background: #f59e0b; }  /* amber — P2 warn, FR-14: missing ne in ne…pas negation */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-relative-qui-que { background: #f59e0b; }  /* amber — P2 warn, FR-15: qui→que before subject pronoun */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-accord-possessif { background: #f59e0b; }  /* amber — P2 warn, FR-16: possessive gender mismatch (son/sa/mon/ma/ton/ta) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-tout-le-monde { background: #f59e0b; }  /* amber — P2 warn, FR-17: plural verb after "tout le monde" */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-on-singulier { background: #f59e0b; }  /* amber — P2 warn, FR-18: non-singular verb after "on" */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-pays-preposition { background: #f59e0b; }  /* amber — P2 warn, FR-19: wrong preposition before country name */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-place-preposition { background: #f59e0b; }  /* amber — P2 warn, NB i/på before country name */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-subordinate-order { background: #f59e0b; }  /* amber — P2 warn, BIFF subordinate-clause adverb order */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-definiteness-advisory { background: #3b82f6; }  /* blue — P3 reflective advisory, double-definiteness (not a failure) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-transitive-intransitive { background: #8b5cf6; }  /* purple — P3 reflective advisory, transitiv/intransitiv (not a failure) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-adjective-agreement { background: #f59e0b; }  /* amber — P2 warn, attributive neuter adjective agreement (-t) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-impersonal-det { background: #f59e0b; }  /* amber — P2 warn, missing expletive det (weather/existential) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-noun-plural-quantifier { background: #f59e0b; }  /* amber — P2 warn, noun plural after quantifier (mange/flere) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-bare-infinitive-present { background: #f59e0b; }  /* amber — P2 warn, bare infinitive where present is required (jeg gå → går) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-aller-infinitif { background: #f59e0b; }  /* amber — P2 warn, FR-20: near future aller + infinitive */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-ce-cet-cette { background: #f59e0b; }  /* amber — P2 warn, FR-21: demonstrative gender agreement */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-quel-accord { background: #f59e0b; }  /* amber — P2 warn, FR-22: interrogative gender agreement */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-venir-de { background: #f59e0b; }  /* amber — P2 warn, FR-23: recent past venir de + infinitive */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-ville-preposition { background: #f59e0b; }  /* amber — P2 warn, FR-24: à before city names */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-si-conditionnel { background: #f59e0b; }  /* amber — P2 warn, FR-25: si-clause takes imperfect not conditional */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-moyen-transport { background: #f59e0b; }  /* amber — P2 warn, FR-26: en/à for means of transport */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-jouer-a-de { background: #f59e0b; }  /* amber — P2 warn, FR-27: jouer à sport / de instrument */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-on-ont { background: #f59e0b; }  /* amber — P2 warn, FR-28: on/ont homophone after ils/elles */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-son-sont { background: #f59e0b; }  /* amber — P2 warn, FR-29: son/sont homophone after ils/elles */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-ce-ces { background: #f59e0b; }  /* amber — P2 warn, FR-32: demonstrative number agreement (ce/cet/cette + plural → ces) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-quel-pluriel { background: #f59e0b; }  /* amber — P2 warn, FR-33: interrogative number agreement (quel… + plural → quels/quelles) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-fr-leur-leurs { background: #f59e0b; }  /* amber — P2 warn, FR-34: possessive leur/leurs number agreement */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-nn_passiv_s { background: #ef4444; }  /* red — P1 error, Phase 19 DEBT-04 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-doc-drift-nb-passiv-overuse { background: none; border-bottom: 2px dotted #94a3b8; }  /* P3 info, Phase 19 DEBT-04 */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-anglicism { background: #0ea5e9; }  /* sky-500 — hint, anglicism loan-verb */
@@ -1047,8 +1243,17 @@
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-subject-verb { background: #f59e0b; }  /* amber-500 — P2 warn, subject-verb agreement */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-confused-pair { background: #f97316; }  /* orange-500 — error, confused pairs */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-double-comparative { background: #f97316; }  /* orange-500 — error, double comparative */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-capitalization { background: #f59e0b; }  /* amber-500 — warn, proper noun capitalization */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-preposition { background: #f59e0b; }  /* amber-500 — warn, Norwegian preposition transfer */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-false-friend { background: #93c5fd; }  /* blue-300 — hint, false friend */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-spelling-consistency { background: #67e8f9; }  /* cyan-300 — hint, British/American spelling consistency */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-en-spelling-variety { background: #ef4444; }  /* red-500 — error, strict-variety spelling (native en-GB/en-US parity) */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nn-form-consistency { background: #67e8f9; }  /* cyan-300 — hint, NN dual-form consistency (mens/medan) */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-comma { background: #f59e0b; }  /* amber-500 — P2 warn, missing comma */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-comma-leddsetning { background: #f59e0b; }  /* amber-500 — P2 warn, missing comma after fronted subordinate clause */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-adverbial-split { background: #f59e0b; }  /* amber-500 — P2 warn, deprecated run-together temporal adverbial (idag→i dag) */
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-nb-sentence-boundary { background: #f59e0b; }  /* amber-500 — P2 warn, missing sentence-boundary punctuation */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-sentence-case { background: #f59e0b; }  /* amber-500 — P2 warn, sentence-start capital / space after full stop */
 
 /* P2 warning — amber dot (same shape as P1, different colour) — Phase 6.
    The ::after is the invisible click hit-target inherited from .lh-spell-dot
@@ -1211,6 +1416,19 @@
   background: rgba(59, 130, 246, 0.15);
 }
 
+/* "Behold ordet" — add-to-personal-dictionary action. Calm affirmative green,
+   outlined so it reads as distinct from the teal "Fiks" primary and the neutral
+   "Avvis". Only rendered on unknown-word findings when personalization is on. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-add-word {
+  background: rgba(34, 197, 94, 0.08);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-add-word:hover {
+  background: rgba(34, 197, 94, 0.18);
+}
+
 /* UX-01 (Phase 5 Plan 05): student-friendly explanation row. Larger than the
    retired .lh-spell-note (which was a 10px uppercase label) — dyslexia-aware
    body text at 13px with 1.4 line-height, wrapping naturally. Student's typed
@@ -1369,6 +1587,11 @@
   width: auto;
   padding: 4px 8px;
 }
+.skriv-leksihjelp .lh-chip-menu-langrow .lh-spell-lang-item.is-fl-placeholder {
+  border-style: dashed;
+  font-style: italic;
+  opacity: 0.9;
+}
 
 .skriv-leksihjelp .lh-chip-menu-pause-btn {
   flex: 1 1 0;
@@ -1383,6 +1606,19 @@
   cursor: pointer;
 }
 .skriv-leksihjelp .lh-chip-menu-pause-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+.skriv-leksihjelp .lh-chip-menu-pause-forever {
+  width: 100%;
+  margin-top: 6px;
+}
+
+/* EN spelling-variety picker (Begge / Britisk / Amerikansk) — reuses the
+   pause-button shell; active state mirrors the green lang-item selection. */
+.skriv-leksihjelp .lh-chip-menu-variety-btn.is-active {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #065f46;
+}
+.skriv-leksihjelp .lh-chip-menu-variety-btn.is-active:hover { background: #d1fae5; border-color: #10b981; }
 
 .skriv-leksihjelp .lh-chip-menu-paused-status {
   padding: 4px 4px 8px;
@@ -1414,6 +1650,13 @@
   cursor: pointer;
 }
 .skriv-leksihjelp .lh-chip-menu-settings-link:hover { background: #f1f5f9; }
+.skriv-leksihjelp .lh-chip-menu-version {
+  padding: 2px 8px 0;
+  font-size: 10px;
+  color: #9ca3af;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 
 .skriv-leksihjelp .lh-spell-fl-submenu {
   position: fixed;
@@ -1484,6 +1727,16 @@
 }
 
 /* Paused chip — greyed background + ⏸ countdown badge. */
+/* Focus mode («Kun det jeg arbeider med») active for the chip's language:
+   amber ring on the green pill (matches the Læringsbunken amber convention).
+   The filtering itself is invisible in the text, so the chip is the ONLY
+   on-page cue that findings are being suppressed — the web app's Skriving
+   row is the sibling indicator. Applied by spell-check-renderer.js
+   refreshLangBadge(); the 🎯 prefix in the lang badge is the second cue. */
+.skriv-leksihjelp .lh-spell-check-btn.lh-focus-on {
+  box-shadow: 0 0 0 2px #f59e0b, 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
 .skriv-leksihjelp .lh-spell-check-btn.is-paused {
   background: #9ca3af;
   border-color: #6b7280;
@@ -1647,9 +1900,157 @@
   line-height: 1.4;
   max-width: 100%;
   box-sizing: border-box;
+  max-height: 55vh;
+  overflow-y: auto;
 }
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-panel[hidden] {
   display: none !important;
+}
+
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-page[hidden] {
+  display: none !important;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-pages {
+  display: flex;
+  flex-direction: column;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 0;
+  margin-bottom: 8px;
+  padding: 0 0 6px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: none;
+  flex-shrink: 0;
+  /* Sticky so the controls are always visible when panel content scrolls */
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.98);
+  z-index: 1;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-nav button {
+  background: none;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #475569;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-nav button:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-nav button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-indicator {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-nav-spacer {
+  flex: 1;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-speak,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-expand {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-size: 15px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-speak:hover,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-expand:hover {
+  opacity: 1;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-nav--tools-only {
+  justify-content: flex-end;
+  border-bottom: none;
+  margin-top: 6px;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  position: static;
+}
+
+/* Expanded pedagogy mode — wider centered popover, capped by viewport. The
+   student opted into a big reading view, so use the space: large body text,
+   roomy examples, a scaled-up illustration, and bigger nav controls. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded {
+  max-width: min(760px, 94vw);
+  width: 94vw;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-panel {
+  font-size: 20px;
+  line-height: 1.75;
+  max-height: 80vh;
+  padding: 4px 20px 12px;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-summary,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-explanation {
+  font-size: 20px;
+  line-height: 1.75;
+  margin: 0 0 16px;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-example {
+  padding: 14px 18px;
+  font-size: 18px;
+  line-height: 1.6;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-example-translation,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-example-note {
+  font-size: 16px;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-extra {
+  font-size: 18px;
+  line-height: 1.7;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-visual {
+  margin: 18px 0;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-svg-wrapper svg {
+  max-height: 40vh;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-visual-caption {
+  font-size: 15px;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-nav button {
+  font-size: 17px;
+  padding: 6px 14px;
+}
+/* Center each page's content vertically. The expand handler pins the pages
+   container to the TALLEST page's height (so the popover doesn't jump on
+   prev/next); without centering, a short page (e.g. a tips slide) sits at the
+   top with a big empty gap below. Centering fills that reserved space. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-page {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+/* Example cards: put the ✓ correct and ✗ incorrect forms side by side to use
+   the extra width; translation + note span the full row beneath them. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-example {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  align-items: baseline;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-example-correct,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-example-incorrect {
+  flex: 1 1 42%;
+  margin: 0;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-example-translation,
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-popover--expanded .lh-spell-pedagogy-example-note {
+  flex-basis: 100%;
 }
 
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-header {
@@ -1690,6 +2091,33 @@
 }
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-explanation {
   color: #4A4A4A;
+}
+
+/* Pedagogy endings table (e.g. de-subject-verb's pronoun/ending grid,
+   sourced from grammarbank note strings). Deliberately NOT scoped under
+   #lexi-spell-overlay: the same pedagogy strings render in the floating
+   widget and in downstream consumers (lockdown, playground). */
+.skriv-leksihjelp .lh-pedagogy-table {
+  border-collapse: collapse;
+  margin: 6px 0 2px 0;
+  font-size: 0.95em;
+}
+.skriv-leksihjelp .lh-pedagogy-table td,
+.skriv-leksihjelp .lh-pedagogy-table th {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 3px 10px;
+  line-height: 1.4;
+  color: #2A2A2A;
+  /* endings like -amos otherwise line-break after the hyphen */
+  white-space: nowrap;
+}
+/* Pronoun/label cells are <th> (works for any layout: DE 2-pair grid,
+   ES pronoun + conjugation-class columns) — muted tint, endings plain. */
+.skriv-leksihjelp .lh-pedagogy-table th {
+  font-weight: 500;
+  text-align: left;
+  color: #4A4A4A;
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-example {
@@ -1770,6 +2198,41 @@
   color: #1e293b;
   line-height: 1.4;
 }
+/* "Se hele lista →" trigger for the browsable anglicism viewer. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-anglicism-viewer-cta {
+  margin-top: 12px;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-anglicism-viewer-btn {
+  background: #11B49A;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-anglicism-viewer-btn:hover {
+  background: #0e9d86;
+}
+
+/* "Se hele lista →" trigger for the browsable false-friends viewer. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-falsefriend-viewer-cta {
+  margin-top: 12px;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-falsefriend-viewer-btn {
+  background: #11B49A;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-falsefriend-viewer-btn:hover {
+  background: #0e9d86;
+}
 
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-wechsel {
   display: flex;
@@ -1822,3 +2285,143 @@
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-pedagogy-colloquial em {
   font-style: italic;
 }
+
+/* Personalization (Phase 1) — popover hooks: mark-known + add-word + note */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-mark-known {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 13px;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-mark-known:hover { opacity: 1; }
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-known-note {
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 4px 0 0;
+}
+/* Læringsbunken: "you're practising this rule" note in the writing popover. */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-learning-note {
+  font-size: 12px;
+  color: #9a6b16;
+  margin: 6px 0 4px;
+}
+/* Læringsbunken: a marker for a rule the student is actively practising gets a
+   soft amber ring so the mistake stands out as "the rule you're working on". */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-dot.lh-spell-learning-marked {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #e3a93a;
+}
+
+/* Level-scoped corrections — known-lesson "du kan dette" Lær mer badge */
+.skriv-leksihjelp #lexi-spell-overlay .lh-spell-laer-mer-btn.lh-spell-laer-mer-known { opacity: 0.75; font-style: italic; }
+
+/* Lær mer lesson render — synced: works in the extension pop-out page AND the
+   lockdown in-page modal (2026-06-13). The host injects an .lh-lesson-modal
+   wrapper around .lh-lesson; the extension pop-out renders .lh-lesson directly. */
+.skriv-leksihjelp .lh-lesson { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; min-height: 100%; }
+.skriv-leksihjelp .lh-lesson-head { padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 16px; }
+.skriv-leksihjelp .lh-lesson-title { font-size: 22px; margin: 0; }
+.skriv-leksihjelp .lh-lesson-body { flex: 1; display: flex; }
+.skriv-leksihjelp .lh-lesson-foot { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.skriv-leksihjelp .lh-lesson-mark { padding: 8px 18px; border-radius: 8px; border: 1px solid #1e7a40; background: #1e7a40; color: #fff; cursor: pointer; font-size: 1rem; }
+/* Secondary "Jeg lærer dette" button — outlined amber (læringsbunken). */
+.skriv-leksihjelp .lh-lesson-mark.lh-lesson-learn { background: #fff; color: #9a6b16; border-color: #d9b25f; }
+.skriv-leksihjelp .lh-lesson-learning-note { flex-basis: 100%; color: #9a6b16; font-size: 0.95rem; margin: 0; }
+.skriv-leksihjelp .lh-lesson-locked-note { color: #8a6d3b; font-style: italic; }
+/* Click-flash feedback when a lesson footer button is pressed. */
+@keyframes lh-lesson-mark-flash {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(30,122,64,.45); }
+  40%  { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(30,122,64,0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(30,122,64,0); }
+}
+.skriv-leksihjelp .lh-lesson-mark--flash { animation: lh-lesson-mark-flash 0.34s ease; }
+
+/* Lesson "slide deck" layout (pop-out window + lockdown modal). Pin the nav to
+   the TOP so its position is fixed regardless of slide length; hide the expand
+   button (redundant in a full lesson view); give each slide a consistent frame
+   and scale text up to use the available space. Scoped to .lh-lesson so the
+   in-popover mini-panel keeps its compact bottom-nav layout. */
+.skriv-leksihjelp .lh-lesson .lh-spell-pedagogy-pages { display: flex; flex-direction: column; flex: 1; width: 100%; }
+.skriv-leksihjelp .lh-lesson .lh-spell-pedagogy-nav { order: -1; margin: 0 0 18px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0;
+  display: flex; justify-content: center; align-items: center; gap: 8px; }
+/* Drop the right-pushing spacer (popover-only) so the controls stay centered. */
+.skriv-leksihjelp .lh-lesson .lh-spell-pedagogy-nav-spacer { display: none; }
+.skriv-leksihjelp .lh-lesson .lh-spell-pedagogy-nav button { font-size: 1.05rem; padding: 4px 12px; }
+.skriv-leksihjelp .lh-lesson .lh-spell-pedagogy-indicator { font-size: 1rem; font-weight: 600; }
+.skriv-leksihjelp .lh-lesson .lh-spell-pedagogy-expand { display: none; }
+.skriv-leksihjelp .lh-lesson .lh-spell-pedagogy-page { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 320px; font-size: 1.2rem; line-height: 1.65; }
+/* The `display:flex` above would otherwise override the [hidden] attribute's
+   display:none, showing every slide at once (one long scroll). Re-hide the
+   inactive slides so it's a real one-at-a-time slideshow. */
+.skriv-leksihjelp .lh-lesson .lh-spell-pedagogy-page[hidden] { display: none; }
+.skriv-leksihjelp .lh-lesson .lh-spell-pedagogy-explanation { font-size: 1.25rem; margin-bottom: 14px; }
+/* lockdown modal shell (host injects .lh-lesson-modal wrapper) */
+.skriv-leksihjelp .lh-lesson-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.skriv-leksihjelp .lh-lesson-modal { background: #fff; border-radius: 12px; padding: 24px; max-width: 560px; max-height: 80vh; overflow: auto; }
+
+/* Cross-standard (nb/nn) note + switch hint in the dictionary view. Shipped
+   here too because content.css is the synced surface the lockdown sidepanel
+   loads — the dictionary-view module renders these classes there as well. */
+.skriv-leksihjelp .cross-standard-note { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+.skriv-leksihjelp .cross-standard-switch { background: none; border: none; color: #11B49A; font-size: 12px; cursor: pointer; padding: 2px 0; }
+.skriv-leksihjelp .cross-standard-switch:hover { text-decoration: underline; }
+
+/* ── RSVP reader (rsvp-reader.js) ─────────────────────────────────────── */
+/* The active paragraph is painted through the CSS Custom Highlight API, so
+   nothing is wrapped in a span and the pupil's document stays untouched.
+   ::highlight() accepts colour properties only — hence a tint, not a bar. */
+.skriv-leksihjelp ::highlight(lh-rsvp-paragraph) {
+  background-color: rgba(240, 192, 74, 0.28);
+  color: inherit;
+}
+
+.skriv-leksihjelp #lexi-rsvp {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  background: rgba(20, 20, 19, 0.86);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #f5f5f0;
+}
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-stage { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-word { font-size: 48px; line-height: 1.1; letter-spacing: 0.5px; white-space: pre; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-pre { display: inline-block; text-align: right; width: 6ch; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-pivot { color: #f0c04a; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-post { display: inline-block; text-align: left; width: 12ch; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-tick { width: 1px; height: 10px; background: #54544e; margin-top: 4px; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-sentence { max-width: 620px; margin-top: 28px; font-size: 16px; line-height: 1.6; color: #c9c9c2; text-align: center; }
+/* The surrounding sentence is already dim, so colour alone carries the mark —
+   bolding it as well would make the paused view jump. */
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-sentence-word { color: #f0c04a; font-weight: normal; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-bar { display: flex; align-items: center; gap: 14px; padding: 12px 20px; border-top: 1px solid #33332f; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-progress { flex: 1; height: 4px; background: #33332f; border-radius: 2px; overflow: hidden; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-progress-fill { height: 100%; width: 0; background: #f0c04a; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-para, .skriv-leksihjelp #lexi-rsvp .lh-rsvp-meter { font-size: 13px; color: #a8a8a2; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-wpm { font-size: 16px; color: #f5f5f0; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-record { margin-left: 10px; color: #7a7a72; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-record[hidden] { display: none; }
+/* The keyboard hint is the only instructions the reader has, and a pupil
+   meeting it for the first time has to read it from across a desk. 12px at
+   #7a7a72 was too quiet to survive the dark scrim. */
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-hint { text-align: center; padding-bottom: 18px; font-size: 15px; color: #c9c9c2; letter-spacing: 0.2px; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-para, .skriv-leksihjelp #lexi-rsvp .lh-rsvp-meter { font-size: 15px; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-wpm { font-size: 19px; }
+.skriv-leksihjelp #lexi-rsvp button { font-size: 15px; padding: 8px 14px; }
+.skriv-leksihjelp #lexi-rsvp button { background: transparent; border: 1px solid #54544e; color: #f5f5f0; border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.skriv-leksihjelp #lexi-rsvp button:hover { background: #2a2a26; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-result { position: absolute; inset: 0; background: #141413; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+/* An author `display:flex` beats the UA sheet's [hidden]{display:none}, so the
+   result screen would cover the reader from the moment it opens. Same trap the
+   pedagogy slideshow hit a few hundred lines up. */
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-result[hidden] { display: none; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-result-number { font-size: 52px; color: #f0c04a; line-height: 1.1; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-result-lead, .skriv-leksihjelp #lexi-rsvp .lh-rsvp-result-detail { font-size: 13px; color: #a8a8a2; }
+.skriv-leksihjelp #lexi-rsvp .lh-rsvp-result-actions { display: flex; gap: 8px; margin-top: 14px; }
+.skriv-leksihjelp #lexi-tts-widget .lh-rsvp-btn { margin-left: 6px; font-size: 12px; padding: 4px 10px; }

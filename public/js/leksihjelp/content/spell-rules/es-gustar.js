@@ -50,6 +50,13 @@
   // with gustar-class verb forms after accent-stripping.
   const PREPOSITION_COLLISIONS = new Set(['sobre', 'a', 'de', 'en', 'con', 'por', 'para']);
 
+  // Gustar-class verbs whose dative-less reading is fully grammatical in EVERY
+  // position (including with an explicit subject pronoun), so the missing-dative
+  // flag is never reliable for them — excluded outright. See the check loop for
+  // the per-verb rationale. (faltar/sobrar are NOT here: "El sobra dinero" is a
+  // reliable wrong-SVO error, covered by fixtures es-gust-ext-26/27.)
+  const BARE_VALID_GUSTAR = new Set(['parecer', 'quedar']);
+
   // Subject pronouns that precede gustar-class verbs in wrong SVO pattern.
   // Map from pronoun (lowercase accent-stripped) to the appropriate dative clitic.
   const PRONOUN_TO_CLITIC = {
@@ -160,6 +167,59 @@
           }
           if (!verbInfo) continue;
           if (!gustarVerbs.has(verbInfo.inf)) continue;
+
+          // The gustar experiencer construction agrees with the THING liked, so
+          // it is ALWAYS 3rd person ("me gusta", "les gustan"). A 1st/2nd-person
+          // form is only the gustar error ("Yo gusto de la comida", "Tú gustas")
+          // when the matching subject pronoun precedes it — otherwise it is a
+          // noun/adjective homograph ("con gusto", "mal gusto", "mucho encanto",
+          // "nada más molesto", "falté a clase"), which has no dative to miss.
+          // Degree adverb before → ADJECTIVE homograph ("nada más molesto
+          // que…", "muy molesto"), not a verb form (Ordbank sweep 2026-07).
+          {
+            const prevDeg = i > range.start ? ctx.tokens[i - 1].word.toLowerCase() : '';
+            if (prevDeg === 'más' || prevDeg === 'muy' || prevDeg === 'tan' ||
+                prevDeg === 'menos' || prevDeg === 'bastante' || prevDeg === 'poco') continue;
+          }
+
+          const gPerson = verbInfo.person || '';
+          const is3p = gPerson === 'él/ella' || gPerson === 'ellos/ellas'
+                    || gPerson === 'él/ella/usted' || gPerson === 'ellos/ellas/ustedes';
+          if (!is3p) {
+            const prevW = i > range.start ? ctx.tokens[i - 1].word.toLowerCase() : '';
+            if (prevW !== 'yo' && prevW !== 'tú' && prevW !== 'tu'
+                && prevW !== 'nosotros' && prevW !== 'nosotras'
+                && prevW !== 'vosotros' && prevW !== 'vosotras') continue;
+          }
+
+          // parecer/quedar have a dative-less reading that is valid in EVERY
+          // position, so flagging a "missing" dative mis-corrects valid sentences:
+          //   parecer — copula "to seem": "Pareces cansado", "Parece que llueve"
+          //   quedar  — resultative "to turn out": "Quedó muy bien", "quedaron
+          //             tiernos"; and "quedar bien" = "to make a good impression"
+          //             ("Él siempre queda bien"), valid even with a subject.
+          // The gustar reading of each REQUIRES the dative to even exist, so its
+          // absence isn't an error.
+          if (BARE_VALID_GUSTAR.has(verbInfo.inf)) continue;
+
+          // Reflexive use ("se quedó", "se interesó") is never gustar-class.
+          if (i > range.start && ctx.tokens[i - 1].word === 'se') continue;
+
+          // quedar/interesar have dominant non-gustar meanings (stay/remain/
+          // become/agree; reflexive interesarse). Restrict to the 3rd-person
+          // gustar reading and skip the readings signalled by a following
+          // adjective, "que", or preposition.
+          if (verbInfo.inf === 'quedar' || verbInfo.inf === 'interesar') {
+            const person = verbInfo.person || '';
+            if (person !== 'él/ella' && person !== 'ellos/ellas') continue;
+            const nextTok = ctx.tokens[i + 1];
+            if (nextTok) {
+              const nw = nextTok.word, ns = stripAccents(nw);
+              const NON_GUSTAR_NEXT = ['que', 'en', 'de', 'con', 'a', 'al', 'por', 'para', 'sin', 'sobre', 'como'];
+              if (NON_GUSTAR_NEXT.indexOf(nw) !== -1 || NON_GUSTAR_NEXT.indexOf(ns) !== -1) continue;
+              if (ctx.vocab.isAdjective instanceof Set && ctx.vocab.isAdjective.has(nw)) continue;
+            }
+          }
 
           // Found a gustar-class verb. Walk backward up to 3 tokens looking
           // for a dative clitic.

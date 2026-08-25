@@ -73,6 +73,21 @@
         const lower = t.word;
         const entry = irregularForms.get(lower) || DOUBLE_PLURALS.get(lower);
         if (!entry) continue;
+        // Ordbank sweep 2026-07: the derived error-form table collides with
+        // REAL words — be+ed = "bed" (a noun; 19 clean-text firings on "go to
+        // bed"), giraffe's -fe→-ves rule made correct "giraffes" flag, "bus
+        // stops" hit a stop-plural entry. A blanket validWords gate is NOT
+        // usable: the wordfreq-derived list contains genuinely-erroneous
+        // corpus forms (taked, catched, mans …), so it would kill the rule's
+        // core catches — curated real-word homographs only.
+        const REAL_WORD_HOMOGRAPHS = new Set(['bed', 'giraffes', 'stops',
+          'fishes', 'saw', 'left', 'found', 'ground', 'felt', 'rose', 'lay']);
+        if (REAL_WORD_HOMOGRAPHS.has(lower)) continue;
+        // 'lied' is the CORRECT past of lie-as-deceive ("he had lied to
+        // her"); only lie-as-recline is irregular (lay/lain). The deceive
+        // sense governs to/about.
+        if (lower === 'lied' && tokens[i + 1] &&
+            (tokens[i + 1].word === 'to' || tokens[i + 1].word === 'about')) continue;
 
         const fix = matchCase ? matchCase(t.display, entry.correct) : entry.correct;
 

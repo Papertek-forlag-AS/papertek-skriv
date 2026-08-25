@@ -18,6 +18,16 @@
   const { escapeHtml } = host.__lexiSpellCore || {};
 
   const CONJUNCTIONS = new Set(['men', 'for', 'eller']);
+  // Subordinators: a subject found AFTER one of these (scanning past the
+  // conjunction) belongs to a subordinate clause, not a new main clause, so the
+  // conjunction isn't joining two independent clauses. Mirrors the comma-stop
+  // (Wave B-4). Real-NN-text FP: "larvar eller maur fordi dei tykkjer …" and
+  // "anten fordi … eller fordi dei har …" — the only subject after "eller" sits
+  // inside a fordi-clause, so "eller" is phrasal/correlative coordination.
+  const SUBORDINATORS_FWD = new Set([
+    'fordi', 'at', 'som', 'når', 'då', 'da', 'medan', 'mens', 'dersom', 'viss',
+    'hvis', 'sidan', 'siden', 'etter', 'før', 'sjølv', 'selv', 'om',
+  ]);
 
   const SUBJECT_PRONOUNS_NB = new Set([
     'jeg', 'du', 'han', 'hun', 'den', 'det', 'vi', 'dere', 'de', 'man',
@@ -90,10 +100,14 @@
         const word = t.word.toLowerCase();
         if (!CONJUNCTIONS.has(word)) continue;
 
-        // Already has comma before? Check the raw text between prev token end and this token start.
+        // Already has comma before? Or em-dash / en-dash separating? Check
+        // the raw text between prev token end and this token start. Em-dash
+        // covers the corrective-parenthetical pattern: "X — eller Y" doesn't
+        // need a comma before "eller" because the dash already marks the
+        // boundary (... — eller mor sine, eg veit ikkje ...).
         const prevT = tokens[i - 1];
         const gap = text.slice(prevT.end, t.start);
-        if (gap.includes(',')) continue;
+        if (/[,—–]/.test(gap)) continue;
 
         // "men" joining adjectives — no comma needed
         if (word === 'men') {
@@ -121,12 +135,20 @@
           if (subjects.has(w)) { hasSubjectBefore = true; break; }
         }
 
-        // Scan forward for subject pronoun (max 5 tokens)
+        // Scan forward for subject pronoun (max 5 tokens). Stop at sentence-
+        // end punctuation OR at a comma — Phase 48 Wave B-4: a comma between
+        // the conjunction and the subject signals that the subject belongs
+        // to a downstream clause (typically a subordinate "når X" / "som X"
+        // or an adverbial aside), NOT to the conjunction's right-hand side.
+        // Corpus T5: "ut av en novelle eller film, spesielt når jeg har…"
+        // — the "jeg" subject lives inside the subordinate "når jeg…", so
+        // "eller" is phrasal noun-coord, not an independent-clause boundary.
         for (let j = i + 1; j <= Math.min(tokens.length - 1, i + 5); j++) {
           const gapStart = (j - 1 >= i) ? t.end : tokens[j - 1].end;
           const gap = text.slice(gapStart, tokens[j].start);
-          if (/[.!?;]/.test(gap)) break;
+          if (/[.!?;,]/.test(gap)) break;
           const w = tokens[j].word.toLowerCase();
+          if (SUBORDINATORS_FWD.has(w)) break; // subject past here is in a subordinate clause
           if (subjects.has(w)) { hasSubjectAfter = true; break; }
         }
 
@@ -138,13 +160,30 @@
           // "for at ..." is a subordinator construction ("so that"), not "because".
           // "for å ..." is "in order to".  Skip both — they're not the
           // independent-clause "for" (= because) we're targeting.
-          const nextWord = tokens[i + 1].word.toLowerCase();
+          const nextT = tokens[i + 1];
+          const nextWord = nextT.word.toLowerCase();
           if (nextWord === 'at' || nextWord === 'å') continue;
-          let nearSubject = false;
-          for (let j = i + 1; j <= Math.min(tokens.length - 1, i + 2); j++) {
-            if (subjects.has(tokens[j].word.toLowerCase())) { nearSubject = true; break; }
-          }
-          if (!nearSubject) continue;
+          // Conjunction "for" (= because) introduces a CLAUSE: a subject
+          // pronoun IMMEDIATELY after, itself followed by a finite verb
+          // ("for jeg var sliten"). The preposition takes an NP instead —
+          // "for den røde kommoden" (determiner + adjective), "for det hun
+          // foretar seg" (object + elided-som relative), "for meg – vi kan
+          // møtes" (object; the dash starts a new clause). den/det/de double
+          // as subject pronouns AND determiners/objects, so the old
+          // subject-within-2-tokens test flagged all of those prepositional
+          // uses.
+          if (!subjects.has(nextWord)) continue;
+          const verbT = tokens[i + 2];
+          if (!verbT) continue;
+          const vGap = text.slice(nextT.end, verbT.start);
+          if (/[.!?;,—–:]/.test(vGap)) continue;
+          const vw = verbT.word.toLowerCase();
+          const knownPresens = (ctx.vocab && ctx.vocab.knownPresens) || new Set();
+          const knownPreteritum = (ctx.vocab && ctx.vocab.knownPreteritum) || new Set();
+          const FIN_AUX = new Set(['er', 'var', 'har', 'hadde', 'blir', 'ble',
+            'vart', 'vert', 'kan', 'må', 'vil', 'skal', 'bør',
+            'skulle', 'kunne', 'måtte', 'ville', 'burde']);
+          if (!(knownPresens.has(vw) || knownPreteritum.has(vw) || FIN_AUX.has(vw))) continue;
         }
 
         out.push({
