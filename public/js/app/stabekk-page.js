@@ -18,10 +18,10 @@ import { showToast } from '../editor-core/shared/toast-notification.js';
 import { initServiceWorker } from './sw-manager.js';
 import { initParagraphTrainer } from '../editor-core/student/paragraph-trainer.js';
 
-// Fast skolenivå for Stabekk-klassene i stedet for onboarding-modalen.
-// Styrer hvilket nivå ('us' vs 'vgs') startsetning-trekkene henter fra.
-// Gyldige verdier: 'barneskole' | 'ungdomsskole' | 'vg1' | 'vg2' | 'vg3'.
-const STABEKK_LEVEL = 'ungdomsskole';
+// Fast skolenivå i stedet for onboarding-modalen: Stabekk er en vgs, og
+// vg1/vg2/vg3 er likeverdige her — alle gir 'vgs'-nivået i startsetning-
+// trekkene. ('barneskole'/'ungdomsskole' ville gitt 'us'-nivået.)
+const STABEKK_LEVEL = 'vg1';
 
 async function init() {
     initTheme();

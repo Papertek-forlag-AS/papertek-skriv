@@ -23,9 +23,14 @@ Hash-based SPA routing in `main.js`. No history API.
 **Navigation flow:**
 
 ```
-App init
+App init → route()
   └── First visit (no school level) → Onboarding modal (must pick level)
-        └── Picks level → saves to localStorage → continues to #/
+        ├── Gated per route: shown for every screen EXCEPT #/avsnitt —
+        │   deep links to the paragraph trainer skip the question (the
+        │   level has no function there; trainer falls back to the 'us'
+        │   starter tier). Modal appears on first navigation into the
+        │   app proper instead.
+        └── Picks level → saves to localStorage → continues to the route
 
 #/ (Document list)
   ├── Click document → #/doc/{id}
