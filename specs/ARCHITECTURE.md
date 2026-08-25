@@ -29,7 +29,7 @@ public/
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
 ├── stabekk.html            ← Standalone Stabekk one-pager (paragraph trainer only, own accent palette)
-├── sw.js                   ← Service Worker (cache v82)
+├── sw.js                   ← Service Worker (cache v83)
 ├── vendor/                 ← Pinned self-hosted libraries
 │   └── docx.iife.js        (docx 9.5.0, MIT — real .docx export)
 ├── icons/                  ← PWA icon (192)
@@ -37,8 +37,8 @@ public/
 │   ├── analyse.md          (legacy)
 │   ├── droefting.md        (legacy)
 │   ├── kronikk.md          (legacy)
-│   ├── nb/                 ← Bokmål (12 frames)
-│   └── nn/                 ← Nynorsk (12 frames)
+│   ├── nb/                 ← Bokmål (17 frames)
+│   └── nn/                 ← Nynorsk (17 frames)
 └── js/
     ├── app/                ← App-level orchestration
     │   ├── main.js         ← Router, init

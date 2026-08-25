@@ -1029,6 +1029,263 @@ export const starters = {
         },
     },
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // FORTELJING — barneskule/ungdomsskule narrativ (us-tier = enkelt språk)
+    // ─────────────────────────────────────────────────────────────────────────
+    fortelling: {
+        us: {
+            begynnelse: [
+                'Det var ein gong...',
+                'Ein dag skulle...',
+                'Det heile starta då...',
+                'Akkurat då... skjedde det noko rart.',
+                'Langt borte i... budde det...',
+                'Eg gløymer aldri dagen då...',
+            ],
+            midtdel: [
+                'Plutseleg...',
+                'Då oppdaga...',
+                'Det vart verre og verre, fordi...',
+                'Utan å tenkje seg om...',
+                'Hjartet banka fort då...',
+                'Ingen visste at...',
+            ],
+            slutt: [
+                'Til slutt...',
+                'Endeleg var...',
+                'Etter den dagen...',
+                'Alt vart bra igjen då...',
+                'Og det var slik...',
+                'No veit eg at...',
+            ],
+        },
+        vgs: {
+            begynnelse: [
+                'Det byrja som ein heilt vanleg dag, heilt til...',
+                'Ingen i... hadde nokon gong sett...',
+                'Lyden av... var det første eg la merke til.',
+                'Alle sa at ein aldri skulle... men...',
+            ],
+            midtdel: [
+                'I same augneblink forstod...',
+                'Alt hang plutseleg saman:...',
+                'Det fanst ingen veg tilbake då...',
+                'Med hendene fulle av... snudde...',
+            ],
+            slutt: [
+                'Då roa endeleg senka seg...',
+                'Ingenting vart heilt som før, men...',
+                'Kanskje var det nettopp det som måtte skje...',
+                'Historia om... blir framleis fortald.',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FAKTATEKST — barneskule/ungdomsskule informerande tekst
+    // ─────────────────────────────────────────────────────────────────────────
+    faktatekst: {
+        us: {
+            innledning: [
+                'Denne teksten handlar om...',
+                'Visste du at...',
+                'Har du nokon gong lurt på...',
+                'No skal du få lære om...',
+            ],
+            fakta: [
+                'Ein viktig ting å vite er at...',
+                'Forskarar har funne ut at...',
+                'Noko anna som er spennande, er at...',
+                'Det tyder at...',
+                'Dei fleste... har...',
+                'Eit døme på dette er...',
+            ],
+            avslutning: [
+                'No har du lært at...',
+                'Det viktigaste å hugse er...',
+                'Som du ser, er... eit spennande emne.',
+                'Om du vil lære meir, kan du...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Denne teksten gjev ei oversikt over...',
+                'Temaet... er aktuelt fordi...',
+                'For å forstå... må vi først sjå på...',
+            ],
+            fakta: [
+                'Undersøkingar viser at...',
+                'Eit sentralt kjenneteikn ved... er...',
+                'Dette heng saman med...',
+                'Samanlikna med... er...',
+            ],
+            avslutning: [
+                'Oppsummert er... kjenneteikna av...',
+                'Kunnskap om... er viktig fordi...',
+                'Det står framleis att å finne ut...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BOKMELDING — presentasjon, handling og vurdering av ei bok
+    // ─────────────────────────────────────────────────────────────────────────
+    bokmelding: {
+        us: {
+            innledning: [
+                'Boka eg har lese, heiter...',
+                'Ho er skriven av...',
+                'Dette er ei bok om...',
+                'Sjangeren er... og boka passar for...',
+            ],
+            handling: [
+                'Boka handlar om...',
+                'Hovudpersonen er... som...',
+                'Problemet i historia er at...',
+                'Undervegs møter... på...',
+                'Den mest spennande staden i boka er når...',
+            ],
+            vurdering: [
+                'Det beste med boka var... fordi...',
+                'Eg likte godt at...',
+                'Noko eg ikkje likte så godt, var...',
+                'Språket i boka er...',
+                'Boka fekk meg til å kjenne...',
+            ],
+            anbefaling: [
+                'Eg tilrår boka til deg som likar...',
+                'Denne boka passar for...',
+                'Eg gjev boka... av 6 stjerner fordi...',
+                'Om du likte... vil du også like denne.',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Romanen... av... kom ut i...',
+                'Forfattaren er kjend for...',
+                'Boka plasserer seg i sjangeren...',
+            ],
+            handling: [
+                'Handlinga krinsar rundt...',
+                'Konflikten oppstår når...',
+                'Forteljinga vekslar mellom...',
+            ],
+            vurdering: [
+                'Den største styrken til boka er...',
+                'Forfattaren lukkast særleg med...',
+                'Eit svakt punkt er likevel...',
+                'Språkleg er boka kjenneteikna av...',
+            ],
+            anbefaling: [
+                'Boka blir tilrådd til lesarar som...',
+                'Samla sett fortener boka...',
+                'Lesarar av... vil kjenne seg igjen i...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SØKNAD — jobbsøknad / søknad om plass
+    // ─────────────────────────────────────────────────────────────────────────
+    soeknad: {
+        us: {
+            innledning: [
+                'Eg søkjer med dette på stillinga som...',
+                'Eg viser til utlysinga på... og søkjer med dette...',
+                'Eg såg annonsen dykkar på... og vil gjerne søkje.',
+            ],
+            kvalifikasjoner: [
+                'Eg har erfaring med... frå...',
+                'Gjennom... har eg lært å...',
+                'Som... hadde eg ansvar for...',
+                'På skulen har eg vist at eg...',
+                'Vener og lærarar skildrar meg som...',
+            ],
+            motivasjon: [
+                'Eg ønskjer meg denne stillinga fordi...',
+                'Det som tiltalar meg ved... er...',
+                'Eg kan bidra med...',
+                'Eg er spesielt interessert i...',
+            ],
+            avslutning: [
+                'Eg stiller gjerne til intervju og kan byrje...',
+                'Ta gjerne kontakt om de har spørsmål.',
+                'Eg vonar på positivt svar.',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Eg søkjer med dette den utlyste stillinga som...',
+                'Med bakgrunn i... ønskjer eg å søkje stillinga som...',
+            ],
+            kvalifikasjoner: [
+                'Erfaringa mi frå... har gjeve meg...',
+                'I rolla som... utvikla eg...',
+                'Eg meistrar... og har dokumentert...',
+                'Arbeidet med... kravde at eg...',
+            ],
+            motivasjon: [
+                'Verksemda dykkar tiltalar meg fordi...',
+                'Stillinga passar godt med planen min om å...',
+                'Eg ser fram til å kunne bidra med...',
+            ],
+            avslutning: [
+                'Eg stiller gjerne i intervju for å utdjupe søknaden.',
+                'Referansar blir oppgjevne på førespurnad.',
+                'Eg ser fram til å høyre frå dykk.',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FORMELT BREV — klage, førespurnad eller melding til ukjend mottakar
+    // ─────────────────────────────────────────────────────────────────────────
+    'formelt-brev': {
+        us: {
+            innledning: [
+                'Eg skriv til dykk fordi...',
+                'Eg viser til... og ønskjer å...',
+                'Eg kontaktar dykk om...',
+            ],
+            sak: [
+                'Den... opplevde eg at...',
+                'Saka gjeld...',
+                'Eg vil særleg peike på at...',
+                'Dette har ført til at...',
+            ],
+            handling: [
+                'Eg ber difor om at...',
+                'Eg ønskjer ei tilbakemelding på...',
+                'Eit godt utfall for meg ville vere at...',
+            ],
+            avslutning: [
+                'På førehand takk for hjelpa.',
+                'Eg ser fram til å høyre frå dykk.',
+                'Eg kan kontaktast på...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Eg vender meg til dykk i samband med...',
+                'Det blir vist til... datert...',
+            ],
+            sak: [
+                'Saksforholdet er som følgjer:...',
+                'Eg vil framheve at...',
+                'Vedlagt følgjer dokumentasjon på...',
+            ],
+            handling: [
+                'På denne bakgrunnen ber eg om at...',
+                'Eg ser fram til ei skriftleg tilbakemelding innan...',
+                'Om saka ikkje blir løyst, vurderer eg å...',
+            ],
+            avslutning: [
+                'Takk for at de handsamar førespurnaden.',
+                'Eg står til disposisjon for fleire opplysningar.',
+            ],
+        },
+    },
+
     generell: {
         us: {
             innleiing: [

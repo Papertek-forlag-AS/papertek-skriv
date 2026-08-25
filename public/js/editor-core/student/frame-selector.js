@@ -21,19 +21,46 @@ import { parseFrameMarkdown } from './frame-parser.js';
  * Can be overridden via options.frames.
  */
 const DEFAULT_FRAME_REGISTRY = [
-    { id: 'droefting', file: '/frames/{{lang}}/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc' },
-    { id: 'analyse', file: '/frames/{{lang}}/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc' },
-    { id: 'kronikk', file: '/frames/{{lang}}/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc' },
-    { id: 'kaaseri', file: '/frames/{{lang}}/kaaseri.md', labelKey: 'skriv.frameKaaseri', descKey: 'skriv.frameKaaseriDesc' },
-    { id: 'fagartikkel', file: '/frames/{{lang}}/fagartikkel.md', labelKey: 'skriv.frameFagartikkel', descKey: 'skriv.frameFagartikkelDesc' },
-    { id: 'leserinnlegg', file: '/frames/{{lang}}/leserinnlegg.md', labelKey: 'skriv.frameLeserinnlegg', descKey: 'skriv.frameLeserinnleggDesc' },
-    { id: 'novelle', file: '/frames/{{lang}}/novelle.md', labelKey: 'skriv.frameNovelle', descKey: 'skriv.frameNovelleDesc' },
-    { id: 'retorisk-analyse', file: '/frames/{{lang}}/retorisk-analyse.md', labelKey: 'skriv.frameRetoriskAnalyse', descKey: 'skriv.frameRetoriskAnalyseDesc' },
-    { id: 'kortsvar', file: '/frames/{{lang}}/kortsvar.md', labelKey: 'skriv.frameKortsvar', descKey: 'skriv.frameKortsvarDesc' },
-    { id: 'kreativ-tekst', file: '/frames/{{lang}}/kreativ-tekst.md', labelKey: 'skriv.frameKreativTekst', descKey: 'skriv.frameKreativTekstDesc' },
-    { id: 'reflekterende-tekst', file: '/frames/{{lang}}/reflekterende-tekst.md', labelKey: 'skriv.frameReflekterendeTekst', descKey: 'skriv.frameReflekterendeTekstDesc' },
-    { id: 'sammenligning', file: '/frames/{{lang}}/sammenligning.md', labelKey: 'skriv.frameSammenligning', descKey: 'skriv.frameSammenligningDesc' },
+    // `levels` lists the RECOMMENDED school-level bands for each genre.
+    // Recommendation, not prohibition: frames outside the pupil's band
+    // remain available under "Flere skriverammer" in the picker.
+    { id: 'fortelling', file: '/frames/{{lang}}/fortelling.md', labelKey: 'skriv.frameFortelling', descKey: 'skriv.frameFortellingDesc', levels: ['barneskole', 'ungdomsskole'] },
+    { id: 'faktatekst', file: '/frames/{{lang}}/faktatekst.md', labelKey: 'skriv.frameFaktatekst', descKey: 'skriv.frameFaktatekstDesc', levels: ['barneskole', 'ungdomsskole'] },
+    { id: 'bokmelding', file: '/frames/{{lang}}/bokmelding.md', labelKey: 'skriv.frameBokmelding', descKey: 'skriv.frameBokmeldingDesc', levels: ['barneskole', 'ungdomsskole'] },
+    { id: 'droefting', file: '/frames/{{lang}}/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'analyse', file: '/frames/{{lang}}/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'kronikk', file: '/frames/{{lang}}/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc', levels: ['vgs'] },
+    { id: 'kaaseri', file: '/frames/{{lang}}/kaaseri.md', labelKey: 'skriv.frameKaaseri', descKey: 'skriv.frameKaaseriDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'fagartikkel', file: '/frames/{{lang}}/fagartikkel.md', labelKey: 'skriv.frameFagartikkel', descKey: 'skriv.frameFagartikkelDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'leserinnlegg', file: '/frames/{{lang}}/leserinnlegg.md', labelKey: 'skriv.frameLeserinnlegg', descKey: 'skriv.frameLeserinnleggDesc', levels: ['barneskole', 'ungdomsskole', 'vgs'] },
+    { id: 'soeknad', file: '/frames/{{lang}}/soeknad.md', labelKey: 'skriv.frameSoeknad', descKey: 'skriv.frameSoeknadDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'formelt-brev', file: '/frames/{{lang}}/formelt-brev.md', labelKey: 'skriv.frameFormeltBrev', descKey: 'skriv.frameFormeltBrevDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'novelle', file: '/frames/{{lang}}/novelle.md', labelKey: 'skriv.frameNovelle', descKey: 'skriv.frameNovelleDesc', levels: ['barneskole', 'ungdomsskole', 'vgs'] },
+    { id: 'retorisk-analyse', file: '/frames/{{lang}}/retorisk-analyse.md', labelKey: 'skriv.frameRetoriskAnalyse', descKey: 'skriv.frameRetoriskAnalyseDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'kortsvar', file: '/frames/{{lang}}/kortsvar.md', labelKey: 'skriv.frameKortsvar', descKey: 'skriv.frameKortsvarDesc', levels: ['vgs'] },
+    { id: 'kreativ-tekst', file: '/frames/{{lang}}/kreativ-tekst.md', labelKey: 'skriv.frameKreativTekst', descKey: 'skriv.frameKreativTekstDesc', levels: ['barneskole', 'ungdomsskole', 'vgs'] },
+    { id: 'reflekterende-tekst', file: '/frames/{{lang}}/reflekterende-tekst.md', labelKey: 'skriv.frameReflekterendeTekst', descKey: 'skriv.frameReflekterendeTekstDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'sammenligning', file: '/frames/{{lang}}/sammenligning.md', labelKey: 'skriv.frameSammenligning', descKey: 'skriv.frameSammenligningDesc', levels: ['ungdomsskole', 'vgs'] },
 ];
+
+/**
+ * Split a frame registry into recommended / other for a level band.
+ * A frame with no `levels` array is always recommended.
+ * @param {Array} registry
+ * @param {string|null} band - 'barneskole' | 'ungdomsskole' | 'vgs' | null
+ * @returns {{ recommended: Array, other: Array }}
+ */
+export function partitionFramesByLevel(registry, band) {
+    if (!band) return { recommended: registry, other: [] };
+    const recommended = [];
+    const other = [];
+    for (const frame of registry) {
+        (!frame.levels || frame.levels.includes(band) ? recommended : other).push(frame);
+    }
+    // A band with no matches (misconfigured registry) falls back to all.
+    if (!recommended.length) return { recommended: registry, other: [] };
+    return { recommended, other };
+}
 
 /**
  * Resolve a frame file path for the current language.
@@ -54,11 +81,11 @@ function getFramePath(pathTemplate) {
  * @param {HTMLElement} button - The Struktur button
  * @param {HTMLElement} editor - The contenteditable element
  * @param {object} frameGuide - The frame guide panel API (applyFrame, removeFrame, getActiveFrame, hasFrame, toggle, hide)
- * @param {{ onFrameApplied?: () => void, frames?: Array }} options
+ * @param {{ onFrameApplied?: () => void, frames?: Array, getLevelBand?: () => string }} options
  * @returns {{ destroy: () => void, updateButtonState: () => void }}
  */
 export function initFrameSelector(button, editor, frameGuide, options = {}) {
-    const { onFrameApplied } = options;
+    const { onFrameApplied, getLevelBand } = options;
     const frameRegistry = options.frames || DEFAULT_FRAME_REGISTRY;
 
     // --- Build dropdown panel (appended to body to avoid overflow clipping) ---
@@ -120,36 +147,50 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
         }
     }
 
+    function appendFrameButton(frame) {
+        const btn = document.createElement('button');
+        btn.className = 'block w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors';
+
+        const isActive = frameGuide.getActiveFrame() === frame.id;
+
+        btn.innerHTML = `
+            <div class="text-sm font-medium ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-700 dark:text-stone-300'}">
+                ${isActive ? '&#10003; ' : ''}${t(frame.labelKey)}
+            </div>
+            <div class="text-xs text-stone-400 mt-0.5">${t(frame.descKey)}</div>
+        `;
+
+        btn.addEventListener('click', () => {
+            panel.classList.add('hidden');
+            if (isActive) return;
+            handleSelectFrame(frame);
+        });
+
+        panel.appendChild(btn);
+    }
+
+    function appendSectionTitle(text) {
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'px-4 py-1 text-xs font-semibold text-stone-400 uppercase tracking-wide';
+        titleDiv.textContent = text;
+        panel.appendChild(titleDiv);
+    }
+
     function buildFramePickerList() {
         panel.innerHTML = '';
 
-        // Title
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'px-4 py-1 text-xs font-semibold text-stone-400 uppercase tracking-wide';
-        titleDiv.textContent = t('skriv.frameSelectorTitle');
-        panel.appendChild(titleDiv);
+        const band = getLevelBand ? getLevelBand() : null;
+        const { recommended, other } = partitionFramesByLevel(frameRegistry, band);
 
-        // Frame options
-        for (const frame of frameRegistry) {
-            const btn = document.createElement('button');
-            btn.className = 'block w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors';
+        appendSectionTitle(t('skriv.frameSelectorTitle'));
+        for (const frame of recommended) appendFrameButton(frame);
 
-            const isActive = frameGuide.getActiveFrame() === frame.id;
-
-            btn.innerHTML = `
-                <div class="text-sm font-medium ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-700 dark:text-stone-300'}">
-                    ${isActive ? '&#10003; ' : ''}${t(frame.labelKey)}
-                </div>
-                <div class="text-xs text-stone-400 mt-0.5">${t(frame.descKey)}</div>
-            `;
-
-            btn.addEventListener('click', () => {
-                panel.classList.add('hidden');
-                if (isActive) return;
-                handleSelectFrame(frame);
-            });
-
-            panel.appendChild(btn);
+        if (other.length) {
+            const divider = document.createElement('div');
+            divider.className = 'border-t border-stone-200 dark:border-stone-700 my-1';
+            panel.appendChild(divider);
+            appendSectionTitle(t('skriv.frameMoreFrames'));
+            for (const frame of other) appendFrameButton(frame);
         }
     }
 
