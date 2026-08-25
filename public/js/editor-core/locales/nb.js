@@ -24,6 +24,7 @@ export default {
         date: 'Dato: {{date}}',
         wordCount: 'Antall ord: {{count}}',
         pdfNotLoaded: 'PDF-biblioteket er ikke lastet. Prøv å laste ned som .txt i stedet.',
+        page: 'Side {{num}}',
     },
 
     time: {
@@ -423,6 +424,7 @@ export default {
         hasSources: 'Kilder er lagt til',
         introConclusion: 'Innledning og avslutning er skrevet',
         spellCheck: 'Språk og stavekontroll er sjekket',
+        docFormatNote: 'Word-filen (.doc) åpnes i Word på PC/Mac, men ikke i Word på nett eller Google Docs. Velg PDF hvis du skal levere inn.',
         droefting: {
             question: 'Problemstillingen er presentert i innledningen',
             argFor: 'Minst ett argument for med påstand, underbygging og forklaring',

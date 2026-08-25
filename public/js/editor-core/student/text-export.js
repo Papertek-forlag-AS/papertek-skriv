@@ -147,7 +147,7 @@ export function downloadPDF({ title, studentName, text, html, references }) {
         doc.setFont('Helvetica', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
-        const pageNumText = `Side ${i}`;
+        const pageNumText = t('export.page', { num: i });
         const textWidth = doc.getTextWidth(pageNumText);
         doc.text(pageNumText, (pageWidth - textWidth) / 2, pageHeight - 12);
     }

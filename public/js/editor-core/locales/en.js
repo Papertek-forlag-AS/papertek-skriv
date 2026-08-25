@@ -27,6 +27,7 @@ export default {
             other: 'Word count: {{count}}',
         },
         pdfNotLoaded: 'PDF library is not loaded. Try downloading as .txt instead.',
+        page: 'Page {{num}}',
     },
 
     time: {
@@ -432,6 +433,7 @@ export default {
         hasSources: 'Sources have been added',
         introConclusion: 'Introduction and conclusion are written',
         spellCheck: 'Spelling and language have been checked',
+        docFormatNote: 'The Word file (.doc) opens in Word on PC/Mac, but not in Word on the web or Google Docs. Choose PDF if you are handing in.',
         droefting: {
             question: 'The thesis is presented in the introduction',
             argFor: 'At least one argument for with claim, evidence and explanation',
