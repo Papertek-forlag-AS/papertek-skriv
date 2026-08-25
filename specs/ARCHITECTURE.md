@@ -14,6 +14,7 @@ Papertek Skriv is a privacy-first PWA for student writing in Norwegian schools. 
 | CSS          | Tailwind CSS (CDN)      | `https://cdn.tailwindcss.com`  |
 | Storage      | IndexedDB               | Databases: `skriv-documents` v4, `skriv-versions` v1 |
 | PDF export   | jsPDF 2.5.1 (CDN)       | cdnjs.cloudflare.com           |
+| Word export  | docx 9.5.0 (vendored)   | `/vendor/docx.iife.js`, lazy-loaded on first export; shared engine with Papertek Skriveprøve |
 | Positioning  | Floating UI 1.7.5 (CDN) | For toolbar popover            |
 | PWA          | Service Worker + manifest| Offline-first, installable     |
 | i18n         | Custom module            | nb, nn, en with pluralization  |
@@ -28,7 +29,9 @@ public/
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
 ├── stabekk.html            ← Standalone Stabekk one-pager (paragraph trainer only, own accent palette)
-├── sw.js                   ← Service Worker (cache v80)
+├── sw.js                   ← Service Worker (cache v81)
+├── vendor/                 ← Pinned self-hosted libraries
+│   └── docx.iife.js        (docx 9.5.0, MIT — real .docx export)
 ├── icons/                  ← PWA icon (192)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md          (legacy)
@@ -108,3 +111,5 @@ public/
 | Tailwind CSS     | latest  | `https://cdn.tailwindcss.com`                                |
 | jsPDF            | 2.5.1   | `https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js` |
 | Floating UI DOM  | 1.7.5   | `https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.5/`      |
+
+Vendored (self-hosted, not CDN): `docx` 9.5.0 at `/vendor/docx.iife.js` — injected as a classic script by `docx-export.js` the first time the pupil exports Word; best-effort precached by the SW (`OPTIONAL_ASSETS`).

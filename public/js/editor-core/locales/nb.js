@@ -25,6 +25,9 @@ export default {
         wordCount: 'Antall ord: {{count}}',
         pdfNotLoaded: 'PDF-biblioteket er ikke lastet. Prøv å laste ned som .txt i stedet.',
         page: 'Side {{num}}',
+        pageLabel: 'Side',
+        pageOf: 'av',
+        docxFailed: 'Kunne ikke lage Word-filen. Prøv igjen, eller last ned PDF.',
     },
 
     backup: {
@@ -435,7 +438,6 @@ export default {
         hasSources: 'Kilder er lagt til',
         introConclusion: 'Innledning og avslutning er skrevet',
         spellCheck: 'Språk og stavekontroll er sjekket',
-        docFormatNote: 'Word-filen (.doc) åpnes i Word på PC/Mac, men ikke i Word på nett eller Google Docs. Velg PDF hvis du skal levere inn.',
         droefting: {
             question: 'Problemstillingen er presentert i innledningen',
             argFor: 'Minst ett argument for med påstand, underbygging og forklaring',
@@ -483,7 +485,7 @@ export default {
         backToDocuments: 'Mine dokumenter',
         downloadTxt: 'Last ned .txt',
         downloadPdf: 'Last ned PDF',
-        downloadDocx: 'Last ned Word (.doc)',
+        downloadDocx: 'Last ned Word (.docx)',
         titlePlaceholder: 'Gi dokumentet en tittel...',
         wordsWritten: '{{count}} ord skrevet',
         documentsCount: {

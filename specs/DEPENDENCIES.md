@@ -10,6 +10,7 @@ These are the only external dependencies. There is no `package.json` or npm.
 |---------------- |-------- |-------------------------------------------------------------- |--------------------- |---------------------- |
 | Tailwind CSS    | latest  | `https://cdn.tailwindcss.com`                                 | index.html           | Utility-first CSS     |
 | jsPDF           | 2.5.1   | `https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js` | text-export.js | PDF generation |
+| docx            | 9.5.0   | `/vendor/docx.iife.js` (self-hosted, lazy classic script)     | docx-export.js       | Real .docx export     |
 | Floating UI DOM | 1.7.5   | `https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.5/+esm`   | editor-toolbar.js    | Toolbar positioning   |
 
 **Rules for adding external dependencies:**
@@ -92,6 +93,8 @@ app/main.js
   │     │     ├── shared/i18n.js
   │     │     └── shared/html-escape.js
   │     └── student/text-export.js
+  │           ├── student/docx-export.js
+  │           │     └── [vendored, lazy] /vendor/docx.iife.js
   │           └── [CDN] jsPDF
   ├── app/trash-store.js
   ├── app/german-exam-route.js

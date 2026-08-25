@@ -66,7 +66,8 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `paragraph-map.js`        | `initParagraphMap`      | frame-elements, i18n           | Document minimap overlay             |
 | `image-manager.js`        | `initImageManager`      | frame-elements, i18n           | Image upload, resize, captions       |
 | `submission-checklist.js` | `showSubmissionChecklist`| in-page-modal, i18n            | Pre-export checklist dialog          |
-| `text-export.js`          | `downloadText`, `downloadPDF` | frame-elements, word-counter, i18n, jsPDF (CDN) | TXT/PDF export        |
+| `text-export.js`          | `downloadText`, `downloadPDF`, `downloadDocx` | frame-elements, word-counter, i18n, docx-export, jsPDF (CDN) | TXT/PDF/real-.docx export |
+| `docx-export.js`          | `loadDocxLibrary`, `renderHtmlNodeToDocx`, `buildDocxDocument` | vendored `/vendor/docx.iife.js` (lazy, classic script → `window.docx`) | Real OOXML .docx builder ported from Lockdown's besvarelse-render (headings, bold/italic/underline, lists, real Word tables, embedded images with captions, header/footer with page-number fields); labels injected by caller for i18n |
 | `find-replace.js`         | `initFindReplace`       | i18n                           | In-editor search bar logic (CSS Highlight API) |
 | `special-chars-panel.js`  | `initSpecialCharsPanel` | (none)                         | Floating column of special chars (ä ö ü ß / é è ê / ñ ¿ ¡ …) anchored to the caret. Driven externally via `setActiveLanguage(lang)` — the embedded leksihjelp bridge in `standalone-writer.js` calls it. The previous self-rendered "Annet språk?" picker was removed (Skrivespråk is now owned by the bridge) |
 | `spinner-data-nb.js`      | `SPINNER_DATA_NB`       | (none)                         | Bokmål word suggestion data          |
