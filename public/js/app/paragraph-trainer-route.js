@@ -10,6 +10,7 @@ import { t } from '../editor-core/shared/i18n.js';
 import { escapeHtml } from '../editor-core/shared/html-escape.js';
 import { initParagraphTrainer } from '../editor-core/student/paragraph-trainer.js';
 import { getSchoolLevel } from './school-level.js';
+import { createDocument, saveDocument } from './document-store.js';
 
 let _currentTrainer = null;
 
@@ -41,6 +42,17 @@ export function renderParagraphTrainerScreen(appContainer) {
 
     _currentTrainer = initParagraphTrainer(wrapper.querySelector('[data-trainer-host]'), {
         getLevel: getSchoolLevel,
+        // Bridge from drill to real writing: the finished paragraph becomes
+        // a document and the editor opens, so the practice leaves an artefact.
+        onSaveDocument: async ({ title, text }) => {
+            const doc = await createDocument((title || '').slice(0, 80));
+            await saveDocument(doc.id, {
+                html: `<p>${escapeHtml(text)}</p>`,
+                plainText: text,
+                wordCount: text.trim().split(/\s+/).filter(Boolean).length,
+            });
+            window.location.hash = `#/doc/${doc.id}`;
+        },
     });
 
     return {
