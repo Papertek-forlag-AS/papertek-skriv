@@ -1,32 +1,40 @@
 /**
- * Entry point for stabekk.html — the standalone Stabekk one-pager.
+ * Entry point for school.html — the standalone per-school one-pager.
  *
  * Hosts the portable three-step paragraph trainer from editor-core/student/
- * without the Skriv shell: no router, no document list, no onboarding.
- * Stabekk branding (accent palette) lives in stabekk.html's Tailwind config,
- * which remaps the emerald scale — the trainer module is reused unchanged
- * and #/avsnitt inside Skriv is untouched.
+ * without the Skriv shell: no router, no document list, no onboarding, and
+ * deliberately no service-worker registration — the page must not pull
+ * visitors into the Skriv PWA (see the manifest comment in school.html).
+ *
+ * Which school is shown comes from window.SKRIV_SCHOOL, resolved in
+ * school.html from the ?skole= query parameter against the SKRIV_SCHOOLS
+ * config map (name, fixed school level, accent palette, theme-color).
+ * Adding a school is one config entry — this module is school-agnostic.
  *
  * Like #/avsnitt: nothing is written to IndexedDB — the in-progress attempt
  * lives in localStorage inside the trainer itself (shared with #/avsnitt,
- * since both surfaces run on the same origin).
+ * since both surfaces run on the same origin). No onSaveDocument callback
+ * is passed, so the trainer's save-as-document button stays hidden here.
  */
 
 import { initI18n, t } from '../editor-core/shared/i18n.js';
 import { initTheme, cycleTheme, getThemeIconSVG } from '../editor-core/shared/theme.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
-import { initServiceWorker } from './sw-manager.js';
 import { initParagraphTrainer } from '../editor-core/student/paragraph-trainer.js';
 
-// Fast skolenivå i stedet for onboarding-modalen: Stabekk er en vgs, og
-// vg1/vg2/vg3 er likeverdige her — alle gir 'vgs'-nivået i startsetning-
-// trekkene. ('barneskole'/'ungdomsskole' ville gitt 'us'-nivået.)
-const STABEKK_LEVEL = 'vg1';
-
 async function init() {
+    const school = window.SKRIV_SCHOOL || { name: '', level: 'vg1' };
+
     initTheme();
-    initServiceWorker();
     await initI18n();
+
+    const badgeEl = document.querySelector('[data-school-badge]');
+    if (badgeEl) badgeEl.textContent = school.name;
+
+    if (school.themeColor) {
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', school.themeColor);
+    }
 
     const titleEl = document.querySelector('[data-page-title]');
     if (titleEl) titleEl.textContent = t('paragraphTrainer.screenTitle');
@@ -51,8 +59,8 @@ async function init() {
     }
 
     initParagraphTrainer(host, {
-        getLevel: () => STABEKK_LEVEL,
+        getLevel: () => school.level || 'vg1',
     });
 }
 
-init().catch(err => console.error('Stabekk page init failed:', err));
+init().catch(err => console.error('School page init failed:', err));

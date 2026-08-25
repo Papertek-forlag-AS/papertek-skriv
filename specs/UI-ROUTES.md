@@ -17,7 +17,8 @@ Hash-based SPA routing in `main.js`. No history API.
 
 | Path               | Module            | Description |
 |------------------- |------------------ |------------ |
-| `/stabekk.html`    | `stabekk-page.js` | Stabekk one-pager: hosts the paragraph trainer without the Skriv shell (no router, sidebar, or onboarding). Slim header with school badge and its own theme-cycle button. School level is fixed via the `STABEKK_LEVEL` constant in the module. Stabekk accent colors come from the page's own Tailwind config, which remaps the emerald scale (anchored in Pantone 640 C `#0082ba`, Akershus fylkeskommune's main brand color) — the trainer module is shared with `#/avsnitt` unchanged. Same origin, so trainer draft/deck in localStorage is shared with `#/avsnitt` |
+| `/school.html?skole=<id>` | `school-page.js` | Per-school one-pager: hosts the paragraph trainer without the Skriv shell (no router, sidebar, onboarding, or service worker). Slim header with school badge and its own theme-cycle button. School identity (name, fixed level, accent palette remapping the emerald scale, theme-color) comes from the `SKRIV_SCHOOLS` config map in `school.html` — adding a school is one config entry; the trainer module is shared with `#/avsnitt` unchanged. Same origin, so trainer draft/deck in localStorage is shared with `#/avsnitt`. Stabekk's palette is anchored in Pantone 640 C `#0082ba` (Akershus fylkeskommune) |
+| `/stabekk.html`    | (static redirect) | Redirects to `/school.html?skole=stabekk` — kept for links/QR codes already in the wild |
 | `/whitepaper.html` | (static HTML)     | Legal/transparency page |
 
 **Navigation flow:**

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Avsnittstrening</title>
+    <meta name="description" content="Tren på trestegsmodellen: temasetning, utdyping og avslutningssetning. Ingen innlogging, ingenting lagres på server.">
+    <meta name="theme-color" content="#059669">
+    <link rel="icon" href="/icons/icon-192.svg">
+    <!-- Ingen manifest-lenke med vilje: siden skal ikke lede til Skriv-PWA-en. -->
+
+    <script>
+        // ── Skolekonfigurasjon ─────────────────────────────────────────────
+        // Én side, mange skoler: velg skole med ?skole=<id> (f.eks.
+        // /school.html?skole=stabekk). Å legge til en ny skole = ett nytt
+        // objekt her. Paletten remapper Tailwinds emerald-skala (treneren
+        // bruker emerald-* som aksent), så 600-trinnet bør være skolens
+        // hovedfarge og resten en lys/mørk-trapp rundt den.
+        window.SKRIV_SCHOOLS = {
+            stabekk: {
+                name: 'Stabekk',
+                level: 'vg1', // vg1/vg2/vg3 er likeverdige — alle gir 'vgs'-tieret
+                themeColor: '#0082ba',
+                // Forankret i Pantone 640 C (#0082ba), hovedfargen i Akershus
+                // fylkeskommunes grafiske profil. 600 ER brandfargen; resten
+                // er Tailwinds sky-skala som lys/mørk-trapp rundt den.
+                palette: {
+                    50:  '#f0f9ff',
+                    100: '#e0f2fe',
+                    200: '#bae6fd',
+                    300: '#7dd3fc',
+                    400: '#38bdf8',
+                    500: '#0ea5e9',
+                    600: '#0082ba',
+                    700: '#0369a1',
+                    800: '#075985',
+                    900: '#0c4a6e',
+                    950: '#082f49',
+                },
+            },
+        };
+
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            var id = params.get('skole') || params.get('school') || 'stabekk';
+            window.SKRIV_SCHOOL = window.SKRIV_SCHOOLS[id] || window.SKRIV_SCHOOLS.stabekk;
+            document.title = 'Avsnittstrening – ' + window.SKRIV_SCHOOL.name;
+        })();
+    </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: { emerald: window.SKRIV_SCHOOL.palette },
+                },
+            },
+        };
+    </script>
+
+    <!-- Delt CSS: Inter-fonten og modal-animasjonene (skriv-modal-box m.m.) -->
+    <link rel="stylesheet" href="/css/main.css?v=74">
+
+    <script>
+        // Init theme early to prevent flash (same tri-state as shared/theme.js)
+        (function () {
+            var theme = localStorage.getItem('skriv_theme');
+            var dark = theme === 'dark' ||
+                (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', dark);
+        })();
+    </script>
+</head>
+
+<body class="bg-stone-50 dark:bg-stone-900 text-stone-900 dark:text-stone-200 antialiased">
+    <a href="#trainer" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold" id="skip-to-content">Hopp til innhold</a>
+
+    <header class="border-b border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 px-4 py-2 flex items-center gap-3">
+        <!-- Skolenavnet er et egennavn, derfor ikke via t(); settes fra config -->
+        <span data-school-badge class="px-2 py-0.5 rounded-md bg-emerald-600 text-white text-sm font-bold tracking-wide"></span>
+        <p data-page-title class="text-base font-semibold"></p>
+        <!-- Egen tema-knapp: standalone-besøkende har ikke Skriv-headeren. -->
+        <button type="button" data-theme-toggle
+            class="ml-auto px-3 py-2 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg transition-colors"></button>
+    </header>
+
+    <!-- Treneren rendrer sin egen <h1>; headeren over er bare merkevarelinje -->
+    <main id="trainer" data-trainer-host role="main" class="py-6"></main>
+
+    <script type="module" src="/js/app/school-page.js"></script>
+</body>
+</html>
