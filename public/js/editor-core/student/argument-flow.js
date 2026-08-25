@@ -20,25 +20,44 @@
 import { t } from '../shared/i18n.js';
 import { isFrameElement } from '../shared/frame-elements.js';
 
-const CLAIM_MARKERS = [
-    'mener', 'hevder', 'påstår', 'bør', 'må vi', 'det er viktig',
-    'jeg mener', 'vi må', 'det er nødvendig', 'konklusjonen er', 'min påstand'
-];
-
-const EVIDENCE_MARKERS = [
-    'ifølge', 'viser at', 'forskning', 'statistikk', 'undersøkelse',
-    'rapport', 'tall fra', 'i artikkelen', 'eksempel på', 'studier viser', '\\[\\d+\\]'
-];
-
-const EXPLANATION_MARKERS = [
-    'dette betyr', 'konsekvensen', 'dette viser at', 'sammenhengen er',
-    'dermed', 'resultatet er', 'dette innebærer', 'fordi dette'
-];
-
-const COUNTER_MARKERS = [
-    'på den andre siden', 'motargument', 'kritikere', 'likevel',
-    'derimot', 'imidlertid', 'til tross for', 'innvende', 'noen vil hevde'
-];
+const MARKERS = {
+    nb: {
+        claim: [
+            'mener', 'hevder', 'påstår', 'bør', 'må vi', 'det er viktig',
+            'jeg mener', 'vi må', 'det er nødvendig', 'konklusjonen er', 'min påstand'
+        ],
+        evidence: [
+            'ifølge', 'viser at', 'forskning', 'statistikk', 'undersøkelse',
+            'rapport', 'tall fra', 'i artikkelen', 'eksempel på', 'studier viser', '\\[\\d+\\]'
+        ],
+        explanation: [
+            'dette betyr', 'konsekvensen', 'dette viser at', 'sammenhengen er',
+            'dermed', 'resultatet er', 'dette innebærer', 'fordi dette'
+        ],
+        counter: [
+            'på den andre siden', 'motargument', 'kritikere', 'likevel',
+            'derimot', 'imidlertid', 'til tross for', 'innvende', 'noen vil hevde'
+        ],
+    },
+    nn: {
+        claim: [
+            'meiner', 'hevdar', 'påstår', 'bør', 'må vi', 'det er viktig',
+            'eg meiner', 'vi må', 'det er naudsynt', 'konklusjonen er', 'påstanden min'
+        ],
+        evidence: [
+            'ifølgje', 'viser at', 'forsking', 'statistikk', 'undersøking',
+            'rapport', 'tal frå', 'i artikkelen', 'døme på', 'studiar viser', '\\[\\d+\\]'
+        ],
+        explanation: [
+            'dette tyder', 'konsekvensen', 'dette viser at', 'samanhengen er',
+            'dermed', 'resultatet er', 'dette inneber', 'fordi dette'
+        ],
+        counter: [
+            'på den andre sida', 'motargument', 'kritikarar', 'likevel',
+            'derimot', 'imidlertid', 'til trass for', 'innvende', 'nokre vil hevde'
+        ],
+    },
+};
 
 const ARGUMENTATIVE_FRAMES = [
     'droefting', 'kronikk', 'leserinnlegg', 'retorisk-analyse', 'sammenligning'
@@ -145,19 +164,19 @@ const STYLES = `
  * Classify a sentence by its argument role.
  * Checks markers in order of specificity: counter > evidence > explanation > claim.
  */
-function classifySentence(sentence) {
+function classifySentence(sentence, markers) {
     const lower = sentence.toLowerCase();
 
-    for (const marker of COUNTER_MARKERS) {
+    for (const marker of markers.counter) {
         if (lower.includes(marker) || new RegExp(marker).test(lower)) return 'counter';
     }
-    for (const marker of EVIDENCE_MARKERS) {
+    for (const marker of markers.evidence) {
         if (lower.includes(marker) || new RegExp(marker).test(lower)) return 'evidence';
     }
-    for (const marker of EXPLANATION_MARKERS) {
+    for (const marker of markers.explanation) {
         if (lower.includes(marker) || new RegExp(marker).test(lower)) return 'explanation';
     }
-    for (const marker of CLAIM_MARKERS) {
+    for (const marker of markers.claim) {
         if (lower.includes(marker) || new RegExp(marker).test(lower)) return 'claim';
     }
 
@@ -208,6 +227,7 @@ function detectGaps(flow) {
  * @param {HTMLElement} container - Container element to append the panel to
  * @param {Object} options
  * @param {Function} options.getActiveFrame - Returns the current frame type string
+ * @param {Function} [options.getWritingLang] - Returns the document writing language ('nb'/'nn')
  * @returns {{ destroy: Function, toggle: Function, isActive: Function }}
  */
 export function initArgumentFlow(editor, container, options = {}) {
@@ -226,7 +246,13 @@ export function initArgumentFlow(editor, container, options = {}) {
         return ARGUMENTATIVE_FRAMES.includes(frame);
     }
 
+    function markersForLang() {
+        const lang = options.getWritingLang?.() || 'nb';
+        return MARKERS[lang] || MARKERS.nb;
+    }
+
     function analyze() {
+        const markers = markersForLang();
         const paragraphs = [];
 
         for (const child of editor.children) {
@@ -241,7 +267,7 @@ export function initArgumentFlow(editor, container, options = {}) {
         paragraphs.forEach((para, pIdx) => {
             const sentences = para.text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 5);
             sentences.forEach((sentence, sIdx) => {
-                const type = classifySentence(sentence);
+                const type = classifySentence(sentence, markers);
                 if (type !== 'neutral') {
                     flow.push({
                         type,

@@ -406,6 +406,7 @@ export async function launchEditor(container, docId, onBack) {
     // --- Writing Feedback ---
     const feedbackApi = initWritingFeedback(editor, writingEnv, {
         getActiveFrame: () => frameApi.getActiveFrame(),
+        getWritingLang: () => leksihjelpBridge.getWritingLang(),
     });
 
     // --- Version History ---
@@ -420,6 +421,7 @@ export async function launchEditor(container, docId, onBack) {
     // --- Argument Flow ---
     const argumentApi = initArgumentFlow(editor, writingEnv, {
         getActiveFrame: () => frameApi.getActiveFrame(),
+        getWritingLang: () => leksihjelpBridge.getWritingLang(),
     });
 
     // --- Insights Drawer (Gjennomgang) ---

@@ -376,6 +376,14 @@ export default {
         sentenceRepeat: '{{count}} sentences start with "{{word}}"',
         longSentence: 'Sentence with {{count}} words — consider splitting',
         noFindings: 'No findings — looks good!',
+        passiveWord: 'Passive: "{{word}}" — try active voice',
+        show: 'Show',
+        groupPassive: 'Passive voice',
+        groupFiller: 'Filler words',
+        groupParagraphs: 'Paragraph length',
+        groupSources: 'Sources',
+        groupVariation: 'Variation',
+        groupSentences: 'Sentence length',
     },
 
     versions: {

@@ -367,6 +367,14 @@ export default {
         sentenceRepeat: '{{count}} setningar startar med «{{word}}»',
         longSentence: 'Setning med {{count}} ord — vurder å dele i to',
         noFindings: 'Ingen funn — ser bra ut!',
+        passiveWord: 'Passiv: «{{word}}» — prøv aktiv form',
+        show: 'Vis',
+        groupPassive: 'Passiv form',
+        groupFiller: 'Fyllord',
+        groupParagraphs: 'Avsnittslengd',
+        groupSources: 'Kjeldebruk',
+        groupVariation: 'Variasjon',
+        groupSentences: 'Setningslengd',
     },
 
     versions: {
