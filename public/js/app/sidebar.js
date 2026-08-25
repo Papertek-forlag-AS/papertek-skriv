@@ -16,6 +16,7 @@ import {
 } from './folder-store.js';
 import { getSchoolLevel, setSchoolLevel, SCHOOL_LEVELS, getSubjectsForLevel } from './school-level.js';
 import { showOnboardingModal } from './onboarding-modal.js';
+import { downloadLibraryBackup, parseLibraryBackup, restoreLibraryBackup } from './library-backup.js';
 
 const FOLDER_ICON = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>';
 const CHEVRON_SVG = '<svg class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
@@ -692,6 +693,66 @@ export function createSidebar(container, options) {
         });
 
         levelSection.appendChild(changeLevelBtn);
+
+        // --- Backup: download the whole library / restore from a file ---
+        const smallBtnClass = 'flex items-center gap-2 w-full px-3 py-2 mt-1 text-xs text-stone-500 dark:text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-stone-100 dark:hover:bg-stone-700/50 rounded-lg transition-colors';
+
+        const backupBtn = document.createElement('button');
+        backupBtn.className = smallBtnClass;
+        backupBtn.innerHTML = `
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            <span class="flex flex-col text-left">
+                <span class="font-medium">${escapeHtml(t('backup.download'))}</span>
+                <span class="text-[10px] text-stone-400 dark:text-stone-500">${escapeHtml(t('backup.downloadHint'))}</span>
+            </span>
+        `;
+        backupBtn.addEventListener('click', async () => {
+            try {
+                const count = await downloadLibraryBackup();
+                showToast(t('backup.downloaded', { count }), { duration: 3000 });
+            } catch (err) {
+                console.error('Backup export failed:', err);
+                showToast(t('backup.failed'), { duration: 4000 });
+            }
+        });
+        levelSection.appendChild(backupBtn);
+
+        const restoreBtn = document.createElement('button');
+        restoreBtn.className = smallBtnClass;
+        restoreBtn.innerHTML = `
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+            <span class="flex flex-col text-left">
+                <span class="font-medium">${escapeHtml(t('backup.restore'))}</span>
+                <span class="text-[10px] text-stone-400 dark:text-stone-500">${escapeHtml(t('backup.restoreHint'))}</span>
+            </span>
+        `;
+        restoreBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.skriv,application/json';
+            input.addEventListener('change', async () => {
+                const file = input.files && input.files[0];
+                if (!file) return;
+                try {
+                    const parsed = parseLibraryBackup(await file.text());
+                    const result = await restoreLibraryBackup(parsed);
+                    showToast(t('backup.restored', {
+                        docs: result.importedDocs,
+                        skipped: result.skippedDocs,
+                    }), { duration: 4000 });
+                    // Re-run the current route so the list shows the imports.
+                    window.dispatchEvent(new HashChangeEvent('hashchange'));
+                } catch (err) {
+                    console.error('Backup restore failed:', err);
+                    showToast(
+                        err && err.message === 'invalid' ? t('backup.invalidFile') : t('backup.failed'),
+                        { duration: 4000 }
+                    );
+                }
+            });
+            input.click();
+        });
+        levelSection.appendChild(restoreBtn);
 
         // "Force refresh" — unregister SW + clear caches, then reload.
         // Useful when the dev / hosted version drifts and a hard reload

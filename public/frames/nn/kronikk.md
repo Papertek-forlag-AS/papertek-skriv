@@ -6,11 +6,13 @@ level: vgs
 description: Argumenterande kronikk med klar haldning til eit aktuelt tema
 
 ## Innleiing
+spinner: innleiing
 > Byrj med ein aktuell krok som fangar merksemda til lesaren. Presenter temaet og haldninga di til det.
 - Nyleg vart det kjent at... Dette viser at...
 - I denne kronikken vil eg argumentere for at...
 
 ## Hovuddel
+spinner: hovuddel
 > Bygg opp argumentasjonen din med tydelege argument. Kvart argument bør innehalde påstand, grunngjeving og døme.
 
 ### Argument 1

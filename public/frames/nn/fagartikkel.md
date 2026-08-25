@@ -6,11 +6,13 @@ level: vgs
 description: Informativ og sakleg tekst basert på forsking og kunnskap
 
 ## Innleiing
+spinner: innleiing
 > Presenter emnet og forklar kvifor det er relevant. Gje ein kort oversikt over kva artikkelen handlar om, og formuler eventuelt ei problemstilling eller hypotese.
 - I denne artikkelen skal eg sjå nærare på...
 - Temaet er aktuelt fordi...
 
 ## Hovuddel
+spinner: hovuddel
 
 ### Bakgrunn og teori
 > Gje lesaren nødvendig bakgrunnsinformasjon. Forklar sentrale omgrep og teoriar som er relevante for emnet. Vis til kjelder.

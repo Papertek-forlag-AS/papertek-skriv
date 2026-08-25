@@ -6,11 +6,13 @@ level: vgs
 description: Personleg og underhaldande tekst med humor og refleksjon
 
 ## Innleiing
+spinner: innleiing
 > Start med noko som fangar merksemda til lesaren — ei personleg oppleving, ein morosam observasjon eller eit retorisk spørsmål. Presenter temaet på ein uformell måte.
 - Det var ein heilt vanleg tysdag då det slo meg at...
 - Har du nokon gong lagt merke til at...
 
 ## Hovuddel
+spinner: hovuddel
 
 ### Anekdote eller observasjon
 > Fortel ei historie eller skildra ein situasjon frå ditt eige liv eller frå kvardagen. Bruk humor, overdriving eller ironi for å engasjere lesaren.

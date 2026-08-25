@@ -29,7 +29,7 @@ import { getModalParent } from '../shared/dom-helpers.js';
  * @param {number} options.wordCount - Current word count
  * @param {boolean} options.hasReferences - Whether references exist
  * @param {boolean} options.hasHeadings - Whether H1/H2 headings exist
- * @param {'pdf'|'txt'} options.exportType - Which export was clicked
+ * @param {'pdf'|'txt'|'docx'} options.exportType - Which export was clicked
  * @returns {Promise<boolean>} true if student wants to proceed, false if cancelled
  */
 export function showSubmissionChecklist(options) {
@@ -120,9 +120,18 @@ export function showSubmissionChecklist(options) {
             }
         }).join('');
 
-        const exportLabel = exportType === 'pdf'
-            ? t('checklist.proceed') + ' PDF'
+        const exportLabel = exportType === 'pdf' ? t('checklist.proceed') + ' PDF'
+            : exportType === 'docx' ? t('checklist.proceed') + ' Word (.doc)'
             : t('checklist.proceed') + ' .txt';
+
+        // The .doc export is Word-compatible HTML — it opens in desktop
+        // Word but not in Word on the web or Google Docs. Say so before
+        // the pupil relies on it for a delivery.
+        const formatNoteHtml = exportType === 'docx'
+            ? `<div class="flex items-start gap-2 mb-4 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm">
+                    <span>⚠️</span><span>${escapeHtml(t('checklist.docFormatNote'))}</span>
+               </div>`
+            : '';
 
         // --- Create modal ---
         const overlay = document.createElement('div');
@@ -138,6 +147,7 @@ export function showSubmissionChecklist(options) {
                 <div class="space-y-0.5 mb-6 max-h-[60vh] overflow-y-auto">
                     ${itemsHtml}
                 </div>
+                ${formatNoteHtml}
                 <div class="flex gap-3 justify-end">
                     <button data-checklist-cancel
                         class="px-4 py-2 rounded-lg text-sm font-semibold bg-stone-200 text-stone-700 hover:bg-stone-300 transition-colors">

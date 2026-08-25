@@ -257,6 +257,9 @@ export async function launchEditor(container, docId, onBack) {
             offline: `<div class="flex items-center gap-1.5" title="Lagret lokalt"><svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg><span class="hidden sm:inline">Frakoblet</span></div>`,
             error: t('skriv.saveError'),
         },
+        onError: () => {
+            showToast(t('skriv.saveErrorToast'), { duration: 10000 });
+        },
     });
 
     // --- Initialize modules ---
@@ -406,6 +409,7 @@ export async function launchEditor(container, docId, onBack) {
     // --- Writing Feedback ---
     const feedbackApi = initWritingFeedback(editor, writingEnv, {
         getActiveFrame: () => frameApi.getActiveFrame(),
+        getWritingLang: () => leksihjelpBridge.getWritingLang(),
     });
 
     // --- Version History ---
@@ -420,6 +424,7 @@ export async function launchEditor(container, docId, onBack) {
     // --- Argument Flow ---
     const argumentApi = initArgumentFlow(editor, writingEnv, {
         getActiveFrame: () => frameApi.getActiveFrame(),
+        getWritingLang: () => leksihjelpBridge.getWritingLang(),
     });
 
     // --- Insights Drawer (Gjennomgang) ---

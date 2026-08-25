@@ -12,7 +12,7 @@ spinner: innledning
 - Har du noen gang lagt merke til at...
 
 ## Hoveddel
-spinner: utdyping
+spinner: digresjon
 
 ### Anekdote eller observasjon
 > Fortell en historie eller beskriv en situasjon fra ditt eget liv eller fra hverdagen. Bruk humor, overdrivelse eller ironi for å engasjere leseren.
@@ -20,11 +20,13 @@ spinner: utdyping
 - Det morsomme er at dette skjer hver eneste gang...
 
 ### Refleksjon
+spinner: poeng
 > Trekk deg litt tilbake fra historien og reflekter over hva den egentlig handler om. Her kan du vise at kåseriet har dybde under den humoristiske overflaten.
 - Men egentlig handler dette om noe mye større...
 - Når man tenker etter, er det kanskje ikke så rart at...
 
 ### Vending eller overraskelse
+spinner: ironi
 > Overrask leseren med en uventet vinkling, en kontrast eller en ny innsikt. Dette er kåseriets "aha-øyeblikk".
 - Men så skjedde det noe jeg ikke hadde forventet...
 - Det ironiske er selvfølgelig at...
