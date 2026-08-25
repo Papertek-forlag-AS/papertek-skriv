@@ -1,6 +1,6 @@
 # UI & Routes
 
-> Last updated: 2026-05-11
+> Last updated: 2026-08-25
 
 ## Routing
 
@@ -11,6 +11,7 @@ Hash-based SPA routing in `main.js`. No history API.
 | `#/`             | Document list   | `document-list.js`   | Home dashboard, list of docs   |
 | `#/doc/{id}`     | Editor          | `standalone-writer.js`| Writing editor for one doc    |
 | `#/tysk`         | German exam spinner | `german-exam-route.js` (`renderGermanExamScreen`) | Tysk 1 / Tysk 2 randomised writing-task spinner; on pick creates a doc in folder "Tysk" and routes to `#/doc/{id}` |
+| `#/avsnitt`      | Paragraph trainer | `paragraph-trainer-route.js` (`renderParagraphTrainerScreen`) | Three-step paragraph drill (trestegsmodellen): random topic deck, three labelled writing fields, self-check checklist, assembled-paragraph preview. No documents created — attempt persists in localStorage |
 
 **Navigation flow:**
 
@@ -41,6 +42,7 @@ App init
 - "Uten mappe" — orphan documents (`folderIds.length === 0`), amber indicator when count > 0
 - "Personlig mappe" — personal folder (`folderIds` includes `sys___personal__`)
 - "Tysk eksamenstrening" — navigates to `#/tysk` (German exam spinner)
+- "Avsnittstrening" — navigates to `#/avsnitt` (three-step paragraph trainer)
 - "Bytt trinn" — change school level button at bottom, opens onboarding modal (cancellable)
 - Level-aware filtering: only shows system folders relevant to selected school level (or folders with documents)
 

@@ -1,6 +1,6 @@
 # Module Registry
 
-> Last updated: 2026-05-11
+> Last updated: 2026-08-25
 
 Every module in the codebase. When you add, remove, or rename a module — update this file.
 
@@ -8,8 +8,9 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 
 | Module                 | Exports                                          | Depends on                          | Purpose                                |
 |----------------------- |------------------------------------------------- |------------------------------------ |--------------------------------------- |
-| `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store, sw-manager, school-level, onboarding-modal, german-exam-route | Hash router, app init, onboarding gate |
+| `main.js`              | (self-executing)                                 | i18n, theme, document-list, standalone-writer, trash-store, sw-manager, school-level, onboarding-modal, german-exam-route, paragraph-trainer-route | Hash router, app init, onboarding gate |
 | `german-exam-route.js` | `renderGermanExamScreen`                         | editor-core/student/german-exam-spinner, document-store, folder-store, i18n, html-escape, in-page-modal | Route + screen wiring for `#/tysk`; ensures "Tysk" folder, creates document on pick; attaches `germanHint: { simple, rich }` metadata to the document instead of seeding draft content into the HTML |
+| `paragraph-trainer-route.js` | `renderParagraphTrainerScreen`             | editor-core/student/paragraph-trainer, i18n, html-escape | Route + screen wiring for `#/avsnitt`; hosts the portable three-step paragraph trainer. Writes nothing to IndexedDB — attempts live in localStorage inside the trainer |
 | `leksihjelp-bridge.js` | `initLeksihjelpBridge`                           | (none)                              | Detects whether the leksihjelp Chrome extension is active on the page (via `window.__lexiPresent` / `window.__lexiVocab`). Brokers Skrivespråk + Oppslagsspråk + Eksamensmodus. Single source of truth for special-chars panel and future spell-check / dictionary modules. Returned API also exposes `requestExtensionPanel()` — fires the `skriv:leksihjelp:openPanel` window message so the extension can open its side panel. |
 | `leksihjelp-settings.js`| `initLeksihjelpSettings`                         | i18n, html-escape, `__lexiVocab` (runtime) | Slide-in right panel. Top section: dictionary search box (bidirectional match against `entry.word` OR `entry.translation`, debounced 120ms, top 8 results). Bottom: Eksamensmodus toggle, Skrivespråk picker, Oppslagsspråk picker, Grammatikknivå placeholder. Hidden when bridge.status === 'extension' |
 | `leksihjelp-dictionary.js`| `initLeksihjelpDictionary`                     | (chrome.* shim, `__lexiVocab`)      | Click any word in the editor → floating popup with translation, part-of-speech, gender, and base-form lookup. Uses `caretRangeFromPoint` for word-boundary detection and `__lexiVocab.getWordList()` / `getVerbInfinitive()` for entry resolution. Yields entirely when bridge.status === 'extension' |
@@ -32,7 +33,7 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 
 | Module                    | Exports                                       | Depends on       | Purpose                           |
 |-------------------------- |---------------------------------------------- |----------------- |---------------------------------- |
-| `i18n.js`                 | `initI18n`, `t`, `setLanguage`, `getLanguage`, `getDateLocale` | locales/*  | i18n with pluralization (nb, nn, en) |
+| `i18n.js`                 | `initI18n`, `t`, `setLanguage`, `getCurrentLanguage`, `getDateLocale`, `getSupportedLanguages`, `onLanguageChange`, `renderLanguageSelector`, `PLURAL_RULES` | locales/*  | i18n with pluralization (nb, nn, en) |
 | `html-escape.js`          | `escapeHtml`, `escapeAttr`                    | (none)           | XSS prevention                    |
 | `dom-helpers.js`          | `getModalParent`                              | (none)           | DOM utility helpers               |
 | `frame-elements.js`       | `FRAME_SELECTORS`, `ALL_FRAME_SCAFFOLD`, `isFrameElement`, `isInsideNonEditableBlock`, `getCleanEditorText`, `removeFrameScaffold`, `isImageBlock` | (none) | Editor element selectors & utils |
@@ -68,6 +69,8 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `special-chars-panel.js`  | `initSpecialCharsPanel` | (none)                         | Floating column of special chars (ä ö ü ß / é è ê / ñ ¿ ¡ …) anchored to the caret. Driven externally via `setActiveLanguage(lang)` — the embedded leksihjelp bridge in `standalone-writer.js` calls it. The previous self-rendered "Annet språk?" picker was removed (Skrivespråk is now owned by the bridge) |
 | `spinner-data-nb.js`      | `SPINNER_DATA_NB`       | (none)                         | Bokmål word suggestion data          |
 | `spinner-data-nn.js`      | `SPINNER_DATA_NN`       | (none)                         | Nynorsk word suggestion data         |
+| `paragraph-trainer.js`    | `initParagraphTrainer`  | i18n, html-escape, word-counter, toast-notification, in-page-modal, ./paragraph-trainer-data | Three-step paragraph drill (trestegsmodellen: temasetning → utdyping → avslutningssetning). Topic deck in localStorage (no repeats until exhausted), three labelled writing fields with sentence-starter chips and live word counts, self-check checklist, assembled-paragraph preview with copy. Draft persists in localStorage |
+| `paragraph-trainer-data.js` | `TRAINER_TOPICS`, `STEP_STARTERS` | (none)             | Genre-neutral practice claims (nb+nn per topic) and per-step sentence starters for the paragraph trainer |
 | `german-exam-data.js`     | `writingTasks`, `examTasks`, `tasks`, `LEVELS`, `MODES` | lazy `german-exam-svg/*.js`    | Static task corpus for German exam spinner; exam mode includes 9 Tysk I and 9 Tysk II tasks from Udir/exam examples; each task ships `modelAnswers: { simple, rich }` (no glossary) |
 | `german-exam-spinner.js`  | `initGermanExamSpinner` | i18n, html-escape, ./german-exam-data | Portable spinner UI; deck logic in localStorage; emits onPickTask callback; preview uses `modelAnswers.simple` |
 | `german-hint-drawer.js`   | `initGermanHintDrawer`  | i18n, html-escape              | Slide-in drawer that shows the simple+rich Norwegian drafts; mounted in the editor when doc has `germanHint` metadata |

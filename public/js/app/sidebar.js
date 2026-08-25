@@ -264,6 +264,13 @@ export function createSidebar(container, options) {
             `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>`
         ));
 
+        // Paragraph trainer (three-step model) — navigates to #/avsnitt route
+        list.appendChild(createNavItem(
+            '#/avsnitt',
+            t('paragraphTrainer.sidebar'),
+            `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>`
+        ));
+
         nav.appendChild(list);
 
         // "Change level" button

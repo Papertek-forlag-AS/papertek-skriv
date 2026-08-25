@@ -12,6 +12,7 @@ import { initServiceWorker } from './sw-manager.js';
 import { hasSchoolLevel, setSchoolLevel } from './school-level.js';
 import { showOnboardingModal } from './onboarding-modal.js';
 import { renderGermanExamScreen } from './german-exam-route.js';
+import { renderParagraphTrainerScreen } from './paragraph-trainer-route.js';
 
 async function init() {
     initTheme();
@@ -62,6 +63,13 @@ async function init() {
             }
         } else if (hash === '#/tysk') {
             const screen = await renderGermanExamScreen(app);
+            if (localRouteCounter === routeCounter) {
+                currentScreen = screen;
+            } else if (screen && typeof screen.destroy === 'function') {
+                screen.destroy();
+            }
+        } else if (hash === '#/avsnitt') {
+            const screen = await renderParagraphTrainerScreen(app);
             if (localRouteCounter === routeCounter) {
                 currentScreen = screen;
             } else if (screen && typeof screen.destroy === 'function') {

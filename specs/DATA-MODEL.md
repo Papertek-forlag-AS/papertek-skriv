@@ -100,6 +100,8 @@ Key path: `id`
 | `papertek.skriv.germanExam.activeLevel` | string | `'tysk-1'` or `'tysk-2'`; persists last selected level on the spinner screen |
 | `papertek.skriv.germanExam.activeMode`  | string | `'writing'` or `'exam'`; persists last selected German spinner mode |
 | `germanExam.writeExplainSeen`           | string | `'1'` once the user has seen the explain dialog before "Skriv svar" creates a doc |
+| `papertek.skriv.paragraphTrainer.deck`  | string | JSON array of remaining paragraph-trainer topic ids; auto-shuffles on exhaustion |
+| `papertek.skriv.paragraphTrainer.draft` | string | JSON `{ topicId, steps: [string×3], checks: [bool×4] }` — in-progress paragraph-trainer attempt, restored on next visit |
 | `germanHintDrawer.variant.<docId>`      | string | `'simple'` or `'rich'`; per-document tab selection in the editor hint drawer |
 | `skriv_daily_goal`       | string | Writing-progress daily word goal             |
 | `skriv_writing_streak`   | string | Writing-progress streak count                |
@@ -113,5 +115,5 @@ Key path: `id`
 
 ## Other storage
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v72`.
+- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v76`.
 - **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.
