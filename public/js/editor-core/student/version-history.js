@@ -26,10 +26,13 @@ import { t } from '../shared/i18n.js';
 import { countWords } from '../shared/word-counter.js';
 import { showToast } from '../shared/toast-notification.js';
 
-const TIMELINE_INTERVAL = 5000;
+// Snapshots hold the full editor HTML (images included as data URIs), so
+// the cadence and cap bound how much storage a single document can eat —
+// unbounded snapshots can exhaust the origin quota and break auto-save.
+const TIMELINE_INTERVAL = 60000;
 const MAJOR_INTERVAL = 300000;
 const MAJOR_WORD_THRESHOLD = 100;
-const MAX_SNAPSHOTS = 5000;
+const MAX_SNAPSHOTS = 300;
 const DB_NAME = 'skriv-versions';
 const STORE_NAME = 'snapshots';
 const DB_VERSION = 1;

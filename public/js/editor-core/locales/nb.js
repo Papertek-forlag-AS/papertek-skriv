@@ -27,6 +27,17 @@ export default {
         page: 'Side {{num}}',
     },
 
+    backup: {
+        download: 'Last ned sikkerhetskopi',
+        downloadHint: 'Alle tekstene dine som én .skriv-fil',
+        downloaded: 'Sikkerhetskopi med {{count}} dokumenter lastet ned',
+        restore: 'Gjenopprett fra fil',
+        restoreHint: 'Hent inn tekster fra en .skriv-fil',
+        restored: '{{docs}} dokumenter gjenopprettet ({{skipped}} fantes fra før)',
+        invalidFile: 'Dette er ikke en gyldig Skriv-sikkerhetskopi',
+        failed: 'Noe gikk galt — prøv igjen',
+    },
+
     time: {
         now: 'Nå',
         minutesAgo: {
@@ -467,6 +478,7 @@ export default {
         saved: 'Lagret',
         saving: 'Lagrer...',
         saveError: 'Kunne ikke lagre. Prøv igjen.',
+        saveErrorToast: 'Lagring feilet — teksten din blir IKKE lagret akkurat nå. Last ned en kopi (Eksporter) før du lukker fanen.',
         placeholder: 'Begynn å skrive her...',
         backToDocuments: 'Mine dokumenter',
         downloadTxt: 'Last ned .txt',

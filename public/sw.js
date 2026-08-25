@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v79';
+const CACHE_NAME = 'skriv-v80';
 const ASSETS = [
     '/',
     '/index.html',
@@ -19,6 +19,7 @@ const ASSETS = [
     '/js/app/trash-store.js',
     '/js/app/word-count-stats.js',
     '/js/app/folder-store.js',
+    '/js/app/library-backup.js',
     '/js/app/sidebar.js',
     '/js/app/folder-picker.js',
     '/js/app/sw-manager.js',

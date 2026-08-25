@@ -24,9 +24,11 @@
  * @param {HTMLElement} [opts.statusEl] - Element to show save status
  * @param {number} [opts.debounceMs=1000] - Debounce interval
  * @param {{ saving: string, saved: string, error: string }} [opts.labels]
+ * @param {Function} [opts.onError] - Called with the error when a save fails
+ *   (once per failure streak, so the caller can alert loudly without spam)
  * @returns {{ schedule: Function, saveNow: Function, destroy: Function }}
  */
-export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, labels = {} }) {
+export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, labels = {}, onError }) {
     const {
         saving = 'Lagrer...',
         saved  = 'Lagret',
@@ -35,6 +37,7 @@ export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, 
 
     let timer = null;
     let lastSavedHash = '';
+    let failing = false;
 
     function setStatus(html, clearAfter = 0) {
         if (!statusEl) return;
@@ -73,10 +76,20 @@ export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, 
         try {
             await saveFn(state);
             lastSavedHash = hash;
+            failing = false;
             setStatus(saved, 2000);
         } catch (err) {
             console.error('Auto-save failed:', err);
             setStatus(error);
+            // Alert loudly on the first failure of a streak — a pupil can
+            // otherwise type for a long time into a store that is throwing
+            // (e.g. quota exceeded) with only a subtle status change.
+            if (!failing) {
+                failing = true;
+                if (onError) {
+                    try { onError(err); } catch (_) { /* alerts must not break saving */ }
+                }
+            }
         }
     }
 
@@ -85,15 +98,26 @@ export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, 
         timer = setTimeout(saveNow, debounceMs);
     }
 
-    // Save on page unload
+    // Save on page unload. beforeunload cannot await an async IndexedDB
+    // write, so also flush as soon as the tab is hidden — that runs the
+    // write while the page is still alive and covers most closes.
     function onBeforeUnload() {
         saveNow();
     }
+    function onVisibilityChange() {
+        if (document.visibilityState === 'hidden') saveNow();
+    }
     window.addEventListener('beforeunload', onBeforeUnload);
+    if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', onVisibilityChange);
+    }
 
     function destroy() {
         if (timer) clearTimeout(timer);
         window.removeEventListener('beforeunload', onBeforeUnload);
+        if (typeof document !== 'undefined') {
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        }
     }
 
     /**

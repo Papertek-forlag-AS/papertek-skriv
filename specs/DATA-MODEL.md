@@ -115,5 +115,8 @@ Key path: `id`
 
 ## Other storage
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v76`.
+- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v80`.
 - **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.
+- **Persistent storage:** `main.js` calls `navigator.storage.persist()` at startup so the browser treats the origin's IndexedDB as protected rather than best-effort (Safari otherwise purges it after 7 days without a visit).
+- **Backup file (`.skriv`):** `library-backup.js` exports `{ format: 'skriv-library-backup', version: 1, exportedAt, documents[], folders[] }` as JSON. Restore is merge-only: folders matched by name+parent (missing ones recreated depth-first), documents with identical `id`+`updatedAt` skipped, everything else imported as a new document with remapped `folderIds`. Trash and version snapshots are not included.
+- **Version snapshots (`skriv-versions` DB):** one snapshot at most per 60 s of editing (major snapshot each 5 min or +100 words), capped at 300 snapshots per document — snapshots store the full editor HTML, so the cap bounds quota usage.

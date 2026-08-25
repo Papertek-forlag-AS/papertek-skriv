@@ -44,6 +44,9 @@ app/main.js
   │     │     │     └── app/school-level.js
   │     │     ├── app/school-level.js
   │     │     ├── app/onboarding-modal.js
+  │     │     ├── app/library-backup.js
+  │     │     │     ├── app/document-store.js
+  │     │     │     └── app/folder-store.js
   │     │     ├── shared/i18n.js
   │     │     ├── shared/html-escape.js
   │     │     ├── shared/toast-notification.js

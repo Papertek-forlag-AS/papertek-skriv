@@ -16,6 +16,15 @@ import { renderParagraphTrainerScreen } from './paragraph-trainer-route.js';
 
 async function init() {
     initTheme();
+
+    // Ask the browser to protect local data from automatic eviction.
+    // Without this, IndexedDB is best-effort storage: Safari purges it
+    // after 7 days without a visit, and other browsers may evict it
+    // under storage pressure — silently deleting the pupil's documents.
+    if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().catch(() => {});
+    }
+
     initServiceWorker();
     await initI18n();
 

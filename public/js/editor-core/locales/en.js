@@ -30,6 +30,17 @@ export default {
         page: 'Page {{num}}',
     },
 
+    backup: {
+        download: 'Download backup',
+        downloadHint: 'All your texts as one .skriv file',
+        downloaded: 'Backup with {{count}} documents downloaded',
+        restore: 'Restore from file',
+        restoreHint: 'Bring in texts from a .skriv file',
+        restored: '{{docs}} documents restored ({{skipped}} already existed)',
+        invalidFile: 'This is not a valid Skriv backup',
+        failed: 'Something went wrong — try again',
+    },
+
     time: {
         now: 'Now',
         minutesAgo: {
@@ -476,6 +487,7 @@ export default {
         saved: 'Saved',
         saving: 'Saving...',
         saveError: 'Could not save. Please try again.',
+        saveErrorToast: 'Saving failed — your text is NOT being saved right now. Download a copy (Export) before closing the tab.',
         placeholder: 'Start writing here...',
         backToDocuments: 'My documents',
         downloadTxt: 'Download .txt',

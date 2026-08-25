@@ -28,7 +28,7 @@ public/
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
 ├── stabekk.html            ← Standalone Stabekk one-pager (paragraph trainer only, own accent palette)
-├── sw.js                   ← Service Worker (cache v79)
+├── sw.js                   ← Service Worker (cache v80)
 ├── icons/                  ← PWA icon (192)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md          (legacy)
