@@ -13,7 +13,8 @@
  */
 
 import { initI18n, t } from '../editor-core/shared/i18n.js';
-import { initTheme } from '../editor-core/shared/theme.js';
+import { initTheme, cycleTheme, getThemeIconSVG } from '../editor-core/shared/theme.js';
+import { showToast } from '../editor-core/shared/toast-notification.js';
 import { initServiceWorker } from './sw-manager.js';
 import { initParagraphTrainer } from '../editor-core/student/paragraph-trainer.js';
 
@@ -29,6 +30,19 @@ async function init() {
 
     const titleEl = document.querySelector('[data-page-title]');
     if (titleEl) titleEl.textContent = t('paragraphTrainer.screenTitle');
+
+    // Theme toggle (system → light → dark), same cycle as Skriv's header
+    const themeBtn = document.querySelector('[data-theme-toggle]');
+    if (themeBtn) {
+        themeBtn.title = t('theme.toggle');
+        themeBtn.setAttribute('aria-label', t('theme.toggle'));
+        themeBtn.innerHTML = getThemeIconSVG();
+        themeBtn.addEventListener('click', () => {
+            const newTheme = cycleTheme();
+            themeBtn.innerHTML = getThemeIconSVG();
+            showToast(t(`theme.${newTheme}`), { duration: 1500 });
+        });
+    }
 
     const host = document.querySelector('[data-trainer-host]');
     if (!host) {

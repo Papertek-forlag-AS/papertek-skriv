@@ -118,6 +118,7 @@ app/main.js
 app/stabekk-page.js        (second entry point — loaded by stabekk.html, not main.js)
   ├── shared/i18n.js
   ├── shared/theme.js
+  ├── shared/toast-notification.js
   ├── app/sw-manager.js
   └── student/paragraph-trainer.js   (same subtree as under paragraph-trainer-route above)
 ```
