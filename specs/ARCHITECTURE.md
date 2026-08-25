@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-05-11
+> Last updated: 2026-08-25
 
 ## What is this?
 
@@ -27,7 +27,8 @@ public/
 ├── index.html              ← Single entry point (SPA)
 ├── manifest.json           ← PWA manifest
 ├── whitepaper.html         ← Legal/transparency page
-├── sw.js                   ← Service Worker (cache v77)
+├── stabekk.html            ← Standalone Stabekk one-pager (paragraph trainer only, own accent palette)
+├── sw.js                   ← Service Worker (cache v78)
 ├── icons/                  ← PWA icon (192)
 ├── frames/                 ← Writing frame templates (Markdown)
 │   ├── analyse.md          (legacy)
@@ -50,6 +51,8 @@ public/
     │   ├── school-level.js       ← School level data + persistence
     │   ├── onboarding-modal.js   ← First-time level selection modal
     │   ├── german-exam-route.js  ← Route + screen wiring for #/tysk
+    │   ├── paragraph-trainer-route.js ← Route + screen wiring for #/avsnitt
+    │   ├── stabekk-page.js       ← Entry point for stabekk.html (standalone paragraph trainer)
     │   ├── leksihjelp-bridge.js  ← Brokers leksihjelp status + Skrivespråk/Oppslagsspråk
     │   └── leksihjelp-settings.js ← Slide-in drawer with the four leksihjelp controls
     ├── editor-core/
@@ -95,6 +98,8 @@ public/
 | `#/`            | Document list  | `document-list.js`      |
 | `#/doc/{id}`    | Editor         | `standalone-writer.js`  |
 | `#/tysk`        | German exam spinner | `german-exam-route.js` |
+| `#/avsnitt`     | Paragraph trainer | `paragraph-trainer-route.js` |
+| `/stabekk.html` | Standalone paragraph trainer (Stabekk) | `stabekk-page.js` |
 
 ## CDN dependencies
 
