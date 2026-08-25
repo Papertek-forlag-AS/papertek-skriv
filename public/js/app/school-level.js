@@ -31,6 +31,24 @@ export const LEVEL_SUBJECTS = {
     vg3:          ['Norsk', 'Historie', 'Religion og etikk'],
 };
 
+/**
+ * Coarse level bands used by content that differentiates on level
+ * (writing-frame recommendations, starter tiers). vg1–vg3 collapse to 'vgs'.
+ */
+export const SCHOOL_LEVEL_BANDS = {
+    barneskole: 'barneskole',
+    ungdomsskole: 'ungdomsskole',
+    vg1: 'vgs',
+    vg2: 'vgs',
+    vg3: 'vgs',
+};
+
+/** Get the band ('barneskole' | 'ungdomsskole' | 'vgs') for a level ID.
+ *  Defaults to 'ungdomsskole' when no level is stored. */
+export function getSchoolLevelBand(levelId = getSchoolLevel()) {
+    return SCHOOL_LEVEL_BANDS[levelId] || 'ungdomsskole';
+}
+
 /** Get the stored school level ID, or null if not set. */
 export function getSchoolLevel() {
     return localStorage.getItem(LS_KEY) || null;

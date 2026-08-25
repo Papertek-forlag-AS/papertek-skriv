@@ -50,7 +50,7 @@ import { SPECIAL_CHAR_GROUPS } from '../editor-core/config.js';
 import { showSubmissionChecklist } from '../editor-core/student/submission-checklist.js';
 import { downloadText, downloadPDF, downloadDocx } from '../editor-core/student/text-export.js';
 import { escapeAttr } from '../editor-core/shared/html-escape.js';
-import { getSchoolLevel } from './school-level.js';
+import { getSchoolLevel, getSchoolLevelBand } from './school-level.js';
 import { attachWordCounter, countWords } from '../editor-core/shared/word-counter.js';
 import { createAutoSave } from '../editor-core/shared/auto-save.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
@@ -303,7 +303,9 @@ export async function launchEditor(container, docId, onBack) {
 
     // --- Frame selector ---
     const structureBtn = topBar.querySelector('#btn-structure');
-    const frameSelectorApi = initFrameSelector(structureBtn, editor, frameApi);
+    const frameSelectorApi = initFrameSelector(structureBtn, editor, frameApi, {
+        getLevelBand: () => getSchoolLevelBand(),
+    });
 
     // Update Struktur button state on load (in case frame was rehydrated)
     if (doc.frameType) {

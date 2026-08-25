@@ -1,0 +1,33 @@
+# Forteljing
+
+## Metadata
+genre: fortelling
+level: barneskole
+description: Forteljing med byrjing, midtdel og slutt
+
+## Byrjinga
+spinner: begynnelse
+> Fortel kven historia handlar om, kvar dei er, og når det skjer. Prøv å starte med noko spennande som gjer at lesaren vil lese vidare.
+- Det var ein gong...
+- Ein dag skulle...
+- Akkurat då... skjedde det noko rart.
+
+## Midtdelen
+spinner: midtdel
+> Her skjer det viktigaste i historia. Nokon får eit problem, eller noko overraskande skjer. Skildre kva personane gjer, seier og kjenner.
+- Plutseleg...
+- Då oppdaga...
+- Det vart verre og verre, fordi...
+
+### Skildre med sansane
+spinner: midtdel
+> Kva kan personane sjå, høyre, lukte eller kjenne? Når du skildrar med sansane, blir historia levande for lesaren.
+- Det lukta...
+- Ho høyrde ein lyd som...
+
+## Slutten
+spinner: slutt
+> Korleis løyser problemet seg? Fortel korleis det går til slutt, og gjerne kva personen har lært eller kjenner no.
+- Til slutt...
+- Endeleg var...
+- Etter den dagen...

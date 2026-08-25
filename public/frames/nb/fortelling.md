@@ -1,0 +1,33 @@
+# Fortelling
+
+## Metadata
+genre: fortelling
+level: barneskole
+description: Fortelling med begynnelse, midtdel og slutt
+
+## Begynnelsen
+spinner: begynnelse
+> Fortell hvem historien handler om, hvor de er, og når det skjer. Prøv å starte med noe spennende som gjør at leseren vil lese videre.
+- Det var en gang...
+- En dag skulle...
+- Akkurat da... skjedde det noe rart.
+
+## Midtdelen
+spinner: midtdel
+> Her skjer det viktigste i historien. Noen får et problem, eller noe overraskende skjer. Beskriv hva personene gjør, sier og føler.
+- Plutselig...
+- Da oppdaget...
+- Det ble verre og verre, fordi...
+
+### Beskriv med sansene
+spinner: midtdel
+> Hva kan personene se, høre, lukte eller kjenne? Når du beskriver med sansene, blir historien levende for leseren.
+- Det luktet...
+- Hun hørte en lyd som...
+
+## Slutten
+spinner: slutt
+> Hvordan løser problemet seg? Fortell hvordan det går til slutt, og gjerne hva personen har lært eller føler nå.
+- Til slutt...
+- Endelig var...
+- Etter den dagen...

@@ -26,7 +26,7 @@ Every module in the codebase. When you add, remove, or rename a module — updat
 | `folder-store.js`      | `PERSONAL_FOLDER_NAME`, `MAX_FOLDER_DEPTH`, `PERSONAL_SUBJECT`, `getSchoolYear`, `getCurrentSchoolYear`, `setCurrentSchoolYear`, `getAvailableSchoolYears`, `createFolder`, `renameFolder`, `deleteFolder`, `moveFolder`, `getAllFolders`, `getRootFolders`, `getChildren`, `getFolderById`, `getFolderPath`, `getFolderDepth`, `buildFolderTree`, `flattenTree`, `addDocToFolder`, `removeDocFromFolder`, `setDocFolders`, `isPersonalFolder`, `isSystemFolder` | school-level | Folder CRUD, tree helpers, doc-folder assignment, school year logic |
 | `sidebar.js`           | `createSidebar` (returns `{ destroy, update, setDragActive }`) | folder-store, school-level, onboarding-modal, library-backup, i18n, html-escape, toast-notification, in-page-modal | Collapsible folder tree navigation + change level button + backup download/restore buttons + drag-drop cues |
 | `library-backup.js`    | `BACKUP_FORMAT`, `BACKUP_VERSION`, `serializeLibraryBackup`, `downloadLibraryBackup`, `parseLibraryBackup`, `restoreLibraryBackup` | document-store, folder-store | Whole-library export to a `.skriv` JSON file and merge-only restore (folders matched by name+parent and recreated; documents with identical id+updatedAt skipped, everything else imported as new; document HTML with script/event-handler content rejected). Trash and version snapshots are not exported |
-| `school-level.js`      | `SCHOOL_LEVELS`, `LEVEL_SUBJECTS`, `getSchoolLevel`, `setSchoolLevel`, `hasSchoolLevel`, `getSubjectsForLevel` | (none) | School level data + localStorage persistence |
+| `school-level.js`      | `SCHOOL_LEVELS`, `LEVEL_SUBJECTS`, `SCHOOL_LEVEL_BANDS`, `getSchoolLevelBand`, `getSchoolLevel`, `setSchoolLevel`, `hasSchoolLevel`, `getSubjectsForLevel` | (none) | School level data + localStorage persistence; bands collapse vg1–vg3 to 'vgs' for content differentiation |
 | `onboarding-modal.js`  | `showOnboardingModal`                            | school-level, i18n, html-escape, dom-helpers | First-time school level selection modal |
 | `folder-picker.js`     | `createFolderPicker`, `createFolderBadges`       | folder-store, school-level, i18n, html-escape | Multi-select folder assignment dropdown + badges. Picker filters system folders by current school level (matches sidebar logic) so previous-curriculum folders don't pollute the list |
 | `sw-manager.js`        | `initServiceWorker`                              | i18n, toast-notification            | SW registration, update prompt, dev-mode disable |
@@ -57,7 +57,7 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `frame-parser.js`         | `parseFrameMarkdown`    | (none)                         | Markdown → structured frame object (incl. spinner-bucket per section/subsection) |
 | `frame-guide.js`          | `initFrameGuide`        | i18n, toast-notification, spinner-data-nb/nn (dynamic) | Eager-scaffolding sidebar guide: section/paragraph markers in editor, "Mark as done" toggle, "+ New paragraph", "🎲 More suggestions" spinner integration |
 | `frame-manager.js`        | `initFrameManager`      | frame-parser, frame-elements, i18n | Frame insertion & rendering      |
-| `frame-selector.js`       | `initFrameSelector`     | frame-manager, i18n            | Frame picker dialog                  |
+| `frame-selector.js`       | `initFrameSelector`, `partitionFramesByLevel` | frame-parser, i18n, in-page-modal | Frame picker dialog; registry carries recommended `levels` bands and the picker groups frames as recommended-for-level / "Flere skriverammer" via the `getLevelBand` option |
 | `toc-manager.js`          | `initTOC`               | frame-elements, i18n           | Auto-generated Table of Contents     |
 | `reference-manager.js`    | `initReferences`        | html-escape, dom-helpers, frame-elements, i18n | Inline citations + bibliography |
 | `writing-spinner.js`      | `initWritingSpinner`    | i18n, spinner-data-nb/nn       | Random word suggestions              |
@@ -107,6 +107,11 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `nb/kreativ-tekst.md` | Kreativ tekst | Bokmål |
 | `nb/reflekterende-tekst.md` | Reflekterende tekst | Bokmål |
 | `nb/sammenligning.md` | Sammenlignende tekst | Bokmål |
+| `nb/fortelling.md` | Fortelling (barneskole) | Bokmål |
+| `nb/faktatekst.md` | Faktatekst (barneskole) | Bokmål |
+| `nb/bokmelding.md` | Bokmelding (barneskole) | Bokmål |
+| `nb/soeknad.md` | Søknad | Bokmål |
+| `nb/formelt-brev.md` | Formelt brev | Bokmål |
 | `nn/analyse.md`   | Analyse       | Nynorsk  |
 | `nn/droefting.md` | Drøfting      | Nynorsk  |
 | `nn/kronikk.md`   | Kronikk       | Nynorsk  |
@@ -119,3 +124,8 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `nn/kreativ-tekst.md` | Kreativ tekst | Nynorsk |
 | `nn/reflekterende-tekst.md` | Reflekterande tekst | Nynorsk |
 | `nn/sammenligning.md` | Samanliknande tekst | Nynorsk |
+| `nn/fortelling.md` | Forteljing (barneskule) | Nynorsk |
+| `nn/faktatekst.md` | Faktatekst (barneskule) | Nynorsk |
+| `nn/bokmelding.md` | Bokmelding (barneskule) | Nynorsk |
+| `nn/soeknad.md` | Søknad | Nynorsk |
+| `nn/formelt-brev.md` | Formelt brev | Nynorsk |
