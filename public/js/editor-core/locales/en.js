@@ -171,6 +171,33 @@ export default {
 
 
 
+    readAloud: {
+        title: 'Read aloud',
+        play: 'Read aloud',
+        pause: 'Pause',
+        resume: 'Resume',
+        stop: 'Stop',
+        speed: 'Reading speed',
+        desc: 'Have the text read out loud while you follow along',
+        unsupported: 'Read aloud is not supported in this browser.',
+        empty: 'There is no text to read yet.',
+    },
+
+    readingView: {
+        title: 'Reading view',
+        font: 'Font',
+        fontStandard: 'Standard',
+        fontEasy: 'Easy-read',
+        size: 'Size',
+        lineHeight: 'Line spacing',
+        letterSpacing: 'Letter spacing',
+        normal: 'Normal',
+        wide: 'Wide',
+        wider: 'Widest',
+        reset: 'Reset',
+        desc: 'Adjust font, size and spacing for easier reading',
+    },
+
     theme: {
         toggle: 'Switch theme',
         light: 'Light mode',

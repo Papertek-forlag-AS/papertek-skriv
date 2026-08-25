@@ -39,6 +39,9 @@ import { initOnboardingTour } from '../editor-core/student/onboarding-tour.js';
 import { initLixScore } from '../editor-core/student/lix-score.js';
 import { initArgumentFlow } from '../editor-core/student/argument-flow.js';
 import { initGermanHintDrawer } from '../editor-core/student/german-hint-drawer.js';
+import { initEditorLang } from '../editor-core/student/editor-lang.js';
+import { initReadAloud } from '../editor-core/student/read-aloud.js';
+import { initReadingSettings } from '../editor-core/student/reading-settings.js';
 import { initLeksihjelpBridge } from './leksihjelp-bridge.js';
 import { initLeksihjelpSettings } from './leksihjelp-settings.js';
 import { initLeksihjelpDictionary } from './leksihjelp-dictionary.js';
@@ -429,8 +432,13 @@ export async function launchEditor(container, docId, onBack) {
         getWritingLang: () => leksihjelpBridge.getWritingLang(),
     });
 
+    // --- Reading Settings (lesevisning — dyslexia-friendly display) ---
+    const readingSettingsApi = initReadingSettings(editor, writingEnv);
+
     // --- Insights Drawer (Gjennomgang) ---
     const insightsDrawerApi = initInsightsDrawer(writingEnv, [
+        { label: t('readAloud.title'), description: t('readAloud.desc'), icon: 'M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z', isTool: true, action: () => readAloudApi.toggle() },
+        { label: t('readingView.title'), description: t('readingView.desc'), icon: 'M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75', isTool: true, action: () => readingSettingsApi.toggle() },
         { label: 'Søk', description: 'Søk etter ord og uttrykk i teksten', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', isTool: true, action: () => openSearch() },
         { label: 'Fokusmodus', description: 'Skjul alt annet og fokuser kun på teksten din', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', isTool: true, action: () => focusApi.toggle() },
         { label: 'Spinn', description: 'Få hjelp til å variere språket og ordvalget ditt', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', isTool: true, action: () => spinnerApi.show() },
@@ -514,6 +522,31 @@ export async function launchEditor(container, docId, onBack) {
             leksihjelpBridge.setLookupLang('de');
         }
     }
+
+    // --- Accessibility: editor lang/spellcheck + read aloud ---
+    // The language the pupil actually writes in: an explicit Leksihjelp
+    // writing-language pick wins (raw localStorage read distinguishes
+    // "never set" from "set to nb"); otherwise the UI language.
+    function getActiveWritingLang() {
+        let stored = null;
+        try { stored = localStorage.getItem('skriv.leksihjelp.writingLang'); } catch (_) { /* ignore */ }
+        if (stored) return leksihjelpBridge.getWritingLang();
+        const ui = getCurrentLanguage();
+        return ['nb', 'nn', 'en'].includes(ui) ? ui : 'nb';
+    }
+
+    const editorLangApi = initEditorLang(editor, {
+        getWritingLang: getActiveWritingLang,
+        onWritingLangChange: (fn) => leksihjelpBridge.onWritingLangChange(fn),
+        // Leksihjelp (embedded or extension) owns spell-check when present;
+        // keep the native checker off so the pupil sees one set of squiggles.
+        hasExternalSpellcheck: () => leksihjelpBridge.getStatus() !== 'absent',
+        onSpellcheckOwnerChange: (fn) => leksihjelpBridge.onStatusChange(fn),
+    });
+
+    const readAloudApi = initReadAloud(editor, writingEnv, {
+        getLang: getActiveWritingLang,
+    });
 
     // --- Onboarding Tour ---
     const tourApi = initOnboardingTour();
@@ -798,6 +831,9 @@ export async function launchEditor(container, docId, onBack) {
         insightsDrawerApi.destroy();
         leksihjelpDictApi.destroy();
         if (germanHintApi) germanHintApi.destroy();
+        editorLangApi.destroy();
+        readAloudApi.destroy();
+        readingSettingsApi.destroy();
         leksihjelpSettingsApi.destroy();
         slashMenuApi.destroy();
         dragHandleApi.destroy();

@@ -162,6 +162,33 @@ export default {
 
 
 
+    readAloud: {
+        title: 'Opplesing',
+        play: 'Les opp',
+        pause: 'Pause',
+        resume: 'Fortsett',
+        stop: 'Stopp',
+        speed: 'Lesehastighet',
+        desc: 'Få teksten lest høyt mens du følger med',
+        unsupported: 'Opplesing støttes ikke i denne nettleseren.',
+        empty: 'Det er ingen tekst å lese opp ennå.',
+    },
+
+    readingView: {
+        title: 'Lesevisning',
+        font: 'Skrift',
+        fontStandard: 'Standard',
+        fontEasy: 'Lettlest',
+        size: 'Størrelse',
+        lineHeight: 'Linjeavstand',
+        letterSpacing: 'Bokstavavstand',
+        normal: 'Normal',
+        wide: 'Stor',
+        wider: 'Størst',
+        reset: 'Tilbakestill',
+        desc: 'Tilpass skrift, størrelse og avstand for lettere lesing',
+    },
+
     theme: {
         toggle: 'Bytt tema',
         light: 'Lyst tema',

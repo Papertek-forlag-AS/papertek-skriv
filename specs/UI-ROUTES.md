@@ -118,6 +118,12 @@ App init → route()
 | Versjonshistorikk | version-history.js    | Toggles saved snapshot timeline   |
 | LIX             | lix-score.js            | Toggles readability score panel   |
 | Argumentflyt    | argument-flow.js        | Toggles argument flow panel       |
+| Opplesing       | read-aloud.js           | Toggles read-aloud control bar (Web Speech API; block highlight + scroll-along) |
+| Lesevisning     | reading-settings.js     | Toggles dyslexia-friendly display panel (font, size, line/letter spacing) |
+
+**Editor accessibility (no button):** `editor-lang.js` keeps the
+contenteditable's `lang` attribute in sync with the writing language and
+turns the native `spellcheck` off while Leksihjelp owns spell-checking.
 
 **Formatting toolbar (floating, on text selection):**
 - Bold, Italic, Underline
