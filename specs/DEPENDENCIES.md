@@ -109,7 +109,9 @@ app/main.js
         │     ├── shared/word-counter.js
         │     ├── shared/toast-notification.js
         │     ├── shared/in-page-modal.js
-        │     └── student/paragraph-trainer-data.js
+        │     ├── student/paragraph-trainer-data.js
+        │     └── (lazy) student/spinner-data-nb.js / spinner-data-nn.js
+        ├── app/school-level.js
         ├── shared/i18n.js
         └── shared/html-escape.js
 ```

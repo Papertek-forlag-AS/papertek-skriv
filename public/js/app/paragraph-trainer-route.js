@@ -9,6 +9,7 @@
 import { t } from '../editor-core/shared/i18n.js';
 import { escapeHtml } from '../editor-core/shared/html-escape.js';
 import { initParagraphTrainer } from '../editor-core/student/paragraph-trainer.js';
+import { getSchoolLevel } from './school-level.js';
 
 let _currentTrainer = null;
 
@@ -38,7 +39,9 @@ export function renderParagraphTrainerScreen(appContainer) {
         window.location.hash = '#/';
     });
 
-    _currentTrainer = initParagraphTrainer(wrapper.querySelector('[data-trainer-host]'));
+    _currentTrainer = initParagraphTrainer(wrapper.querySelector('[data-trainer-host]'), {
+        getLevel: getSchoolLevel,
+    });
 
     return {
         destroy() {
