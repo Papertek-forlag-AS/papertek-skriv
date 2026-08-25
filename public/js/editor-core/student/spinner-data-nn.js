@@ -143,6 +143,23 @@ export const starters = {
                 'Vi kan merke oss at forfattaren vel å...',
                 'Dette valet er ikkje tilfeldig, det viser...',
             ],
+            verkemiddel: [
+                'Forfattaren brukar... for å...',
+                'Eit verkemiddel som går att er...',
+                'Her brukar forfattaren ein metafor som...',
+                'Gjentakinga av... skapar ein effekt av...',
+                'Kontrasten mellom... og... viser...',
+                'Forfattaren vender seg direkte til lesaren ved å...',
+            ],
+            tolkning: [
+                'Dette kan bety at...',
+                'Eg tolkar dette som...',
+                'Ei mogleg forklaring er at...',
+                'Kanskje meiner forfattaren at...',
+                'Dette kan sjåast i samanheng med...',
+                'Temaet i teksten er...',
+                'Bodskapen er truleg at...',
+            ],
             avslutning: [
                 'Alt i alt viser analysen at...',
                 'Hovudbodskapen i teksten er...',
@@ -170,6 +187,26 @@ export const starters = {
                 'Tekstens komposisjon underbyggjer bodskapen ved at...',
                 'Det ideologiske bakteppet gjer seg gjeldande gjennom...',
                 'Forfattarens val av synsvinkel impliserer...',
+            ],
+            verkemiddel: [
+                'Det sentrale verkemiddelet er... som fungerer ved at...',
+                'Den gjennomgåande metaforikken etablerer...',
+                'Ironien i passasjen forsterkar...',
+                'Intertekstuelle referansar til... bidreg til...',
+                'Den retoriske appellen vert bygd opp gjennom...',
+                'Stilbrotet markerer eit skifte i...',
+                'Forfattarens bruk av... skapar distanse til...',
+                'Det stilistiske registeret signaliserer...',
+            ],
+            tolkning: [
+                'Symbolikken peikar mot ei fortolking der...',
+                'I lys av konteksten kan dette lesast som...',
+                'Ei mogleg lesing er at teksten problematiserer...',
+                'Ambivalensen i teksten opnar for...',
+                'Sett i samanheng med samtida uttrykkjer teksten...',
+                'Underteksten antydar at...',
+                'Fleirtydigheita gjer det mogleg å lese dette som...',
+                'Dersom vi les teksten allegorisk...',
             ],
             avslutning: [
                 'Analysen avdekkjer eit mønster der...',
@@ -541,7 +578,7 @@ export const starters = {
 
     novelle: {
         us: {
-            opning: [
+            aapning: [
                 'Det var den dagen alt endra seg.',
                 'Eg hadde aldri trudd at...',
                 'Klokka var... då...',
@@ -549,7 +586,7 @@ export const starters = {
                 'Det første eg la merke til var...',
                 'Viss eg hadde visst kva som skulle skje, hadde eg...',
             ],
-            handling: [
+            skildring: [
                 'Plutseleg...',
                 'Utan å tenkje...',
                 'Det var då eg forstod at...',
@@ -557,6 +594,14 @@ export const starters = {
                 'Eg visste at eg måtte...',
                 'Det gjekk eit sekund, så...',
                 'Hjarta dunka hardare då...',
+            ],
+            vendepunkt: [
+                'Då skjedde det som endra alt...',
+                'Brått...',
+                'Det var i den augneblinken...',
+                'Først då forstod...',
+                'Sanninga trefte som...',
+                'Alt snudde då...',
             ],
             avslutning: [
                 'Eg forstod endeleg at...',
@@ -568,7 +613,7 @@ export const starters = {
             ],
         },
         vgs: {
-            opning: [
+            aapning: [
                 'Lyset fall inn gjennom vindauget og teikna mønster av...',
                 'Det fanst ein versjon av meg som aldri...',
                 'Stilla mellom oss var ikkje tom — ho var fylt av...',
@@ -576,7 +621,7 @@ export const starters = {
                 'Byen låg under oss som eit kart ingen kunne lese.',
                 'Det var noko ved... som minte om noko eg hadde gløymt.',
             ],
-            handling: [
+            skildring: [
                 'Orda hang i lufta mellom dei som...',
                 'Ho vende seg vekk, og i den rørsla låg...',
                 'Kontrasten mellom... og... var...',
@@ -585,6 +630,14 @@ export const starters = {
                 'Landskapet skifta karakter, som eit spegelbilde av...',
                 'Kvar rørsle var medviten — som om...',
                 'Det usagde vog tyngre enn det som vart sagt.',
+            ],
+            vendepunkt: [
+                'I ettertid var det denne augneblinken som...',
+                'Erkjenninga slo inn med...',
+                'Det var som om tida...',
+                'Noko forskuva seg umerkeleg...',
+                'Brått framstod alt i eit nytt lys...',
+                'Den tilsynelatande ubetydelege hendinga...',
             ],
             avslutning: [
                 'Og kanskje var det nett det som var poenget — at...',
@@ -667,6 +720,15 @@ export const starters = {
                 'Sola steikte, og gatene var tomme...',
                 'Ingen hadde trudd at...',
             ],
+            utvikling: [
+                'Og brått var alt annleis...',
+                'Tankane mine vandra til...',
+                'Det var som om verda...',
+                'Stemma i meg sa...',
+                'Bileta skifta —...',
+                'Noko endra seg då...',
+                'Kroppen hugsa det hovudet hadde gløymt...',
+            ],
             skildring: [
                 'Lufta var tung av...',
                 'Lyden av... fylte rommet...',
@@ -692,6 +754,15 @@ export const starters = {
                 'Stilla i rommet var nesten til å ta og føle på...',
                 'I eit flyktig sekund trudde ho at...',
                 'Det låg ei ubeskriveleg tyngd over...',
+            ],
+            utvikling: [
+                'Og tida faldar seg — ...',
+                'Her bryt noko gjennom overflata...',
+                'Fragmenta ordnar seg til...',
+                'Stemmene vekslar mellom... og...',
+                'Det usagde tek form som...',
+                'Rytmen skiftar — frå... til...',
+                'I spennet mellom det fortalde og det fortidde...',
             ],
             skildring: [
                 'Lyset braut gjennom støvskya og...',
@@ -731,6 +802,15 @@ export const starters = {
                 'Dette kan hengje saman med...',
                 'Mine eigne erfaringar viser at...',
             ],
+            utforsking: [
+                'Når eg tenkjer nærare over dette...',
+                'Ein annan måte å sjå det på er...',
+                'Kanskje handlar det eigentleg om...',
+                'Mi erfaring er at...',
+                'Eg trur dette heng saman med...',
+                'Det som overraskar meg er at...',
+                'Samstundes må eg innrømme at...',
+            ],
             refleksjon: [
                 'Eg trur at grunnen til dette er...',
                 'Det får meg til å innsjå at...',
@@ -756,6 +836,15 @@ export const starters = {
                 'Det er nærliggjande å trekkje parallellar til...',
                 'Dette fenomenet må sjåast i samanheng med...',
                 'I eit breiare perspektiv kan ein hevde at...',
+            ],
+            utforsking: [
+                'Ved nærare ettertanke framstår det som...',
+                'Paradokset er at...',
+                'Perspektivet forskyv seg dersom vi...',
+                'Det er freistande å forenkle, men...',
+                'Den personlege erfaringa resonnerer med...',
+                'Ambivalensen skuldast kanskje at...',
+                'I spenningsfeltet mellom... og... finst...',
             ],
             refleksjon: [
                 'Dette etterlèt ei kjensle av ambivalens...',
@@ -862,6 +951,80 @@ export const starters = {
                 'Den dominerande patosappellen overskuggar imidlertid...',
                 'Avsendaren oppnår sitt perlokutive mål ved å...',
                 'Teksten sin retoriske styrke ligg i samspelet mellom...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SAMANLIKNING — samanlikne to eller fleire tekstar
+    // ─────────────────────────────────────────────────────────────────────────
+    sammenligning: {
+        us: {
+            innleiing: [
+                'I denne teksten skal eg samanlikne...',
+                'Eg skal sjå på likskapar og skilnader mellom...',
+                'Dei to tekstane har mykje til felles, men...',
+                'Temaet... vert handsama ulikt i dei to tekstane...',
+                'Begge tekstane handlar om... men med ulike tilnærmingar...',
+                'Føremålet med denne samanlikninga er å...',
+            ],
+            likskapar: [
+                'Ein tydeleg likskap er at begge tekstane...',
+                'Felles for tekstane er...',
+                'Både tekst 1 og tekst 2...',
+                'Tematisk deler tekstane...',
+                'Eit gjennomgåande fellestrekk er...',
+                'Begge forfattarane vel å...',
+            ],
+            skilnader: [
+                'Ein viktig skilnad er at...',
+                'Medan tekst 1... vel tekst 2 å...',
+                'Tekstane skil seg i måten dei...',
+                'Der den eine forfattaren... gjer den andre...',
+                'I motsetnad til tekst 1 brukar tekst 2...',
+                'Skilnaden vert tydeleg når vi ser på...',
+            ],
+            avslutning: [
+                'Samanlikninga viser at...',
+                'Trass i skilnadene deler tekstane...',
+                'Den viktigaste innsikta frå samanlikninga er...',
+                'Tekstane utfyller kvarandre ved at...',
+                'Oppsummert kan vi seie at...',
+                'Samla sett illustrerer tekstane korleis...',
+            ],
+        },
+        vgs: {
+            innleiing: [
+                'Denne komparative analysen undersøkjer...',
+                'I det følgjande vert... samanlikna med utgangspunkt i...',
+                'Tekstane representerer ulike tilnærmingar til...',
+                'Samanlikninga tek sikte på å belyse...',
+                'Med utgangspunkt i... og... vil eg undersøkje...',
+                'Dei valde tekstane eignar seg for samanlikning fordi...',
+            ],
+            likskapar: [
+                'Eit strukturelt fellestrekk er at begge tekstane...',
+                'Tematisk konvergerer tekstane i handsaminga av...',
+                'Parallellen mellom... og... er slåande...',
+                'Begge tekstane opererer innanfor ein tradisjon der...',
+                'Den felles tematikken manifesterer seg gjennom...',
+                'På eit djupare plan deler tekstane ein...',
+            ],
+            skilnader: [
+                'Divergensen vert tydeleg i måten tekstane...',
+                'Der den eine legg an eit... perspektiv, vel den andre...',
+                'Skilnaden er ikkje berre stilistisk, men også...',
+                'Kontrasten mellom tekstane reflekterer...',
+                'Den mest fundamentale skilnaden ligg i...',
+                'Tekstane si ulike posisjonering viser seg gjennom...',
+            ],
+            avslutning: [
+                'Den komparative analysen avdekkjer at...',
+                'Tekstane belyser kvarandre ved at...',
+                'Samanlikninga demonstrerer korleis...',
+                'Dei komplementære perspektiva viser at...',
+                'Avslutningsvis illustrerer tekstane kompleksiteten i...',
+                'Den samla analysen viser at...',
             ],
         },
     },

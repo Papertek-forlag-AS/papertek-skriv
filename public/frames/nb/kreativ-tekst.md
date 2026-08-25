@@ -12,16 +12,19 @@ spinner: aapning
 - (Etabler hvem som snakker, hvor vi er, eller hva som skjer...)
 
 ## Utvikling
+spinner: utvikling
 > Bygg teksten videre. Dette kan være en scene som utfolder seg, et indre resonnement, en rekke bilder, eller en bevegelse fra ett sted til et annet. La teksten ha retning - noe må endre seg eller utvikle seg.
 - (Utvikle det du har startet - la det vokse, endre seg, bevege seg...)
 - (Bygg spenning, dybde eller kompleksitet...)
 
 ## Virkemidler
+spinner: skildring
 > Bruk litterære virkemidler bevisst: metafor, gjentakelse, kontrast, symbolikk, lydmalende ord, syntaksvariasjon. Velg 2-3 virkemidler og bruk dem gjennomgående.
 - (Her kan du eksperimentere med språket - sett inn et bilde, en gjentakelse, en kontrast...)
 - (La virkemidlene forsterke innholdet, ikke bare pynte...)
 
 ## Stemme og perspektiv
+spinner: skildring
 > Hvem snakker i teksten? Er stemmen nær eller fjern, ironisk eller oppriktig, poetisk eller muntlig? Vær konsekvent - eller bryt bevisst. Perspektivet er et valg som styrer hele teksten.
 - (Rendyrk stemmen du har valgt - la den prege ordvalg, rytme, setningsbygning...)
 
