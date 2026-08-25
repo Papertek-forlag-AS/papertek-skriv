@@ -39,6 +39,10 @@
     'america', 'africa', 'asia', 'sevilla', 'valencia', 'bilbao',
     'granada', 'toledo', 'salamanca', 'malaga', 'zaragoza',
     'lima', 'bogota', 'santiago', 'buenos', 'caracas',
+    // European cities / countries / rivers commonly named as travel objects
+    'berlin', 'roma', 'florencia', 'venecia', 'italia', 'paris', 'londres',
+    'lisboa', 'amsterdam', 'viena', 'atenas', 'praga', 'portugal', 'inglaterra',
+    'ebro', 'nilo', 'tajo', 'duero', 'sena', 'danubio', 'rin', 'guadalquivir',
   ]);
 
   // ── Spanish prepositions (if one precedes the noun, it's not a bare DO) ──
@@ -54,6 +58,33 @@
     'mis', 'tus', 'sus', 'nuestros', 'vuestros',
     'nuestra', 'vuestras', 'nuestras', 'vuestra',
   ]);
+
+  // ── Determiners (a determiner before a finite-tagged token means it is a
+  // noun homograph, not a verb: "el río Ebro", "su gusto") ──
+  const DETERMINERS = new Set([
+    'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas',
+    'mi', 'tu', 'su', 'mis', 'tus', 'sus',
+    'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas',
+    'aquel', 'aquella', 'nuestro', 'nuestra', 'vuestro', 'vuestra',
+  ]);
+  // 3rd-person object clitics: when one precedes the verb the direct object is
+  // already the clitic, so a following noun is the (postposed) subject or a
+  // predicate name ("lo mencionó mi madre", "le llaman Álex").
+  const OBJECT_CLITICS_3P = new Set(['lo', 'la', 'los', 'las', 'le', 'les']);
+  // tener forms (accent-stripped): tener doesn't take personal "a" in the basic
+  // possession sense, and the person after it is usually the SUBJECT
+  // ("¿cuántos años tiene mi abuela?").
+  const TENER_FORMS = new Set([
+    'tengo', 'tienes', 'tiene', 'tenemos', 'teneis', 'tienen',
+    'tuve', 'tuviste', 'tuvo', 'tuvimos', 'tuvisteis', 'tuvieron',
+    'tenia', 'tenias', 'teniamos', 'teniais', 'tenian',
+    'tendre', 'tendras', 'tendra', 'tendremos', 'tendreis', 'tendran',
+    'tenga', 'tengas', 'tengamos', 'tengan',
+  ]);
+
+  function strip(w) {
+    return String(w || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
 
   // ── Lazy-init grammar tables ──
   let _tables = null;
@@ -92,8 +123,8 @@
     severity: 'warning',
     explain: function (finding) {
       return {
-        nb: 'Spansk bruker "a" foran menneskelige direkte objekter. Prov <em>' + (finding.fix || '') + '</em>.',
-        nn: 'Spansk brukar "a" framfor menneskelege direkte objekt. Prov <em>' + (finding.fix || '') + '</em>.',
+        nb: 'Spansk bruker "a" foran menneskelige direkte objekter. Prøv <em>' + (finding.fix || '') + '</em>.',
+        nn: 'Spansk brukar "a" framfor menneskelege direkte objekt. Prøv <em>' + (finding.fix || '') + '</em>.',
       };
     },
     check(ctx) {
@@ -118,6 +149,29 @@
         // Step c: Skip copula verbs
         if (isCopulaForm(t.word)) continue;
 
+        // "como" is overwhelmingly the conjunction "like/as" (homograph of
+        // "como" = I eat): "tan bien como su madre", "como Cristiano Ronaldo".
+        if (t.word === 'como') continue;
+        // A determiner before the finite-tagged token means it is a NOUN
+        // homograph, not a verb: "el río Ebro" (río ≠ "I laugh"), "su gusto".
+        if (i > 0 && DETERMINERS.has(tokens[i - 1].word)) continue;
+        // Relative "que + V" inverts to VS: the subject follows the verb and the
+        // object is the antecedent — "las galletas que hace mi abuela" (mi
+        // abuela is the subject, not a DO).
+        if (i > 0 && tokens[i - 1].word === 'que') continue;
+        // 3rd-person object clitic before the verb → DO is the clitic; the
+        // following noun is the postposed subject / predicate name.
+        if (i > 0 && OBJECT_CLITICS_3P.has(tokens[i - 1].word)) continue;
+        // tener: no personal "a" (possession), and the person is usually subject.
+        if (TENER_FORMS.has(strip(t.word))) continue;
+
+        // v3.0.121 (synthetic-corpus FP): reflexive llamar is NAMING — the
+        // name is a predicate, never a direct object ("Me llamo Ingrid",
+        // "se llama Grete" were flagged → "a Ingrid"). Non-reflexive llamar
+        // (phone sense, "Llamé Marta") still flags correctly.
+        if (t.word.startsWith('llam') && i > 0
+            && ['me', 'te', 'se', 'nos', 'os'].indexOf(tokens[i - 1].word) !== -1) continue;
+
         const next = tokens[i + 1];
         if (!next) continue;
 
@@ -128,6 +182,12 @@
         // of "viene" (FP class observed in benchmark-texts/es-extended).
         const between = ctx.text.slice(t.end, next.start);
         if (/[.!?\n]/.test(between)) continue;
+        // Quoted / reported speech + Spanish dialogue punctuation, or a comma
+        // (a noun right after "verb ," is a vocative/aside, not a DO — "Mucho
+        // gusto, Ana"): the next token is the first word of a quote / greeting /
+        // title / address, not a direct object ("dijo: «Bueno…»", "cantaron
+        // ¡Feliz cumpleaños!", "«¿Cómo estás?»", '—Soy Ana').
+        if (/[«»“”‘’"¡¿—–:,]/.test(between)) continue;
 
         // Step d: Skip if next token is "a" (personal "a" already present)
         if (next.word === 'a') continue;
@@ -141,8 +201,14 @@
 
         const next2 = tokens[i + 2];
 
-        // Step g: Possessive + human noun pattern
-        if (POSSESSIVES.has(next.word) && next2 && HUMAN_NOUNS.has(next2.word)) {
+        // Step g: Possessive + human noun pattern. HUMAN_NOUNS is keyed
+        // singular; resolve regular plurals (abuelos→abuelo, padres→padre) so
+        // "Visito mis abuelos" → a mis abuelos flags. Mirrors es-por-para's
+        // isHuman resolution.
+        const isHumanNoun = (wd) => HUMAN_NOUNS.has(wd)
+          || (wd.endsWith('es') && HUMAN_NOUNS.has(wd.slice(0, -2)))
+          || (wd.endsWith('s') && HUMAN_NOUNS.has(wd.slice(0, -1)));
+        if (POSSESSIVES.has(next.word) && next2 && isHumanNoun(next2.word)) {
           findings.push({
             rule_id: 'es-personal-a',
             start: next.start,
@@ -157,8 +223,8 @@
 
         // Step f+h: Check if next token is a human proper noun
         if (isLikelyProperNoun(next, i + 1, tokens, ctx.text)) {
-          // Skip place names
-          if (PLACE_NAMES.has(next.word)) continue;
+          // Skip place names (accent-insensitive: "Berlín" → "berlin")
+          if (PLACE_NAMES.has(next.word) || PLACE_NAMES.has(strip(next.word))) continue;
 
           findings.push({
             rule_id: 'es-personal-a',

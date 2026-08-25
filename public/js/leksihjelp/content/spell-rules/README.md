@@ -1,5 +1,55 @@
 # Spell-check rule registry (INFRA-03, Phase 3)
 
+## Per-rule scope notes (curated)
+
+This section documents intentional-design scope decisions for rules
+where the answer "Why didn't X fire on Y?" is non-trivial.
+
+- **`doc-drift-nb-passiv-overuse`** — counts **s-passive forms only**
+  (verbs with `-s` suffix like `skrives`, `behandles`, looked up via
+  `vocab.sPassivForms`). Threshold: count > 3 non-deponent s-passives
+  per document. **bli-passive (analytic `bli + V`) coverage is OUT OF
+  SCOPE** — documented Phase 50 / Plan 50-04 decision. Extending to
+  bli-passives needs threshold tuning + FP audit; deferred to a future
+  phase. A 6-sentence text with all bli-passives will surface zero
+  findings here; that is expected.
+- **`nb-sentence-boundary` (priority 56)** — two branches, both
+  precision-first:
+  - *missing-period before capital subject pronoun + finite verb*
+    (original branch): "skolen Det var fint" → ". Det". Capital subject
+    pronouns are language-set-driven (CAPITAL_SUBJECTS_{NB,NN}).
+  - *missing-capital after sentence-final punctuation* (Plan 50-04
+    sub-step F): "Bestemor. hun bor" → "Hun". Skips: ABBREVIATIONS
+    set (f.eks., dvs., osv., ca., etc.), digit-in-gap (numbered
+    lists), opening/closing quote chars (quotation-suppression's
+    territory), multi-dot abbreviation lookback.
+- **`nb-sarskriving`** (priority 30) — two layers: (a) curated
+  `compoundNouns + SUPPLEMENTARY_COMPOUNDS` lookup with plain + fuge-e
+  + fuge-s linkers (original layer); (b) Plan 50-04 sub-step B
+  decomposition fallback for plural compounds NOT in compoundNouns
+  (e.g. `epletrær`), gated on (1) `nounLemmaGenus.has(prev)` and
+  (2) prev NOT in any verb index (verbForms/verbInfinitive/
+  knownPresens/knownPreteritum/knownParticiples) and (3) right-half
+  in nounGenus and (4) prev ≠ right (identical-token doubling is the
+  redundancy rule's territory). The Phase 17-06 removal of
+  unconstrained decomposition is intact in spirit: the new fallback
+  is gated tighter than the original.
+- **`nb-possessive-definite`** (priority 13) — two patterns:
+  - *pre-posed possessive + definite noun* (original): "min bilen" →
+    "min bil". Suggests stripping the definite suffix.
+  - *post-posed possessive gender mismatch* (Plan 50-04 sub-step C):
+    "søsteren mitt" → "søsteren mi". Looks up noun lemma's gender via
+    `nounLemmaGenus`, compares to possessive's declared gender via
+    `POSSESSIVE_GENDER` map, suggests the gender-correct variant. The
+    `genderMismatch: true` flag on findings drives a separate
+    pedagogical explain branch.
+- **`redundancy`** (priority 70) — curated phrase list, sourced from
+  `vocab.redundancyPhrases` with `SEED_REDUNDANCY` fallback. Plan
+  50-04 sub-step A expanded the NB seed list with five common
+  adverb-doubling pairs (`veldig veldig`, `helt helt`, etc.).
+
+
+
 Plugin registry of spell-check rules. Each rule is a self-contained IIFE
 file that pushes `{ id, languages, priority, check, explain }` onto
 `self.__lexiSpellRules`. The runner in `spell-check-core.js` iterates this

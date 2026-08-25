@@ -102,6 +102,20 @@
     return c === c.toUpperCase() && c !== c.toLowerCase();
   }
 
+  // Phase 51-01 Task 2: any token in the candidate cap-span containing an
+  // apostrophe (ASCII U+0027 or curly U+2019) breaks the proper-noun-phrase
+  // shape — the apostrophe itself is a strong signal of an English-style
+  // genitive on a proper noun, which is exactly what nb-apostrophe-genitive
+  // should fire on. Without this carve-out the consecutive-cap-span
+  // suppression eats `Mari's PC` end-to-end (Mari + PC both look like cap-
+  // span members) and apostrophe-genitive never surfaces. Legitimate proper-
+  // noun spans without apostrophes (e.g. `Lars Andersen Berg`) keep their
+  // suppression.
+  function containsApostrophe(tok) {
+    if (!tok || !tok.display) return false;
+    return tok.display.indexOf("'") !== -1 || tok.display.indexOf('’') !== -1;
+  }
+
   function isConsecutiveCapSpan(tok, idx, tokens, text) {
     // Current token must itself be capitalized (any position, not only
     // mid-sentence — an all-caps Span beginning with a name like "Anne"
@@ -109,11 +123,17 @@
     // also a name).
     if (!isCap(tok)) return false;
 
+    // Apostrophe carve-out (Phase 51-01 Task 2). If the current token OR
+    // the candidate neighbor carries an apostrophe, the span is NOT a
+    // proper-noun phrase — release suppression so apostrophe-genitive can
+    // fire on the apostrophe-bearing token.
+    if (containsApostrophe(tok)) return false;
+
     // Previous or next token is also a likely mid-sentence proper noun.
     const prev = tokens[idx - 1];
     const next = tokens[idx + 1];
-    if (prev && isCap(prev) && isLikelyProperNoun(prev, idx - 1, tokens, text)) return true;
-    if (next && isCap(next) && isLikelyProperNoun(next, idx + 1, tokens, text)) return true;
+    if (prev && !containsApostrophe(prev) && isCap(prev) && isLikelyProperNoun(prev, idx - 1, tokens, text)) return true;
+    if (next && !containsApostrophe(next) && isCap(next) && isLikelyProperNoun(next, idx + 1, tokens, text)) return true;
     return false;
   }
 

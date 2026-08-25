@@ -65,11 +65,14 @@ const ARGUMENTATIVE_FRAMES = [
 
 const STYLES = `
 .skriv-argument-flow {
-    position: fixed;
+    /* Absolute within the writing container (like the feedback panel) so
+       the panel never overlays the top bar or the insights drawer. The
+       top offset is set at open time to start below the editor chrome. */
+    position: absolute;
     top: 0;
     right: 0;
+    bottom: 0;
     width: 280px;
-    height: 100vh;
     background: #fafaf9;
     border-left: 1px solid #e7e5e4;
     overflow-y: auto;
@@ -368,6 +371,7 @@ export function initArgumentFlow(editor, container, options = {}) {
             </div>
             <div class="argument-flow-content"></div>
         `;
+        container.style.position = 'relative';
         container.appendChild(panel);
         panel.querySelector('.argument-flow-close').addEventListener('click', () => toggle());
     }
@@ -385,9 +389,20 @@ export function initArgumentFlow(editor, container, options = {}) {
 
     editor.addEventListener('input', handleInput);
 
+    function positionPanel() {
+        // Start the panel where the scrollable writing area starts, so the
+        // top bar and title row stay visible and clickable above it.
+        const host = editor.parentElement;
+        if (host && container.contains(host) && host !== container) {
+            const offset = host.getBoundingClientRect().top - container.getBoundingClientRect().top;
+            panel.style.top = Math.max(0, Math.round(offset)) + 'px';
+        }
+    }
+
     function toggle() {
         active = !active;
         if (active) {
+            positionPanel();
             panel.classList.remove('hidden');
             const result = analyze();
             renderPanel(result);

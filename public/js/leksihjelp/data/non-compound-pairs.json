@@ -1,0 +1,153 @@
+{
+  "_metadata": {
+    "version": 1,
+    "description": "Curated denylist of word pairs that look decomposable but are NOT productive compounds. Used by nb-sarskriving-tentative to suppress tentative findings on known false-positive classes (sourced from Phase 17-06 removal post-mortem + ongoing curator additions).",
+    "schema": "pairs[<left>|<right>] = { reason: string, addedBy: string, votes: { yes: number, no: number } }"
+  },
+  "pairs": {
+    "far|dag": {
+      "reason": "Sentence-internal subject+object collision; the real compound 'farsdag' uses fuge-s, not zero-linker.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "mor|dag": {
+      "reason": "Same pattern as far|dag; 'morsdag' uses fuge-s.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "han|tek": {
+      "reason": "Subject pronoun + finite verb; never a compound.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "han|kom": {
+      "reason": "Subject pronoun + finite verb.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "ho|las": {
+      "reason": "Subject pronoun + finite verb.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "eg|stod": {
+      "reason": "Subject pronoun + finite verb.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "stor|by": {
+      "reason": "Adjective + noun; 'storby' is a real compound but the adjective-pre-noun phrase is far more common — gate the tentative tier to article-like left context only.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "fin|dag": {
+      "reason": "Adjective + noun pair, common idiomatic phrase 'ein fin dag'; no compound.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "lang|dag": {
+      "reason": "Adjective + noun pair, idiomatic 'ein lang dag'; no compound.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "ny|dag": {
+      "reason": "Adjective + noun pair, idiomatic 'ein ny dag'; no compound.",
+      "addedBy": "phase-17-06-post-mortem",
+      "votes": {
+        "yes": 0,
+        "no": 0
+      }
+    },
+    "videregående|skole": {
+      "reason": "fast frase — videregående skole er aldri samansett (Wikipedia-presisjonskorpus 2026-06-12)",
+      "addedBy": "claude-wiki-corpus-2026-06-12",
+      "votes": {
+        "yes": 1,
+        "no": 0
+      }
+    },
+    "rett|tid": {
+      "reason": "adj+substantiv-frase («i rett tid»); retttid er ikkje eit ord (Wikipedia-presisjonskorpus 2026-06-12)",
+      "addedBy": "claude-wiki-corpus-2026-06-12",
+      "votes": {
+        "yes": 1,
+        "no": 0
+      }
+    },
+    "rett|linje": {
+      "reason": "adj+substantiv-frase («i rett linje») (Wikipedia-presisjonskorpus 2026-06-12)",
+      "addedBy": "claude-wiki-corpus-2026-06-12",
+      "votes": {
+        "yes": 1,
+        "no": 0
+      }
+    },
+    "midnatt|fredag": {
+      "reason": "tidsuttrykk («midnatt fredag»), ikkje samansetjing (Wikipedia-presisjonskorpus 2026-06-12)",
+      "addedBy": "claude-wiki-corpus-2026-06-12",
+      "votes": {
+        "yes": 1,
+        "no": 0
+      }
+    },
+    "lokale|sider": {
+      "reason": "adj+substantiv-frase («lokale sider») (Wikipedia-presisjonskorpus 2026-06-12)",
+      "addedBy": "claude-wiki-corpus-2026-06-12",
+      "votes": {
+        "yes": 1,
+        "no": 0
+      }
+    },
+    "død|våren": {
+      "reason": "frase («fraus i hel død våren …») — adj + bestemt substantiv (Wikipedia-presisjonskorpus 2026-06-12)",
+      "addedBy": "claude-wiki-corpus-2026-06-12",
+      "votes": {
+        "yes": 1,
+        "no": 0
+      }
+    },
+    "flekk|rett": {
+      "reason": "adverbial frase, ikkje samansetjing (Wikipedia-presisjonskorpus 2026-06-12)",
+      "addedBy": "claude-wiki-corpus-2026-06-12",
+      "votes": {
+        "yes": 1,
+        "no": 0
+      }
+    },
+    "språk|ordet": {
+      "reason": "apposisjonsfrase («det grønlandske språk(,) ordet …») (Wikipedia-presisjonskorpus 2026-06-12)",
+      "addedBy": "claude-wiki-corpus-2026-06-12",
+      "votes": {
+        "yes": 1,
+        "no": 0
+      }
+    }
+  }
+}

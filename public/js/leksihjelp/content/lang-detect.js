@@ -137,7 +137,21 @@
             return { lang: 'fr', confidence: 'high', reason: 'distinctive-fr' };
         }
         if (NB_DISTINCTIVE.test(text)) {
-            return { lang: 'nb', confidence: 'high', reason: 'distinctive-nb' };
+            // Phase 46 round 3 fix: æøå appear in BOTH Bokmål and Nynorsk —
+            // they distinguish Norwegian from DE/EN/ES/FR but NOT NB from
+            // NN. Returning 'nb' unconditionally surfaced the "bytt til NB"
+            // banner on every NN-target text containing one Norwegian
+            // character (NN paragraphs typically have many). When the
+            // caller's target is already a Norwegian variant, fall through
+            // to vocab matching below so NB-vs-NN disambiguation happens
+            // on actual token evidence. For non-Norwegian targets (en/de/
+            // es/fr) — or callers without targetLang — æøå presence is a
+            // strong "switch to Norwegian" signal; default to NB as the
+            // majority variant.
+            const tgt = opts.targetLang;
+            if (tgt !== 'nb' && tgt !== 'nn') {
+                return { lang: 'nb', confidence: 'high', reason: 'distinctive-nb' };
+            }
         }
 
         // 2. No distinctive characters. Tokenize on Unicode letter runs.

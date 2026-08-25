@@ -39,6 +39,9 @@ export function initInsightsDrawer(container, actions) {
                 btn.classList.toggle('ring-2');
                 btn.classList.toggle('ring-emerald-500');
                 item.action();
+                // Yield to the tool: several tools open their own panel on
+                // the same right edge, which the drawer would otherwise hide.
+                closeDrawer();
             });
             section.appendChild(btn);
         });

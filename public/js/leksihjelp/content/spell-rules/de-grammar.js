@@ -81,8 +81,17 @@
           // Example: "mit dem großem Hund" -> "großen"
           if (DATIVE_PREPS.has(t.word) && DATIVE_ARTICLES.has(next.word) && nextNext && nextNextNext) {
             const adj = nextNext;
+            // Wikipedia-corpus precision (D1, 2026-06-12): the adjective slot
+            // must be LOWERCASE and the following noun slot CAPITALIZED —
+            // German nouns are capitalized, so «von ihrer Mutter», «seit dem
+            // 22. Dezember», «mit ihrem Lebenspartner» put a NOUN in the
+            // adj slot and this check suggested nonsense (Mutter→Mutten,
+            // Dezember→Dezemben). All 14 corpus hits were this shape.
+            const adjIsLowercase = adj.display === adj.display.toLowerCase();
+            const nounIsCapitalized = /^\p{Lu}/u.test(nextNextNext.display);
             // If it ends in -em or -er, it might be a strong declension form used incorrectly after an article
-            if ((adj.word.endsWith('em') || adj.word.endsWith('er')) && adj.word.length > 3) {
+            if (adjIsLowercase && nounIsCapitalized &&
+                (adj.word.endsWith('em') || adj.word.endsWith('er')) && adj.word.length > 3) {
                const fix = adj.word.slice(0, -2) + 'en';
                out.push({
                 rule_id: 'de-grammar',
@@ -151,7 +160,17 @@
 
           // 2. Accusative 'den/einen' after transitive verbs
           // Example: "Ich habe der Ball" -> "den Ball", "Ich habe ein Ball" -> "einen Ball"
-          if (TRANSITIVE_VERBS.has(t.word)) {
+          //
+          // Only in SVO order — the verb must be preceded by a nominative
+          // SUBJECT PRONOUN ("Ich habe der Ball"). Otherwise the post-verbal
+          // "der" is itself the SUBJECT, not the object: V1 questions ("Hat der
+          // Lehrer …"), V2 inversion after a fronted element ("Im Gericht findet
+          // der Prozess …", "Äußerlich sieht der Mann …"), or a relative
+          // pronoun ("…, der beide Seiten zufriedenstellt"). Requiring a subject
+          // pronoun before the verb closes that whole FP class.
+          const SUBJ_PRON = new Set(['ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'man']);
+          const svoSubject = i > 0 && SUBJ_PRON.has(tokens[i - 1].word);
+          if (TRANSITIVE_VERBS.has(t.word) && svoSubject) {
             if (next.word === 'der') {
               out.push({
                 rule_id: 'de-grammar',

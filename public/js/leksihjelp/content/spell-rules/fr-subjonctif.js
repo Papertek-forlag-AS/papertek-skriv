@@ -131,6 +131,14 @@
           // Trigger must end with "que"
           if (!matched.endsWith(' que') && matched !== 'quoique') continue;
 
+          // "aussi bien que" (as well as) and "si bien que" (so that, → indicative)
+          // contain the substring "bien que" but are NOT the concessive trigger
+          // "bien que" (although). Skip when preceded by aussi/si.
+          if (matched === 'bien que' && i > range.start) {
+            const pw = ctx.tokens[i - 1].word.toLowerCase();
+            if (pw === 'aussi' || pw === 'si') continue;
+          }
+
           // Scan forward from matchEnd, skipping subject pronouns/determiners and nouns.
           // We allow up to 4 tokens of subject NP between "que" and the verb.
           // Track the last subject pronoun seen to disambiguate person when
