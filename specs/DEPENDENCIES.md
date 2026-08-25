@@ -1,6 +1,6 @@
 # Dependencies
 
-> Last updated: 2026-05-11
+> Last updated: 2026-08-25
 
 ## External (CDN)
 
@@ -91,16 +91,26 @@ app/main.js
   │     └── student/text-export.js
   │           └── [CDN] jsPDF
   ├── app/trash-store.js
-  └── app/german-exam-route.js
-        ├── student/german-exam-spinner.js
+  ├── app/german-exam-route.js
+  │     ├── student/german-exam-spinner.js
+  │     │     ├── shared/i18n.js
+  │     │     ├── shared/html-escape.js
+  │     │     └── student/german-exam-data.js
+  │     │           └── (lazy) student/german-exam-svg/*.js
+  │     ├── app/document-store.js
+  │     ├── app/folder-store.js
+  │     ├── shared/i18n.js
+  │     ├── shared/in-page-modal.js
+  │     └── shared/html-escape.js
+  └── app/paragraph-trainer-route.js
+        ├── student/paragraph-trainer.js
         │     ├── shared/i18n.js
         │     ├── shared/html-escape.js
-        │     └── student/german-exam-data.js
-        │           └── (lazy) student/german-exam-svg/*.js
-        ├── app/document-store.js
-        ├── app/folder-store.js
+        │     ├── shared/word-counter.js
+        │     ├── shared/toast-notification.js
+        │     ├── shared/in-page-modal.js
+        │     └── student/paragraph-trainer-data.js
         ├── shared/i18n.js
-        ├── shared/in-page-modal.js
         └── shared/html-escape.js
 ```
 
