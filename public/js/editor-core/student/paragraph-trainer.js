@@ -10,11 +10,19 @@
  * The in-progress attempt (topic + field texts + checklist) persists in
  * localStorage so a reload or navigation doesn't lose the draft.
  *
+ * Starter chips reuse the skriveramme system (frame-guide): the authored
+ * STEP_STARTERS are the initial fill, and "🎲 Flere forslag" draws extra
+ * starters on demand from the writing-spinner word bank (generell +
+ * droefting genres, level-aware), with a sliding window of visible chips,
+ * scramble reveal, and no repeats until a step's buckets are exhausted.
+ *
  * Portable: no imports from app/. Works standalone.
  *
  * Usage:
  *   import { initParagraphTrainer } from './paragraph-trainer.js';
- *   const trainer = initParagraphTrainer(container);
+ *   const trainer = initParagraphTrainer(container, {
+ *       getLevel: () => 'ungdomsskole',  // optional school level for us/vgs tier
+ *   });
  *   trainer.destroy();
  */
 
@@ -28,10 +36,24 @@ import { TRAINER_TOPICS, STEP_STARTERS } from './paragraph-trainer-data.js';
 const DECK_KEY = 'papertek.skriv.paragraphTrainer.deck';
 const DRAFT_KEY = 'papertek.skriv.paragraphTrainer.draft';
 
+// Max starter chips visible per step (sliding window, same idea as the
+// frame guide): a 🎲 draw appends a new pick and pushes the oldest out.
+const MAX_VISIBLE_STARTERS = 3;
+
+const SCRAMBLE_CHARS = 'abcdefghijklmnoprstuvwxyzæøå';
+const SCRAMBLE_DURATION = 500;
+
+// Genres of the writing-spinner word bank the trainer draws from. Both fit
+// an opinion paragraph; pools are merged since the nn bank spreads the
+// argumentative buckets differently (generell lacks argument/eksempel there).
+const SPINNER_GENRES = ['generell', 'droefting'];
+
+// spinnerBuckets: which word-bank buckets fit each step of the paragraph
+// model. Both nb and nn spellings are listed (innledning vs innleiing).
 const STEPS = [
-    { key: 'topic', starterKey: 'topic' },
-    { key: 'support', starterKey: 'support' },
-    { key: 'closing', starterKey: 'closing' },
+    { key: 'topic', starterKey: 'topic', spinnerBuckets: ['innledning', 'innleiing'] },
+    { key: 'support', starterKey: 'support', spinnerBuckets: ['argument', 'eksempel', 'motargument', 'overgang'] },
+    { key: 'closing', starterKey: 'closing', spinnerBuckets: ['avslutning'] },
 ];
 
 const CHECK_COUNT = 4;
@@ -78,6 +100,50 @@ function drawTopic() {
     return TRAINER_TOPICS.find(topic => topic.id === id) || TRAINER_TOPICS[0];
 }
 
+// ─── Spinner word bank (same system as frame-guide / skriveramme) ────────
+
+async function loadSpinnerStarters() {
+    const lang = getCurrentLanguage();
+    try {
+        const mod = lang === 'nn'
+            ? await import('./spinner-data-nn.js')
+            : await import('./spinner-data-nb.js');
+        return mod.starters || {};
+    } catch (err) {
+        console.error('Failed to load spinner starters:', err);
+        return {};
+    }
+}
+
+function levelToTier(level) {
+    return (level === 'ungdomsskole' || level === 'barneskole') ? 'us' : 'vgs';
+}
+
+// Scramble animation for spinner-drawn starters (same as frame-guide)
+function scrambleReveal(el, finalText, onDone) {
+    const len = finalText.length;
+    const startTime = Date.now();
+
+    function tick() {
+        const elapsed = Date.now() - startTime;
+        const resolved = Math.min(len, Math.floor((elapsed / SCRAMBLE_DURATION) * len));
+        let display = '';
+        for (let i = 0; i < len; i++) {
+            if (i < resolved) display += finalText[i];
+            else if (finalText[i] === ' ') display += ' ';
+            else display += SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+        }
+        el.textContent = display;
+        if (resolved < len) {
+            requestAnimationFrame(tick);
+        } else {
+            el.textContent = finalText;
+            if (onDone) onDone();
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
 // ─── Draft persistence ───────────────────────────────────────────────────
 
 function loadDraft() {
@@ -99,16 +165,71 @@ function saveDraft(draft) {
 /**
  * Initialise the paragraph trainer UI inside the given container.
  * @param {HTMLElement} container
+ * @param {object} [options]
+ * @param {() => string|null} [options.getLevel] - Returns school level ('ungdomsskole'|'barneskole'|'vg1'|'vg2'|'vg3')
  * @returns {{ destroy: () => void }}
  */
-export function initParagraphTrainer(container) {
+export function initParagraphTrainer(container, options = {}) {
     const contentLang = getCurrentLanguage() === 'nn' ? 'nn' : 'nb';
-    const starters = STEP_STARTERS[contentLang];
+    const authored = STEP_STARTERS[contentLang];
 
     let currentTopic = null;
     let stepTexts = ['', '', ''];
     let checks = new Array(CHECK_COUNT).fill(false);
     let previewOpen = false;
+
+    // Sliding window of currently-visible starter chips per step. Initial
+    // fill comes from the authored STEP_STARTERS; each 🎲 draw appends a
+    // spinner pick and trims the oldest (same system as the frame guide).
+    const visibleStarters = STEPS.map(step => authored[step.starterKey].slice(0, MAX_VISIBLE_STARTERS));
+    // Per-step history of drawn starters so consecutive draws differ until
+    // the step's buckets are exhausted, then the history resets.
+    const spinnerHistory = new Map(); // stepIndex → string[]
+    let starterDataPromise = null;
+
+    function ensureSpinnerData() {
+        if (!starterDataPromise) starterDataPromise = loadSpinnerStarters();
+        return starterDataPromise;
+    }
+
+    async function pickSpinnerStarter(stepIndex) {
+        const bank = await ensureSpinnerData();
+        const tier = levelToTier(options.getLevel?.() || 'ungdomsskole');
+
+        // Merge the step's buckets across the trainer genres (deduped).
+        const merged = new Set();
+        for (const genre of SPINNER_GENRES) {
+            const genreData = bank[genre];
+            if (!genreData) continue;
+            const tierData = genreData[tier] || genreData.us;
+            if (!tierData) continue;
+            for (const bucket of STEPS[stepIndex].spinnerBuckets) {
+                for (const s of tierData[bucket] || []) merged.add(s);
+            }
+        }
+        const pool = [...merged];
+        if (pool.length === 0) return null;
+
+        // The authored chips for the step are excluded so draws don't echo
+        // what STEP_STARTERS already provides.
+        const authoredForStep = authored[STEPS[stepIndex].starterKey];
+        let history = spinnerHistory.get(stepIndex) || [];
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const used = new Set([...history, ...authoredForStep]);
+            const available = pool.filter(s => !used.has(s));
+            if (available.length > 0) {
+                const pick = available[Math.floor(Math.random() * available.length)];
+                history.push(pick);
+                spinnerHistory.set(stepIndex, history);
+                return pick;
+            }
+            // Exhausted: reset history (keep just the most recent to avoid
+            // an immediate repeat) and try again.
+            history = history.length > 0 ? [history[history.length - 1]] : [];
+        }
+        return null;
+    }
 
     // Restore draft, or draw a fresh topic right away (no spin ceremony —
     // this screen is a drill, keep friction low).
@@ -135,14 +256,10 @@ export function initParagraphTrainer(container) {
     root.className = 'paragraph-trainer max-w-2xl mx-auto p-4';
     container.appendChild(root);
 
+    const STARTER_CHIP_CLASS = 'px-2 py-1 rounded-full border border-stone-300 dark:border-stone-600 text-xs text-stone-600 dark:text-stone-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:border-emerald-400 transition-colors';
+
     function stepCardHtml(index) {
         const n = index + 1;
-        const step = STEPS[index];
-        const chips = starters[step.starterKey].map((s, si) => `
-            <button type="button" data-starter data-step="${index}" data-si="${si}"
-                class="px-2 py-1 rounded-full border border-stone-300 dark:border-stone-600 text-xs text-stone-600 dark:text-stone-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:border-emerald-400 transition-colors">
-                ${escapeHtml(s)}
-            </button>`).join('');
         return `
             <section class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-4 shadow-sm">
                 <div class="flex items-baseline gap-2 mb-1">
@@ -154,9 +271,12 @@ export function initParagraphTrainer(container) {
                     class="w-full rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 p-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     aria-label="${escapeHtml(t(`paragraphTrainer.step${n}Title`))}"
                     placeholder="${escapeHtml(t(`paragraphTrainer.step${n}Placeholder`))}"></textarea>
-                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                <div class="flex flex-wrap items-center gap-1.5 mt-2" data-starter-row="${index}">
                     <span class="text-xs text-stone-400 dark:text-stone-500">${escapeHtml(t('paragraphTrainer.starters'))}</span>
-                    ${chips}
+                    <button type="button" data-draw-starter="${index}"
+                        class="px-2 py-1 rounded-full border border-emerald-300 dark:border-emerald-700 text-xs text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors">
+                        ${escapeHtml(t('skriv.frameGuideMoreSuggestions'))}
+                    </button>
                     <span class="ml-auto text-xs text-stone-400 dark:text-stone-500" data-word-count="${index}"></span>
                 </div>
             </section>
@@ -237,9 +357,48 @@ export function initParagraphTrainer(container) {
         // Restore field texts (textarea content can't be set via innerHTML safely)
         STEPS.forEach((_, i) => {
             root.querySelector(`[data-step-input="${i}"]`).value = stepTexts[i];
+            renderStarterChips(i);
         });
         updateWordCounts();
         updatePreview();
+    }
+
+    // Rebuild the starter chips for one step from visibleStarters state.
+    // Chips are inserted before the 🎲 draw button; when animateNew is set
+    // the newest chip gets the scramble reveal (it came from a draw).
+    function renderStarterChips(stepIndex, animateNew = false) {
+        const row = root.querySelector(`[data-starter-row="${stepIndex}"]`);
+        if (!row) return;
+        row.querySelectorAll('[data-starter]').forEach(el => el.remove());
+        const drawBtn = row.querySelector('[data-draw-starter]');
+        visibleStarters[stepIndex].forEach((text, si) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('data-starter', '');
+            btn.setAttribute('data-step', String(stepIndex));
+            btn.setAttribute('data-si', String(si));
+            btn.className = STARTER_CHIP_CLASS;
+            btn.textContent = text;
+            row.insertBefore(btn, drawBtn);
+            if (animateNew && si === visibleStarters[stepIndex].length - 1) {
+                scrambleReveal(btn, text);
+            }
+        });
+    }
+
+    async function handleDrawStarter(stepIndex, btn) {
+        btn.disabled = true;
+        const text = await pickSpinnerStarter(stepIndex);
+        if (!text) {
+            // Word bank unavailable or nothing left to draw — retire the button.
+            btn.textContent = t('skriv.frameGuideNoMoreSuggestions');
+            return;
+        }
+        btn.disabled = false;
+        const list = visibleStarters[stepIndex];
+        list.push(text);
+        while (list.length > MAX_VISIBLE_STARTERS) list.shift();
+        renderStarterChips(stepIndex, true);
     }
 
     function assembledText() {
@@ -317,17 +476,24 @@ export function initParagraphTrainer(container) {
         const starter = e.target.closest('[data-starter]');
         if (starter) {
             const i = Number(starter.getAttribute('data-step'));
-            const text = starters[STEPS[i].starterKey][Number(starter.getAttribute('data-si'))];
+            const text = visibleStarters[i][Number(starter.getAttribute('data-si'))] || '';
             const input = root.querySelector(`[data-step-input="${i}"]`);
             if (!input.value.trim()) {
-                // Insert the starter without the trailing ellipsis, ready to continue
-                input.value = text.replace(/\s*…$/, ' ');
+                // Insert the starter without the trailing ellipsis/dots
+                // (authored chips end in "…", spinner ones in "..."),
+                // ready to continue writing.
+                input.value = text.replace(/\s*(?:…|\.\.\.)$/, ' ');
                 stepTexts[i] = input.value;
                 persist();
                 updateWordCounts();
                 updatePreview();
             }
             input.focus();
+            return;
+        }
+        const drawBtn = e.target.closest('[data-draw-starter]');
+        if (drawBtn) {
+            handleDrawStarter(Number(drawBtn.getAttribute('data-draw-starter')), drawBtn);
             return;
         }
         if (e.target.closest('[data-new-topic]')) {
