@@ -33,14 +33,18 @@ const SCRAMBLE_DURATION = 600; // ms
 const SCRAMBLE_INTERVAL = 30;  // ms per tick
 
 /**
- * Load word bank for the current language.
+ * Load word bank for a content language.
+ * @param {string} [contentLang] - 'nb' | 'nn' | 'en'; defaults to the UI language
  * @returns {Promise<{ starters, synonyms, stopwords, stem }>}
  */
-async function loadWordBank() {
-    const lang = getCurrentLanguage();
+async function loadWordBank(contentLang) {
+    const lang = contentLang || getCurrentLanguage();
     try {
         if (lang === 'nn') {
             return await import('./spinner-data-nn.js');
+        }
+        if (lang === 'en') {
+            return await import('./spinner-data-en.js');
         }
         // Default to nb for all other languages
         return await import('./spinner-data-nb.js');
@@ -95,6 +99,7 @@ function scrambleReveal(el, finalText, onDone) {
  * @param {object} [options]
  * @param {() => string|null} [options.getLevel] - Returns school level ('ungdomsskole'|'barneskole'|'vg1'|'vg2'|'vg3')
  * @param {() => string|null} [options.getActiveFrame] - Returns current writing frame genre string (e.g. 'droefting')
+ * @param {() => string|null} [options.getContentLang] - Returns the language the pupil writes in ('nb'|'nn'|'en'); defaults to UI language
  * @returns {{ destroy: () => void, show: () => void }}
  */
 export function initWritingSpinner(editor, container, options = {}) {
@@ -167,7 +172,9 @@ export function initWritingSpinner(editor, container, options = {}) {
     }
 
     // --- Load word bank ---
-    const bankPromise = loadWordBank().then(bank => { wordBank = bank; });
+    // Content language is resolved once per editor init (documents are
+    // re-initialised on open, matching the per-document language seeding).
+    const bankPromise = loadWordBank(options.getContentLang?.()).then(bank => { wordBank = bank; });
 
     // --- Spinner panel (sentence starters) ---
     spinnerPanel = document.createElement('div');

@@ -55,12 +55,12 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `editor-toolbar.js`       | `initEditorToolbar`     | i18n, frame-elements, Floating UI (CDN) | Floating formatting bar (B/I/U/lists/H1/H2). Accepts `{ skipAutoDetectAdvanced }` to opt out of auto-enabling advanced mode from existing headings/lists. The special-chars panel was moved out into standalone-writer.js so it can be driven by the leksihjelp bridge directly |
 | `matte.js`                | `initMatte`             | i18n                           | Superscript/subscript math formatting |
 | `frame-parser.js`         | `parseFrameMarkdown`    | (none)                         | Markdown → structured frame object (incl. spinner-bucket per section/subsection) |
-| `frame-guide.js`          | `initFrameGuide`        | i18n, toast-notification, spinner-data-nb/nn (dynamic) | Eager-scaffolding sidebar guide: section/paragraph markers in editor, "Mark as done" toggle, "+ New paragraph", "🎲 More suggestions" spinner integration |
+| `frame-guide.js`          | `initFrameGuide`        | i18n, toast-notification, spinner-data-nb/nn/en (dynamic) | Eager-scaffolding sidebar guide: section/paragraph markers in editor, "Mark as done" toggle, "+ New paragraph", "🎲 More suggestions" spinner integration |
 | `frame-manager.js`        | `initFrameManager`      | frame-parser, frame-elements, i18n | Frame insertion & rendering      |
-| `frame-selector.js`       | `initFrameSelector`, `partitionFramesByLevel` | frame-parser, i18n, in-page-modal | Frame picker dialog; registry carries recommended `levels` bands and the picker groups frames as recommended-for-level / "Flere skriverammer" via the `getLevelBand` option |
+| `frame-selector.js`       | `initFrameSelector`, `partitionFramesByLevel` | frame-parser, i18n, in-page-modal | Frame picker dialog; registry carries recommended `levels` bands and the picker groups frames as recommended-for-level / "Flere skriverammer" via the `getLevelBand` option. Frame files resolve per content language (nb/nn/en) via the `getContentLang` option (app layer feeds it the Leksihjelp writing language), falling back to nb |
 | `toc-manager.js`          | `initTOC`               | frame-elements, i18n           | Auto-generated Table of Contents     |
 | `reference-manager.js`    | `initReferences`        | html-escape, dom-helpers, frame-elements, i18n | Inline citations + bibliography |
-| `writing-spinner.js`      | `initWritingSpinner`    | i18n, spinner-data-nb/nn       | Random word suggestions              |
+| `writing-spinner.js`      | `initWritingSpinner`    | i18n, spinner-data-nb/nn/en    | Random word suggestions              |
 | `word-frequency.js`       | `initWordFrequency`     | frame-elements, i18n           | Repetition radar (highlights)        |
 | `sentence-length.js`      | `initSentenceLength`    | frame-elements, i18n           | Rhythm bar visualization             |
 | `paragraph-map.js`        | `initParagraphMap`      | frame-elements, i18n           | Document minimap overlay             |
@@ -72,6 +72,7 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `special-chars-panel.js`  | `initSpecialCharsPanel` | (none)                         | Floating column of special chars (ä ö ü ß / é è ê / ñ ¿ ¡ …) anchored to the caret. Driven externally via `setActiveLanguage(lang)` — the embedded leksihjelp bridge in `standalone-writer.js` calls it. The previous self-rendered "Annet språk?" picker was removed (Skrivespråk is now owned by the bridge) |
 | `spinner-data-nb.js`      | `SPINNER_DATA_NB`       | (none)                         | Bokmål word suggestion data          |
 | `spinner-data-nn.js`      | `SPINNER_DATA_NN`       | (none)                         | Nynorsk word suggestion data         |
+| `spinner-data-en.js`      | `starters`, `synonyms`, `stopwords`, `stem` | (none)     | English word suggestion data (English subject; bucket keys shared with nb/nn) |
 | `paragraph-trainer.js`    | `initParagraphTrainer`  | i18n, html-escape, word-counter, toast-notification, in-page-modal, ./paragraph-trainer-data, spinner-data-nb/nn (dynamic) | Three-step paragraph drill (trestegsmodellen: temasetning → utdyping → avslutningssetning). Topic deck in localStorage (no repeats until exhausted), three labelled writing fields with sentence-starter chips and live word counts, live checklist (four form checks — one topic sentence, causal marker, example marker, keyword echo in the closing — verified from the text with tips via `evaluateChecks`), assembled-paragraph preview with copy and optional save-as-document (host-provided `onSaveDocument`). Draft persists in localStorage. Starter chips use the frame-guide system: authored STEP_STARTERS are the initial fill, "🎲 Flere forslag" draws level-aware extras per step from the writing-spinner word bank (generell + droefting genres) with sliding window + scramble reveal |
 | `paragraph-trainer-data.js` | `TRAINER_TOPICS`, `STEP_STARTERS` | (none)             | Genre-neutral practice claims (nb+nn per topic) and per-step sentence starters for the paragraph trainer |
 | `german-exam-data.js`     | `writingTasks`, `examTasks`, `tasks`, `LEVELS`, `MODES` | lazy `german-exam-svg/*.js`    | Static task corpus for German exam spinner; exam mode includes 9 Tysk I and 9 Tysk II tasks from Udir/exam examples; each task ships `modelAnswers: { simple, rich }` (no glossary) |
@@ -129,3 +130,20 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `nn/bokmelding.md` | Bokmelding (barneskule) | Nynorsk |
 | `nn/soeknad.md` | Søknad | Nynorsk |
 | `nn/formelt-brev.md` | Formelt brev | Nynorsk |
+| `en/analyse.md`   | Analysis      | English  |
+| `en/droefting.md` | Discussion essay | English |
+| `en/kronikk.md`   | Opinion piece | English  |
+| `en/kaaseri.md`   | Humorous essay | English |
+| `en/fagartikkel.md` | Academic article | English |
+| `en/leserinnlegg.md` | Letter to the editor | English |
+| `en/novelle.md`   | Short story   | English  |
+| `en/retorisk-analyse.md` | Rhetorical analysis | English |
+| `en/kortsvar.md` | Short answer | English |
+| `en/kreativ-tekst.md` | Creative text | English |
+| `en/reflekterende-tekst.md` | Reflective essay | English |
+| `en/sammenligning.md` | Comparative essay | English |
+| `en/fortelling.md` | Story (barneskole) | English |
+| `en/faktatekst.md` | Factual text (barneskole) | English |
+| `en/bokmelding.md` | Book review (barneskole) | English |
+| `en/soeknad.md` | Job application | English |
+| `en/formelt-brev.md` | Formal letter | English |

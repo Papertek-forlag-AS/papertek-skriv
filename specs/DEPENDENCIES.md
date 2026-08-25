@@ -84,7 +84,9 @@ app/main.js
   │     ├── student/frame-manager.js
   │     ├── student/frame-selector.js
   │     ├── student/writing-spinner.js
+  │     │     └── (lazy) student/spinner-data-nb.js / spinner-data-nn.js / spinner-data-en.js
   │     ├── student/word-frequency.js
+  │     │     └── (lazy) student/spinner-data-nb.js / spinner-data-nn.js / spinner-data-en.js
   │     ├── student/sentence-length.js
   │     ├── student/paragraph-map.js
   │     ├── student/image-manager.js
