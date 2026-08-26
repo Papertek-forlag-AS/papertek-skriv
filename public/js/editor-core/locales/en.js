@@ -181,6 +181,7 @@ export default {
         desc: 'Have the text read out loud while you follow along',
         unsupported: 'Read aloud is not supported in this browser.',
         empty: 'There is no text to read yet.',
+        noVoice: 'No voice for the writing language was found on this device — pronunciation may be off.',
     },
 
     readingView: {
