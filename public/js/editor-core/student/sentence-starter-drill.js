@@ -3,7 +3,8 @@
  *
  * Micro-exercise for the school pages: the pupil is given ONE rhetorical
  * function (innledning, argument, motargument, eksempel, overgang,
- * avslutning) and writes ONE sentence that does that job. Two or three
+ * avslutning) plus a topic from the trainer's topic deck, and writes ONE
+ * sentence that does that job about that topic. Two or three
  * sentence starters from the writing-spinner word bank are offered as
  * clickable chips.
  *
@@ -15,6 +16,7 @@
 
 import { t, getCurrentLanguage } from '../shared/i18n.js';
 import { escapeHtml } from '../shared/html-escape.js';
+import { TRAINER_TOPICS } from './paragraph-trainer-data.js';
 
 /** The rhetorical functions the drill draws from (generell-genre buckets). */
 const BUCKETS = ['innledning', 'argument', 'motargument', 'eksempel', 'overgang', 'avslutning'];
@@ -66,17 +68,26 @@ export function initSentenceStarterDrill(container, options = {}) {
 
     let generell = {};       // bucket → starters for the level tier
     let bucket = null;
+    let topic = null;        // from the trainer's topic deck — gives the sentence something to be ABOUT
     let text = '';
+
+    function topicText() {
+        if (!topic) return '';
+        const lang = options.getContentLang?.() || getCurrentLanguage();
+        return topic[lang] || topic.nb;
+    }
 
     function tier() {
         const level = options.getLevel?.() || 'ungdomsskole';
         return (level === 'ungdomsskole' || level === 'barneskole') ? 'us' : 'vgs';
     }
 
-    function drawBucket() {
+    function drawTask() {
         const available = BUCKETS.filter(b => b !== bucket && (generell[b] || []).length);
         const pool = available.length ? available : BUCKETS;
         bucket = pool[Math.floor(Math.random() * pool.length)];
+        const topics = TRAINER_TOPICS.filter(candidate => candidate !== topic);
+        topic = topics[Math.floor(Math.random() * topics.length)] || TRAINER_TOPICS[0];
     }
 
     function chips() {
@@ -97,6 +108,10 @@ export function initSentenceStarterDrill(container, options = {}) {
     function render() {
         root.innerHTML = `
             <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-4 shadow-sm">
+                <p class="text-sm text-stone-500 dark:text-stone-400 mb-2">
+                    <span class="font-medium text-stone-600 dark:text-stone-300">${escapeHtml(t('starterDrill.topicLabel'))}</span>
+                    ${escapeHtml(topicText())}
+                </p>
                 <div class="flex items-center justify-between gap-3 mb-1">
                     <h2 class="text-base font-semibold">${escapeHtml(t(`spinner.cat.${bucket}`))}</h2>
                     <button type="button" data-new-bucket
@@ -104,7 +119,8 @@ export function initSentenceStarterDrill(container, options = {}) {
                         🎲 ${escapeHtml(t('starterDrill.newTask'))}
                     </button>
                 </div>
-                <p class="text-sm text-stone-500 dark:text-stone-400 mb-3">${escapeHtml(t('starterDrill.intro'))}</p>
+                <p class="text-sm text-stone-600 dark:text-stone-300 mb-1">${escapeHtml(t(`starterDrill.job.${bucket}`))}</p>
+                <p class="text-xs text-stone-400 mb-3">${escapeHtml(t('starterDrill.intro'))}</p>
                 <div class="flex flex-wrap gap-2 mb-3">
                     ${chips().map(c => `
                         <button type="button" data-chip="${escapeHtml(c)}"
@@ -130,7 +146,7 @@ export function initSentenceStarterDrill(container, options = {}) {
 
     function onClick(e) {
         if (e.target.closest('[data-new-bucket]')) {
-            drawBucket();
+            drawTask();
             text = '';
             render();
             return;
@@ -150,7 +166,7 @@ export function initSentenceStarterDrill(container, options = {}) {
 
     loadStarters(options.getContentLang?.()).then(g => {
         generell = g[tier()] || g.us || {};
-        drawBucket();
+        drawTask();
         render();
     });
 

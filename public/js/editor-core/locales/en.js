@@ -207,11 +207,20 @@ export default {
 
     starterDrill: {
         title: 'Sentence starters',
-        intro: 'Write one sentence that does this job. Feel free to use one of the starters.',
+        topicLabel: 'Topic:',
+        intro: 'Write one sentence. Feel free to use one of the starters below.',
         placeholder: 'Write your sentence here...',
-        newTask: 'New function',
+        newTask: 'New task',
         checkOneSentence: 'One complete sentence (with a full stop)',
         checkMinWords: 'At least three words',
+        job: {
+            innledning: 'Open a text about the topic: say what it will be about.',
+            argument: 'Give a reason that supports the claim in the topic.',
+            motargument: 'Show what someone who disagrees would say.',
+            eksempel: 'Give a concrete example that fits the topic.',
+            overgang: 'Bridge from one point about the topic to the next.',
+            avslutning: 'Round off a text about the topic: sum up or conclude.',
+        },
     },
 
     readAloud: {

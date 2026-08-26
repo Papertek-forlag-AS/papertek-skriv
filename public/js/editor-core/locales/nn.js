@@ -198,11 +198,20 @@ export default {
 
     starterDrill: {
         title: 'Setningsstart',
-        intro: 'Skriv éi setning som gjer denne jobben. Bruk gjerne ein av startane.',
+        topicLabel: 'Tema:',
+        intro: 'Skriv éi setning. Bruk gjerne ein av startane under.',
         placeholder: 'Skriv setninga di her...',
-        newTask: 'Ny funksjon',
+        newTask: 'Ny oppgåve',
         checkOneSentence: 'Éi fullført setning (med punktum)',
         checkMinWords: 'Minst tre ord',
+        job: {
+            innledning: 'Opne ein tekst om temaet: sei kva han skal handle om.',
+            argument: 'Gi ein grunn som støttar påstanden i temaet.',
+            motargument: 'Vis kva nokon som er usamde i temaet ville sagt.',
+            eksempel: 'Gi eit konkret døme som passar til temaet.',
+            overgang: 'Bygg bru frå eitt poeng om temaet til det neste.',
+            avslutning: 'Rund av ein tekst om temaet: oppsummer eller konkluder.',
+        },
     },
 
     readAloud: {

@@ -135,6 +135,7 @@ app/school-page.js         (second entry point — loaded by school.html, not ma
   ├── student/sentence-starter-drill.js
   │     ├── shared/i18n.js
   │     ├── shared/html-escape.js
+  │     ├── student/paragraph-trainer-data.js
   │     └── (lazy) student/spinner-data-nb.js / spinner-data-nn.js / spinner-data-en.js
   ├── shared/theme.js
   ├── shared/toast-notification.js
