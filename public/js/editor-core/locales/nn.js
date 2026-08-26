@@ -305,6 +305,7 @@ export default {
     },
 
     paragraphTrainer: {
+        historyTitle: 'Tidlegare avsnitt',
         sidebar: 'Avsnittstrening',
         screenTitle: 'Avsnittstrening',
         intro: 'Eit godt avsnitt har tre steg: temasetning, utdjuping og avslutningssetning. Tren på eitt avsnitt om gongen – uansett sjanger.',

@@ -314,6 +314,7 @@ export default {
     },
 
     paragraphTrainer: {
+        historyTitle: 'Earlier paragraphs',
         sidebar: 'Paragraph practice',
         screenTitle: 'Paragraph practice',
         intro: 'A good paragraph has three steps: topic sentence, elaboration, and closing sentence. Practice one paragraph at a time – in any genre.',
