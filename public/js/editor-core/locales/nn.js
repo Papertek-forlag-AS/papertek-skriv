@@ -172,6 +172,7 @@ export default {
         desc: 'Få teksten lesen høgt medan du følgjer med',
         unsupported: 'Opplesing er ikkje støtta i denne nettlesaren.',
         empty: 'Det er ingen tekst å lese opp enno.',
+        noVoice: 'Fann inga stemme for skrivespråket på denne eininga — uttalen kan bli feil.',
     },
 
     readingView: {
