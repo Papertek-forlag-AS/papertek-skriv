@@ -207,7 +207,7 @@ export default {
 
     starterDrill: {
         title: 'Sentence starters',
-        topicLabel: 'Topic:',
+        topicLabel: 'Imagine you are writing a text about:',
         intro: 'Write one sentence. Feel free to use one of the starters below.',
         placeholder: 'Write your sentence here...',
         newTask: 'New task',
@@ -218,7 +218,6 @@ export default {
             argument: 'Give a reason that supports the claim in the topic.',
             motargument: 'Show what someone who disagrees would say.',
             eksempel: 'Give a concrete example that fits the topic.',
-            overgang: 'Bridge from one point about the topic to the next.',
             avslutning: 'Round off a text about the topic: sum up or conclude.',
         },
     },

@@ -18,8 +18,10 @@ import { t, getCurrentLanguage } from '../shared/i18n.js';
 import { escapeHtml } from '../shared/html-escape.js';
 import { TRAINER_TOPICS } from './paragraph-trainer-data.js';
 
-/** The rhetorical functions the drill draws from (generell-genre buckets). */
-const BUCKETS = ['innledning', 'argument', 'motargument', 'eksempel', 'overgang', 'avslutning'];
+/** The rhetorical functions the drill draws from (generell-genre buckets).
+ * 'overgang' is deliberately absent: a transition sentence presupposes
+ * surrounding text, which a bare topic cannot provide (Geir, 2026-08-26). */
+const BUCKETS = ['innledning', 'argument', 'motargument', 'eksempel', 'avslutning'];
 
 /**
  * Check the pupil's sentence: exactly one finished sentence, at least

@@ -198,7 +198,7 @@ export default {
 
     starterDrill: {
         title: 'Setningsstart',
-        topicLabel: 'Tema:',
+        topicLabel: 'Tenk deg at du skriv ein tekst om:',
         intro: 'Skriv éi setning. Bruk gjerne ein av startane under.',
         placeholder: 'Skriv setninga di her...',
         newTask: 'Ny oppgåve',
@@ -209,7 +209,6 @@ export default {
             argument: 'Gi ein grunn som støttar påstanden i temaet.',
             motargument: 'Vis kva nokon som er usamde i temaet ville sagt.',
             eksempel: 'Gi eit konkret døme som passar til temaet.',
-            overgang: 'Bygg bru frå eitt poeng om temaet til det neste.',
             avslutning: 'Rund av ein tekst om temaet: oppsummer eller konkluder.',
         },
     },
