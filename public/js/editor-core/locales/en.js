@@ -205,6 +205,15 @@ export default {
         keepSlash: 'Type "/"',
     },
 
+    starterDrill: {
+        title: 'Sentence starters',
+        intro: 'Write one sentence that does this job. Feel free to use one of the starters.',
+        placeholder: 'Write your sentence here...',
+        newTask: 'New function',
+        checkOneSentence: 'One complete sentence (with a full stop)',
+        checkMinWords: 'At least three words',
+    },
+
     readAloud: {
         title: 'Read aloud',
         play: 'Read aloud',

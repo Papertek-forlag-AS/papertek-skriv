@@ -132,6 +132,10 @@ app/main.js
 
 app/school-page.js         (second entry point — loaded by school.html, not main.js; stabekk.html redirects here)
   ├── shared/i18n.js
+  ├── student/sentence-starter-drill.js
+  │     ├── shared/i18n.js
+  │     ├── shared/html-escape.js
+  │     └── (lazy) student/spinner-data-nb.js / spinner-data-nn.js / spinner-data-en.js
   ├── shared/theme.js
   ├── shared/toast-notification.js
   └── student/paragraph-trainer.js   (same subtree as under paragraph-trainer-route above; no sw-manager — the page deliberately does not register the PWA service worker)
