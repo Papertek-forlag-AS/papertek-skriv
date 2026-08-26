@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v84';
+const CACHE_NAME = 'skriv-v85';
 const ASSETS = [
     '/',
     '/index.html',
@@ -64,6 +64,7 @@ const ASSETS = [
     '/js/editor-core/student/word-frequency.js',
     '/js/editor-core/student/spinner-data-nb.js',
     '/js/editor-core/student/spinner-data-nn.js',
+    '/js/editor-core/student/spinner-data-en.js',
     '/js/editor-core/student/sentence-length.js',
     '/js/editor-core/student/paragraph-map.js',
     '/js/editor-core/student/image-manager.js',
@@ -133,6 +134,24 @@ const ASSETS = [
     '/frames/nn/bokmelding.md',
     '/frames/nn/soeknad.md',
     '/frames/nn/formelt-brev.md',
+    // English frames (the English subject exists at every school level)
+    '/frames/en/droefting.md',
+    '/frames/en/analyse.md',
+    '/frames/en/kronikk.md',
+    '/frames/en/kaaseri.md',
+    '/frames/en/fagartikkel.md',
+    '/frames/en/leserinnlegg.md',
+    '/frames/en/novelle.md',
+    '/frames/en/retorisk-analyse.md',
+    '/frames/en/kortsvar.md',
+    '/frames/en/kreativ-tekst.md',
+    '/frames/en/reflekterende-tekst.md',
+    '/frames/en/sammenligning.md',
+    '/frames/en/fortelling.md',
+    '/frames/en/faktatekst.md',
+    '/frames/en/bokmelding.md',
+    '/frames/en/soeknad.md',
+    '/frames/en/formelt-brev.md',
     // Legacy paths (backward compatibility)
     '/frames/droefting.md',
     '/frames/analyse.md',

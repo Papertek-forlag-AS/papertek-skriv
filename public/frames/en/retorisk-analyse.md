@@ -1,0 +1,49 @@
+# Rhetorical analysis
+
+## Metadata
+genre: retorisk-analyse
+level: vgs
+description: An analysis of rhetorical devices and strategies of persuasion in a text
+
+## Introduction
+spinner: innledning
+> Present the text you are going to analyse: who wrote it, when and where it was published, and what its main message or purpose is.
+- The text I am going to analyse is... written by... published in...
+- The main purpose of the text is to persuade the reader that...
+
+## Rhetorical situation
+spinner: retorisk-situasjon
+> Describe the rhetorical situation: who is the sender, who is the text addressed to, what is the pressing problem (exigence), and why does the text appear right now (kairos)?
+- The sender is... and holds the position of...
+- The target audience of the text is...
+- The pressing problem that prompts the text is...
+
+## Ethos
+spinner: etos
+> Analyse how the sender builds credibility. Do they show competence, experience or moral character? Are appeals to authority used?
+- The sender builds credibility by...
+- Ethos is strengthened through the use of...
+
+## Pathos
+spinner: patos
+> Analyse how the text appeals to the reader's emotions. Which emotions is the sender trying to evoke, and with which devices?
+- The text appeals to emotions such as... by...
+- A clear example of an appeal to pathos is...
+
+## Logos
+spinner: logos
+> Analyse the logical argumentation. Are facts, statistics, causal links or logical reasoning used? Does the argumentation hold up?
+- The logical argumentation is based on...
+- The sender supports the claims with...
+
+## Rhetorical devices
+spinner: virkemidler
+> Identify concrete rhetorical devices in the text: repetition, contrast, metaphor, rhetorical questions, irony, exaggeration. Explain the effect of each device.
+- A key device is..., which creates the effect of...
+- In addition, ... is used to...
+
+## Conclusion
+spinner: avslutning
+> Assess the overall rhetorical effect. Does the text achieve its purpose? Which form of appeal dominates, and is that a strength or a weakness?
+- Overall, the text is... because...
+- The most effective strategy of persuasion is...

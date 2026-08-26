@@ -1,0 +1,33 @@
+# Story
+
+## Metadata
+genre: fortelling
+level: barneskole
+description: A story with a beginning, a middle and an end
+
+## Beginning
+spinner: begynnelse
+> Tell the reader who the story is about, where they are, and when it happens. Try to open with something exciting that makes the reader want to keep reading.
+- Once upon a time...
+- One day, ... was going to...
+- Just then, something strange happened.
+
+## Middle
+spinner: midtdel
+> This is where the most important things happen. Someone gets a problem, or something surprising happens. Describe what the characters do, say and feel.
+- Suddenly...
+- That was when ... discovered...
+- Things got worse and worse, because...
+
+### Describe with your senses
+spinner: midtdel
+> What can the characters see, hear, smell or feel? When you describe with the senses, the story comes alive for the reader.
+- It smelled like...
+- She heard a sound like...
+
+## Ending
+spinner: slutt
+> How does the problem get solved? Tell the reader how it all ends, and perhaps what the character has learned or feels now.
+- In the end...
+- At last, ... was...
+- After that day...
