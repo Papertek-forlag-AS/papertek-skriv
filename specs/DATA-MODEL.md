@@ -112,10 +112,11 @@ Key path: `id`
 | `skriv.leksihjelp.examMode`             | string | `'1'` when eksamensmodus is on, `''` otherwise |
 | `skriv.leksihjelp.grammarFeatures.{lang}` | string | JSON. Per-language grammar feature checkbox state for the dictionary view |
 | `skriv.leksihjelp.activeTab`              | string | `'dictionary'` or `'settings'`; persists last active tab in the Leksihjelp drawer |
+| `skriv.readingSettings`                 | string | JSON. Lesevisning display settings: `{ font, size, lineHeight, letterSpacing }` (see reading-settings.js) |
 
 ## Other storage
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` and `OPTIONAL_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v85`.
+- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` and `OPTIONAL_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v86`.
 - **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.
 - **Persistent storage:** `main.js` calls `navigator.storage.persist()` at startup so the browser treats the origin's IndexedDB as protected rather than best-effort (Safari otherwise purges it after 7 days without a visit).
 - **Backup file (`.skriv`):** `library-backup.js` exports `{ format: 'skriv-library-backup', version: 1, exportedAt, documents[], folders[] }` as JSON. Restore is merge-only: folders matched by name+parent (missing ones recreated depth-first), documents with identical `id`+`updatedAt` skipped, everything else imported as a new document with remapped `folderIds`. Trash and version snapshots are not included.

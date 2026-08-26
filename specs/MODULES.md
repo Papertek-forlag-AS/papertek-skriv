@@ -79,6 +79,9 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `german-exam-spinner.js`  | `initGermanExamSpinner` | i18n, html-escape, ./german-exam-data | Portable spinner UI; deck logic in localStorage; emits onPickTask callback; preview uses `modelAnswers.simple` |
 | `german-hint-drawer.js`   | `initGermanHintDrawer`  | i18n, html-escape              | Slide-in drawer that shows the simple+rich Norwegian drafts; mounted in the editor when doc has `germanHint` metadata |
 | `insights-drawer.js`      | `initInsightsDrawer`    | i18n                           | Slide-in drawer for tools/analysis (replaces the old tools dropdown menu) |
+| `editor-lang.js`          | `initEditorLang`, `langToTag` | (none)                   | Syncs the editor's `lang` + `spellcheck` attributes with the writing language; native spell-check is disabled while Leksihjelp owns the page |
+| `read-aloud.js`           | `initReadAloud`, `splitIntoChunks`, `pickVoice` | i18n, frame-elements, toast-notification, editor-lang | Reads the document aloud (Web Speech API), block by block with highlight + scroll-along; sentence-chunked to dodge Chrome's long-utterance bug; voice matched to the writing language |
+| `reading-settings.js`     | `initReadingSettings`, `normalizeSettings` | i18n              | Dyslexia-friendly display panel: easy-read font, text size, line/letter spacing. Inline styles on the editor container only (saved HTML untouched); persisted in `skriv.readingSettings` |
 | `german-exam-svg/*.js`    | `default`               | (none)                         | 16 standalone SVG string modules used as optional visuals for German writing/exam tasks |
 
 ## editor-core/locales/ — Translation files

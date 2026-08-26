@@ -94,6 +94,14 @@ app/main.js
   │     ├── student/german-hint-drawer.js
   │     │     ├── shared/i18n.js
   │     │     └── shared/html-escape.js
+  │     ├── student/editor-lang.js
+  │     ├── student/read-aloud.js
+  │     │     ├── shared/i18n.js
+  │     │     ├── shared/frame-elements.js
+  │     │     ├── shared/toast-notification.js
+  │     │     └── student/editor-lang.js
+  │     ├── student/reading-settings.js
+  │     │     └── shared/i18n.js
   │     └── student/text-export.js
   │           ├── student/docx-export.js
   │           │     └── [vendored, lazy] /vendor/docx.iife.js
