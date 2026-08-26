@@ -39,7 +39,8 @@ public/
 │   ├── droefting.md        (legacy)
 │   ├── kronikk.md          (legacy)
 │   ├── nb/                 ← Bokmål (17 frames)
-│   └── nn/                 ← Nynorsk (17 frames)
+│   ├── nn/                 ← Nynorsk (17 frames)
+│   └── en/                 ← English (17 frames — the English subject)
 └── js/
     ├── app/                ← App-level orchestration
     │   ├── main.js         ← Router, init

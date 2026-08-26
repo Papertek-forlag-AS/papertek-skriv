@@ -63,16 +63,17 @@ export function partitionFramesByLevel(registry, band) {
 }
 
 /**
- * Resolve a frame file path for the current language.
+ * Resolve a frame file path for a content language.
  * Falls back to 'nb' if the language-specific file doesn't exist.
  * @param {string} pathTemplate - Path with {{lang}} placeholder
+ * @param {string} [contentLang] - 'nb' | 'nn' | 'en'; defaults to the UI language
  * @returns {string} Resolved path
  */
-function getFramePath(pathTemplate) {
-    const lang = getCurrentLanguage();
-    // Nynorsk (nn) and Bokmål (nb) have their own frame directories.
-    // Other languages fall back to nb for now.
-    const frameLang = ['nb', 'nn'].includes(lang) ? lang : 'nb';
+function getFramePath(pathTemplate, contentLang) {
+    const lang = contentLang || getCurrentLanguage();
+    // Bokmål (nb), Nynorsk (nn) and English (en) have their own frame
+    // directories. Other languages fall back to nb for now.
+    const frameLang = ['nb', 'nn', 'en'].includes(lang) ? lang : 'nb';
     return pathTemplate.replace('{{lang}}', frameLang);
 }
 
@@ -81,11 +82,11 @@ function getFramePath(pathTemplate) {
  * @param {HTMLElement} button - The Struktur button
  * @param {HTMLElement} editor - The contenteditable element
  * @param {object} frameGuide - The frame guide panel API (applyFrame, removeFrame, getActiveFrame, hasFrame, toggle, hide)
- * @param {{ onFrameApplied?: () => void, frames?: Array, getLevelBand?: () => string }} options
+ * @param {{ onFrameApplied?: () => void, frames?: Array, getLevelBand?: () => string, getContentLang?: () => string }} options
  * @returns {{ destroy: () => void, updateButtonState: () => void }}
  */
 export function initFrameSelector(button, editor, frameGuide, options = {}) {
-    const { onFrameApplied, getLevelBand } = options;
+    const { onFrameApplied, getLevelBand, getContentLang } = options;
     const frameRegistry = options.frames || DEFAULT_FRAME_REGISTRY;
 
     // --- Build dropdown panel (appended to body to avoid overflow clipping) ---
@@ -226,7 +227,7 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
 
     async function applyFrameFromRegistry(frame) {
         try {
-            const filePath = getFramePath(frame.file);
+            const filePath = getFramePath(frame.file, getContentLang?.());
             const res = await fetch(filePath);
             if (!res.ok) {
                 // Fallback to nb if language-specific frame not found

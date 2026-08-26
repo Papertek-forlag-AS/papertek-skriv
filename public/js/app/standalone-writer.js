@@ -276,9 +276,26 @@ export async function launchEditor(container, docId, onBack) {
     // const matteApi = initMatte(editor, toolbarApi.toolbarEl); // Deactivated
     const tocApi = initTOC(editor);
     const refsApi = initReferences(editor, { onSave: autoSave.schedule });
+    // --- Content language (which language the pupil is WRITING in) ---
+    // The Leksihjelp writing language is the strongest signal: it is what
+    // the pupil (or the per-document seeding below) explicitly picked.
+    // Read the raw localStorage entry rather than the bridge's getter —
+    // the bridge is initialised further down, and the raw value also
+    // distinguishes "never set" (fall back to UI language) from "set to nb".
+    // Frames and spinner data exist for nb/nn/en; other writing languages
+    // (de/es/fr) fall back to the UI language.
+    function getContentLang() {
+        let stored = null;
+        try { stored = localStorage.getItem('skriv.leksihjelp.writingLang'); } catch (_) { /* ignore */ }
+        if (stored && ['nb', 'nn', 'en'].includes(stored)) return stored;
+        const ui = getCurrentLanguage();
+        return ['nb', 'nn', 'en'].includes(ui) ? ui : 'nb';
+    }
+
     const frameApi = initFrameGuide(editor, writingEnv, {
         onSave: () => autoSave.schedule(),
         getLevel: () => getSchoolLevel(),
+        getContentLang,
     });
     const counterCleanup = attachWordCounter(editor, wordCountDisplay);
 
@@ -290,10 +307,10 @@ export async function launchEditor(container, docId, onBack) {
     // Rehydrate frame state from saved document
     if (doc.frameType) {
         frameApi.setActiveFrameType(doc.frameType);
-        // Re-load frame markdown for the guide panel
-        const lang = getCurrentLanguage() || 'nb';
-        fetch(`/frames/${lang === 'nn' ? 'nn' : 'nb'}/${doc.frameType}.md`)
-            .then(r => r.ok ? r.text() : null)
+        // Re-load frame markdown for the guide panel (nb fallback if the
+        // content-language file is missing, same as the frame selector).
+        fetch(`/frames/${getContentLang()}/${doc.frameType}.md`)
+            .then(r => r.ok ? r.text() : fetch(`/frames/nb/${doc.frameType}.md`).then(r2 => r2.ok ? r2.text() : null))
             .then(md => {
                 if (md) {
                     const parsed = parseFrameMarkdown(md);
@@ -308,6 +325,7 @@ export async function launchEditor(container, docId, onBack) {
     const structureBtn = topBar.querySelector('#btn-structure');
     const frameSelectorApi = initFrameSelector(structureBtn, editor, frameApi, {
         getLevelBand: () => getSchoolLevelBand(),
+        getContentLang,
     });
 
     // Update Struktur button state on load (in case frame was rehydrated)
@@ -326,10 +344,12 @@ export async function launchEditor(container, docId, onBack) {
     const spinnerApi = initWritingSpinner(editor, writingEnv, {
         getLevel: () => getSchoolLevel(),
         getActiveFrame: () => frameApi.getActiveFrame(),
+        getContentLang,
     });
 
     // --- Repetition Radar ---
     const radarApi = initWordFrequency(editor, writingEnv, {
+        getContentLang,
         onWordClick: (word, range) => {
             editor.focus();
             const sel = window.getSelection();
