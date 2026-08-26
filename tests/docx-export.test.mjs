@@ -135,6 +135,55 @@ test('buildDocxDocument packs to a valid OOXML zip with the content intact', asy
     assert.match(documentXml, /Calibri/);      // named font policy
 });
 
+
+test('body lists become real Word lists — bullets and restarting numbering, no text markers', async () => {
+    const body = el('div', {}, [
+        el('ul', {}, [
+            el('li', {}, [textNode('Kulepunkt en')]),
+            el('li', {}, [textNode('Kulepunkt to')]),
+        ]),
+        el('ol', {}, [
+            el('li', {}, [textNode('Steg en')]),
+            el('li', {}, [textNode('Steg to')]),
+        ]),
+        el('p', {}, [textNode('Mellomtekst.')]),
+        el('ol', {}, [
+            el('li', {}, [textNode('Ny liste starter her')]),
+        ]),
+    ]);
+    const doc = buildDocxDocument(docxLib, { title: 'Lister', body, labels: LABELS });
+    const buffer = await docxLib.Packer.toBuffer(doc);
+
+    const dir = mkdtempSync(join(tmpdir(), 'skriv-docx-lists-'));
+    const file = join(dir, 'lists.docx');
+    writeFileSync(file, buffer);
+
+    let documentXml, numberingXml;
+    try {
+        documentXml = execFileSync('unzip', ['-p', file, 'word/document.xml'], { encoding: 'utf8' });
+        numberingXml = execFileSync('unzip', ['-p', file, 'word/numbering.xml'], { encoding: 'utf8' });
+    } catch (err) {
+        return; // no unzip binary — covered on machines that have it
+    }
+
+    // Real list paragraphs: every item carries w:numPr, none carries a
+    // text marker prefix.
+    const numPrCount = (documentXml.match(/<w:numPr>/g) || []).length;
+    assert.equal(numPrCount, 5, 'all five list items must be real list paragraphs');
+    assert.ok(!documentXml.includes('\u2022'), 'no literal bullet characters');
+    assert.ok(!/>1\.\s\s/.test(documentXml), 'no text number prefixes');
+
+    // The two OLs use DIFFERENT concrete numbering ids so the second
+    // restarts at 1 instead of continuing 3, 4, ...
+    const numIds = [...documentXml.matchAll(/<w:numId w:val="(\d+)"\/>/g)].map(m => m[1]);
+    assert.equal(numIds.length, 5);
+    assert.ok(new Set(numIds).size >= 3, 'bullets + two separate OL instances need distinct numbering ids');
+
+    // The numbering part defines our decimal config.
+    assert.match(numberingXml, /w:numFmt w:val="decimal"/);
+    assert.match(numberingXml, /%1\./);
+});
+
 test('buildDocxDocument falls back to plain text when no body is given', async () => {
     const doc = buildDocxDocument(docxLib, { title: 'T', text: 'linje en\nlinje to', labels: LABELS });
     const buffer = await docxLib.Packer.toBuffer(doc);

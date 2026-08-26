@@ -2,10 +2,12 @@
  * Real .docx export — genuine OOXML via the vendored docx library.
  *
  * Ported from Papertek Lockdown's besvarelse-render.js (the docx half),
- * so Skriv and Skriveprøve produce the same Word output. Two Skriv
+ * so Skriv and Skriveprøve produce the same Word output. Skriv
  * adaptations: inline images (<figure><img></figure> with data: URIs)
- * become ImageRun paragraphs with captions, and header/footer labels are
- * injected by the caller so they can go through i18n.
+ * become ImageRun paragraphs with captions, header/footer labels are
+ * injected by the caller so they can go through i18n, and body lists are
+ * REAL Word lists (w:numPr — bullets + restarting numbered lists) rather
+ * than text-marker prefixes.
  *
  * The library (docx 9.5.0, MIT, ~800 kB) is not part of the ES-module
  * graph: loadDocxLibrary() injects /vendor/docx.iife.js the first time
@@ -80,7 +82,10 @@ export function loadDocxLibrary() {
     return docxLoadPromise;
 }
 
-// Bullet ("•") or number ("N.") prefix for a list item (single level).
+// Bullet ("•") or number ("N.") prefix for a list item. Only used inside
+// TABLE CELLS, where a plain text marker is simpler than per-cell
+// numbering plumbing; body lists use real Word numbering (see
+// flushParagraph / the skriv-ol numbering config in buildDocxDocument).
 function listMarker(li) {
     const parent = li.parentElement;
     const tag = parent && parent.tagName ? parent.tagName.toUpperCase() : '';
@@ -109,19 +114,42 @@ export function renderHtmlNodeToDocx(docxLib, rootNode) {
     let currentRuns = [];
     let currentTag = 'P';
 
+    // Real Word lists: track the enclosing UL/OL while walking. Each OL
+    // gets its own numbering INSTANCE so every list restarts at 1.
+    const listStack = [];         // { type: 'UL'|'OL', instance }
+    let olInstances = 0;
+    let currentListCtx = null;    // captured at LI entry, consumed by flushParagraph
+
     /** mm → OOXML twips (twentieths of a point; 1440 per inch). */
     const twips = (mmVal) => Math.round(mmVal / 25.4 * 1440);
 
     function flushParagraph() {
         if (currentRuns.length > 0) {
-            out.push(new Paragraph({
+            const props = {
                 children: currentRuns,
                 spacing: {
                     line: DOCX_LINE_TWIPS,
                     lineRule: 'auto',
                     after: twips(BLOCK_GAP_MM[currentTag] ?? BLOCK_GAP_MM.P),
                 },
-            }));
+            };
+            // List items become genuine Word list paragraphs: numbered
+            // lists reference the skriv-ol config (per-list instance →
+            // numbering restarts), bullets use the library's built-in
+            // bullet numbering. Word then handles continuation, renumbering
+            // and indentation natively when the pupil keeps editing.
+            if (currentTag === 'LI' && currentListCtx) {
+                if (currentListCtx.type === 'OL') {
+                    props.numbering = {
+                        reference: 'skriv-ol',
+                        level: currentListCtx.level,
+                        instance: currentListCtx.instance,
+                    };
+                } else {
+                    props.bullet = { level: currentListCtx.level };
+                }
+            }
+            out.push(new Paragraph(props));
             currentRuns = [];
         }
     }
@@ -301,14 +329,28 @@ export function renderHtmlNodeToDocx(docxLib, rootNode) {
                 // fall through to the recurse-and-flatten behavior
             }
         }
+        if (tag === 'UL' || tag === 'OL') {
+            flushParagraph();
+            listStack.push({ type: tag, instance: tag === 'OL' ? olInstances++ : 0 });
+            for (const child of node.childNodes) walkNode(child, fmt);
+            listStack.pop();
+            currentListCtx = null;
+            return;
+        }
         const newFmt = fmtOf(tag, fmt);
         const isBlock = ['P', 'DIV', 'LI', 'BLOCKQUOTE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(tag);
         // flushParagraph reads currentTag, so set it AFTER flushing what the
         // previous block accumulated and reset it once this block is closed.
         if (isBlock) { flushParagraph(); currentTag = tag; }
-        if (tag === 'LI') currentRuns.push(makeRun(listMarker(node), newFmt)); // bullet / number
+        if (tag === 'LI') {
+            const top = listStack[listStack.length - 1];
+            // Deeper nesting than Word's three common levels flattens to level 2.
+            currentListCtx = top
+                ? { type: top.type, level: Math.min(listStack.length - 1, 2), instance: top.instance }
+                : null;
+        }
         for (const child of node.childNodes) walkNode(child, newFmt);
-        if (isBlock) { flushParagraph(); currentTag = 'P'; }
+        if (isBlock) { flushParagraph(); currentTag = 'P'; if (tag === 'LI') currentListCtx = null; }
     }
 
     walkNode(rootNode, { bold: false, italic: false, underline: false });
@@ -334,7 +376,7 @@ export function renderHtmlNodeToDocx(docxLib, rootNode) {
  * @returns {Object} the docx Document
  */
 export function buildDocxDocument(docxLib, { title, body, text, labels }) {
-    const { Document, Paragraph, TextRun, Header, Footer, AlignmentType, PageNumber } = docxLib;
+    const { Document, Paragraph, TextRun, Header, Footer, AlignmentType, PageNumber, LevelFormat } = docxLib;
 
     let bodyParagraphs;
     if (body) {
@@ -371,7 +413,24 @@ export function buildDocxDocument(docxLib, { title, body, text, labels }) {
         ],
     });
 
+    // Numbered-list definition for body lists (see renderHtmlNodeToDocx).
+    // Levels: 1. / a. / i. — Word's conventional outline progression.
+    const olFormats = [LevelFormat.DECIMAL, LevelFormat.LOWER_LETTER, LevelFormat.LOWER_ROMAN];
+    const numberingConfig = {
+        config: [{
+            reference: 'skriv-ol',
+            levels: [0, 1, 2].map((level) => ({
+                level,
+                format: olFormats[level],
+                text: `%${level + 1}.`,
+                alignment: AlignmentType.START,
+                style: { paragraph: { indent: { left: 720 * (level + 1), hanging: 360 } } },
+            })),
+        }],
+    };
+
     return new Document({
+        numbering: numberingConfig,
         sections: [{
             properties: {
                 titlePage: true,
