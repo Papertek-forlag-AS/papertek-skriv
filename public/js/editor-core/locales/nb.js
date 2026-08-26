@@ -172,6 +172,7 @@ export default {
         desc: 'Få teksten lest høyt mens du følger med',
         unsupported: 'Opplesing støttes ikke i denne nettleseren.',
         empty: 'Det er ingen tekst å lese opp ennå.',
+        noVoice: 'Fant ingen stemme for skrivespråket på denne enheten — uttalen kan bli feil.',
     },
 
     readingView: {

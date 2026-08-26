@@ -246,6 +246,30 @@ export function initReadAloud(editor, container, options = {}) {
 
     // --- Speech ---
 
+    // Chrome populates getVoices() asynchronously: the first call after page
+    // load returns []. Speaking then means "no voice object", and Chrome
+    // falls back to its DEFAULT voice — often English — even when
+    // utterance.lang says nb-NO. So the voice list must be awaited before
+    // the first utterance, and the voice is picked ONCE per play() so every
+    // chunk uses the same one.
+    let voicesPromise = null;
+    function ensureVoices() {
+        const current = window.speechSynthesis.getVoices();
+        if (current.length) return Promise.resolve(current);
+        if (!voicesPromise) {
+            voicesPromise = new Promise((resolve) => {
+                const done = () => resolve(window.speechSynthesis.getVoices());
+                window.speechSynthesis.addEventListener('voiceschanged', done, { once: true });
+                // Some engines never fire voiceschanged (empty list stays empty).
+                setTimeout(done, 1500);
+            });
+        }
+        return voicesPromise;
+    }
+
+    let runVoice = null;   // voice for the current play() run
+    let runLang = 'nb';
+
     function speakNext() {
         if (cancelled || !queue.length) {
             stop(false);
@@ -261,17 +285,15 @@ export function initReadAloud(editor, container, options = {}) {
 
         const chunk = item.chunks.shift();
         const utterance = new SpeechSynthesisUtterance(chunk);
-        const lang = options.getLang ? options.getLang() : 'nb';
-        utterance.lang = langToTag(lang);
-        const voice = pickVoice(window.speechSynthesis.getVoices(), lang);
-        if (voice) utterance.voice = voice;
+        utterance.lang = langToTag(runLang);
+        if (runVoice) utterance.voice = runVoice;
         utterance.rate = RATES[rateIndex];
         utterance.onend = () => { if (!cancelled) speakNext(); };
         utterance.onerror = () => { if (!cancelled) speakNext(); };
         window.speechSynthesis.speak(utterance);
     }
 
-    function play() {
+    async function play() {
         if (!supported) {
             showToast(t('readAloud.unsupported'));
             return;
@@ -290,6 +312,15 @@ export function initReadAloud(editor, container, options = {}) {
         speaking = true;
         paused = false;
         updateButtons();
+
+        runLang = options.getLang ? options.getLang() : 'nb';
+        runVoice = pickVoice(await ensureVoices(), runLang);
+        if (cancelled) return; // stopped while waiting for voices
+        if (!runVoice) {
+            // The default voice may have the wrong language entirely —
+            // reading Norwegian with an English voice is worse than saying so.
+            showToast(t('readAloud.noVoice'));
+        }
         speakNext();
     }
 
@@ -351,12 +382,6 @@ export function initReadAloud(editor, container, options = {}) {
         else if (action === 'close') hide();
     }
     panel.addEventListener('click', onPanelClick);
-
-    // Chrome loads voices asynchronously; poke the list so the first
-    // play() call finds them.
-    if (supported && window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.addEventListener?.('voiceschanged', () => {}, { once: true });
-    }
 
     function destroy() {
         stop(false);
