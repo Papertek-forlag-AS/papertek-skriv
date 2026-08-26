@@ -17,7 +17,7 @@ Hash-based SPA routing in `main.js`. No history API.
 
 | Path               | Module            | Description |
 |------------------- |------------------ |------------ |
-| `/school.html?skole=<id>` | `school-page.js` | Per-school one-pager: hosts two exercises behind a tab row (paragraph trainer + sentence-starter drill) without the Skriv shell (no router, sidebar, onboarding, or service worker). Slim header with school badge and its own theme-cycle button. School identity (name, fixed level, accent palette remapping the emerald scale, theme-color) comes from the `SKRIV_SCHOOLS` config map in `school.html` — adding a school is one config entry; the trainer module is shared with `#/avsnitt` unchanged. Same origin, so trainer draft/deck in localStorage is shared with `#/avsnitt`. Stabekk's palette is anchored in Pantone 640 C `#0082ba` (Akershus fylkeskommune) |
+| `/school.html?skole=<id>` | `school-page.js` | Per-school one-pager: hosts the paragraph trainer without the Skriv shell (no router, sidebar, onboarding, or service worker). Slim header with school badge and its own theme-cycle button. School identity (name, fixed level, accent palette remapping the emerald scale, theme-color) comes from the `SKRIV_SCHOOLS` config map in `school.html` — adding a school is one config entry; the trainer module is shared with `#/avsnitt` unchanged. Same origin, so trainer draft/deck in localStorage is shared with `#/avsnitt`. Stabekk's palette is anchored in Pantone 640 C `#0082ba` (Akershus fylkeskommune) |
 | `/stabekk.html`    | (static redirect) | Redirects to `/school.html?skole=stabekk` — kept for links/QR codes already in the wild |
 | `/whitepaper.html` | (static HTML)     | Legal/transparency page |
 
