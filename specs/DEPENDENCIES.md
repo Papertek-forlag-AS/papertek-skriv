@@ -81,7 +81,6 @@ app/main.js
   │     ├── student/matte.js
   │     ├── student/toc-manager.js
   │     ├── student/reference-manager.js
-  │     ├── student/frame-manager.js
   │     ├── student/frame-selector.js
   │     ├── student/writing-spinner.js
   │     │     └── (lazy) student/spinner-data-nb.js / spinner-data-nn.js / spinner-data-en.js

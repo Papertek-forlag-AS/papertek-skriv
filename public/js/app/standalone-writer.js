@@ -384,22 +384,22 @@ export async function launchEditor(container, docId, onBack) {
     const slashMenuApi = initSlashMenu(editor, {
         actions: [
             {
-                label: 'Overskrift 1',
+                label: t('slashMenu.h1'),
                 icon: '<b class="font-serif">H1</b>',
                 execute: () => { document.execCommand('formatBlock', false, 'H1'); }
             },
             {
-                label: 'Overskrift 2',
+                label: t('slashMenu.h2'),
                 icon: '<b class="font-serif text-sm">H2</b>',
                 execute: () => { document.execCommand('formatBlock', false, 'H2'); }
             },
             {
-                label: 'Punktliste',
+                label: t('slashMenu.bulletList'),
                 icon: '•',
                 execute: () => { document.execCommand('insertUnorderedList', false, null); }
             },
             {
-                label: 'Nummerert liste',
+                label: t('slashMenu.numberedList'),
                 icon: '1.',
                 execute: () => { document.execCommand('insertOrderedList', false, null); }
             },
@@ -414,12 +414,12 @@ export async function launchEditor(container, docId, onBack) {
                 execute: () => imageApi.openFilePicker()
             },
             {
-                label: 'Tabell',
+                label: t('slashMenu.table'),
                 icon: '📊',
                 execute: () => tableApi.showInsertDialog()
             },
             {
-                label: 'Skriv "/"',
+                label: t('slashMenu.keepSlash'),
                 icon: '/',
                 keepSlash: true
             }
@@ -459,16 +459,16 @@ export async function launchEditor(container, docId, onBack) {
     const insightsDrawerApi = initInsightsDrawer(writingEnv, [
         { label: t('readAloud.title'), description: t('readAloud.desc'), icon: 'M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z', isTool: true, action: () => readAloudApi.toggle() },
         { label: t('readingView.title'), description: t('readingView.desc'), icon: 'M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75', isTool: true, action: () => readingSettingsApi.toggle() },
-        { label: 'Søk', description: 'Søk etter ord og uttrykk i teksten', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', isTool: true, action: () => openSearch() },
-        { label: 'Fokusmodus', description: 'Skjul alt annet og fokuser kun på teksten din', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', isTool: true, action: () => focusApi.toggle() },
-        { label: 'Spinn', description: 'Få hjelp til å variere språket og ordvalget ditt', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', isTool: true, action: () => spinnerApi.show() },
-        { label: 'Tilbakemelding', description: 'Få umiddelbar formativ vurdering av teksten', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', isTool: true, action: () => feedbackApi.toggle() },
-        { label: 'Versjoner', description: 'Se og gjenopprett tidligere versjoner av teksten', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', isTool: true, action: () => versionApi.toggle() },
-        { label: 'Ord-radar', description: 'Finn ord som brukes ofte for å skape mer variasjon', icon: 'M13 10V3L4 14h7v7l9-11h-7z', isAnalysis: true, action: () => radarApi.toggle() },
-        { label: 'Setningslengde', description: 'Visuell sjekk for å sikre god flyt og variasjon i lengde', icon: 'M4 6h16M4 12h16m-7 6h7', isAnalysis: true, action: () => sentenceApi.toggle() },
-        { label: 'Avsnittskart', description: 'Se tekstens visuelle oppbygning og balanse', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', isAnalysis: true, action: () => paragraphMapApi.toggle() },
-        { label: 'LIX', description: 'Mål tekstens lesbarhet og kompleksitet', icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z', isAnalysis: true, action: () => lixApi.toggle() },
-        { label: 'Argument-flyt', description: 'Analyser hvordan argumentene dine henger sammen', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', isAnalysis: true, action: () => argumentApi.toggle() },
+        { label: t('insights.search'), description: t('insights.searchDesc'), icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', isTool: true, action: () => openSearch() },
+        { label: t('insights.focus'), description: t('insights.focusDesc'), icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', isTool: true, action: () => focusApi.toggle() },
+        { label: t('insights.spin'), description: t('insights.spinDesc'), icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', isTool: true, action: () => spinnerApi.show() },
+        { label: t('insights.feedback'), description: t('insights.feedbackDesc'), icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', isTool: true, action: () => feedbackApi.toggle() },
+        { label: t('insights.versions'), description: t('insights.versionsDesc'), icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', isTool: true, action: () => versionApi.toggle() },
+        { label: t('insights.radar'), description: t('insights.radarDesc'), icon: 'M13 10V3L4 14h7v7l9-11h-7z', isAnalysis: true, action: () => radarApi.toggle() },
+        { label: t('insights.sentence'), description: t('insights.sentenceDesc'), icon: 'M4 6h16M4 12h16m-7 6h7', isAnalysis: true, action: () => sentenceApi.toggle() },
+        { label: t('insights.paragraphMap'), description: t('insights.paragraphMapDesc'), icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', isAnalysis: true, action: () => paragraphMapApi.toggle() },
+        { label: t('insights.lix'), description: t('insights.lixDesc'), icon: 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z', isAnalysis: true, action: () => lixApi.toggle() },
+        { label: t('insights.argument'), description: t('insights.argumentDesc'), icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', isAnalysis: true, action: () => argumentApi.toggle() },
     ]);
     const insightsBtn = topBar.querySelector('#btn-insights');
     if (insightsBtn) {

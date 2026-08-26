@@ -56,7 +56,6 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 | `matte.js`                | `initMatte`             | i18n                           | Superscript/subscript math formatting |
 | `frame-parser.js`         | `parseFrameMarkdown`    | (none)                         | Markdown → structured frame object (incl. spinner-bucket per section/subsection) |
 | `frame-guide.js`          | `initFrameGuide`        | i18n, toast-notification, spinner-data-nb/nn/en (dynamic) | Eager-scaffolding sidebar guide: section/paragraph markers in editor, "Mark as done" toggle, "+ New paragraph", "🎲 More suggestions" spinner integration |
-| `frame-manager.js`        | `initFrameManager`      | frame-parser, frame-elements, i18n | Frame insertion & rendering      |
 | `frame-selector.js`       | `initFrameSelector`, `partitionFramesByLevel` | frame-parser, i18n, in-page-modal | Frame picker dialog; registry carries recommended `levels` bands and the picker groups frames as recommended-for-level / "Flere skriverammer" via the `getLevelBand` option. Frame files resolve per content language (nb/nn/en) via the `getContentLang` option (app layer feeds it the Leksihjelp writing language), falling back to nb |
 | `toc-manager.js`          | `initTOC`               | frame-elements, i18n           | Auto-generated Table of Contents     |
 | `reference-manager.js`    | `initReferences`        | html-escape, dom-helpers, frame-elements, i18n | Inline citations + bibliography |
@@ -96,9 +95,6 @@ Each exports an `init*()` function that returns `{ destroy(), ...api }`.
 
 | File              | Genre         | Language |
 |------------------ |-------------- |--------- |
-| `analyse.md`      | Analyse       | nb (legacy path) |
-| `droefting.md`    | Drøfting      | nb (legacy path) |
-| `kronikk.md`      | Kronikk       | nb (legacy path) |
 | `nb/analyse.md`   | Analyse       | Bokmål   |
 | `nb/droefting.md` | Drøfting      | Bokmål   |
 | `nb/kronikk.md`   | Kronikk       | Bokmål   |
