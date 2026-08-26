@@ -221,14 +221,17 @@ export async function downloadDocx(editor, options = {}) {
 
 /**
  * Extract clean HTML from the editor, stripping frame scaffolding and editor artifacts.
+ * Exported for tests — this is the gate that keeps scaffold out of deliverables.
  * @param {HTMLElement} editor - The editor element
  * @returns {string} Clean HTML string
  */
-function getCleanHTML(editor) {
+export function getCleanHTML(editor) {
     const clone = editor.cloneNode(true);
 
-    // Remove frame scaffolding elements
-    clone.querySelectorAll('[data-frame-section], [data-frame-header], [data-frame-prompt]').forEach(el => el.remove());
+    // Remove frame scaffolding elements. The dividers are also caught by the
+    // contenteditable="false" rule below, but scaffold in a deliverable is
+    // embarrassing enough to warrant belt and braces.
+    clone.querySelectorAll('[data-frame-section], [data-frame-header], [data-frame-prompt], .skriv-frame-divider').forEach(el => el.remove());
     clone.querySelectorAll('[contenteditable="false"]').forEach(el => {
         // Keep images and figures, remove other non-editable elements (toolbars, controls)
         if (!el.closest('figure') && el.tagName !== 'FIGURE' && el.tagName !== 'IMG') {
