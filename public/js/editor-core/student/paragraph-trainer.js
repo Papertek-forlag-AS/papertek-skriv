@@ -26,7 +26,7 @@
  *   trainer.destroy();
  */
 
-import { t, getCurrentLanguage } from '../shared/i18n.js';
+import { t, getCurrentLanguage, getDateLocale } from '../shared/i18n.js';
 import { escapeHtml } from '../shared/html-escape.js';
 import { countWords } from '../shared/word-counter.js';
 import { showToast } from '../shared/toast-notification.js';
@@ -35,6 +35,8 @@ import { TRAINER_TOPICS, STEP_STARTERS } from './paragraph-trainer-data.js';
 
 const DECK_KEY = 'papertek.skriv.paragraphTrainer.deck';
 const DRAFT_KEY = 'papertek.skriv.paragraphTrainer.draft';
+const HISTORY_KEY = 'papertek.skriv.paragraphTrainer.history';
+const HISTORY_MAX = 20;
 
 // Max starter chips visible per step (sliding window, same idea as the
 // frame guide): a 🎲 draw appends a new pick and pushes the oldest out.
@@ -112,6 +114,39 @@ export function evaluateChecks(steps) {
         { pass: EXAMPLE_MARKERS.some(m => supportLower.includes(m)), written: !!support },
         { pass: !!closing && echoed, written: !!closing },
     ];
+}
+
+// ─── Attempt history ─────────────────────────────────────────────────────
+// Logged only when the pupil actively finishes (copies or saves the
+// paragraph) — never on every keystroke. Kept deliberately small: a flat
+// list the pupil can look back at for mastery, not an analytics surface.
+
+/**
+ * Prepend an entry to a history list, dropping consecutive duplicates
+ * (copy + save of the same paragraph is one attempt) and capping length.
+ * Pure — exported for tests.
+ * @param {Array} list - existing history, newest first
+ * @param {{ts, topic, text, checksPassed, checksTotal, words}} entry
+ * @param {number} [max]
+ * @returns {Array} new list
+ */
+export function appendHistoryEntry(list, entry, max = HISTORY_MAX) {
+    const existing = Array.isArray(list) ? list : [];
+    if (existing.length && existing[0].text === entry.text) return existing;
+    return [entry, ...existing].slice(0, max);
+}
+
+function loadHistory() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY));
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveHistory(list) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); } catch {}
 }
 
 // ─── Deck persistence (same scheme as german-exam-spinner) ───────────────
@@ -234,6 +269,8 @@ export function initParagraphTrainer(container, options = {}) {
     const authored = STEP_STARTERS[contentLang];
 
     let currentTopic = null;
+    let historyOpen = false;
+    let expandedHistory = -1;   // index of the expanded history entry, -1 = none
     let stepTexts = ['', '', ''];
     let previewOpen = false;
 
@@ -341,6 +378,35 @@ export function initParagraphTrainer(container, options = {}) {
         `;
     }
 
+    // --- Attempt history (small, collapsed by default; hidden when empty) ---
+    function historyHtml() {
+        const history = loadHistory();
+        if (!history.length) return '';
+        const rows = history.map((h, i) => {
+            const date = new Date(h.ts).toLocaleDateString(getDateLocale(), { day: 'numeric', month: 'short' });
+            const expanded = expandedHistory === i;
+            return `
+                <li>
+                    <button type="button" data-history-item="${i}"
+                        class="w-full flex items-center gap-3 py-1.5 text-left text-sm hover:bg-stone-50 dark:hover:bg-stone-700/50 rounded px-1">
+                        <span class="text-xs text-stone-400 w-14 flex-shrink-0">${escapeHtml(date)}</span>
+                        <span class="flex-1 truncate text-stone-700 dark:text-stone-200">${escapeHtml(h.topic)}</span>
+                        <span class="text-xs ${h.checksPassed === h.checksTotal ? 'text-emerald-600' : 'text-stone-400'} flex-shrink-0">${h.checksPassed}/${h.checksTotal} ✓</span>
+                        <span class="text-xs text-stone-400 flex-shrink-0">${escapeHtml(t('wordCounter.count', { count: h.words }))}</span>
+                    </button>
+                    ${expanded ? `<p class="text-sm text-stone-600 dark:text-stone-300 border-l-4 border-stone-200 dark:border-stone-600 pl-3 ml-1 my-1 leading-relaxed">${escapeHtml(h.text)}</p>` : ''}
+                </li>`;
+        }).join('');
+        return `
+            <div class="rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 p-4 shadow-sm mt-5">
+                <button type="button" data-history-toggle class="w-full flex items-center justify-between text-base font-semibold">
+                    <span>${escapeHtml(t('paragraphTrainer.historyTitle'))} (${history.length})</span>
+                    <span class="text-stone-400 text-sm">${historyOpen ? '▲' : '▼'}</span>
+                </button>
+                <ul class="${historyOpen ? 'mt-2' : 'hidden'}">${rows}</ul>
+            </div>`;
+    }
+
     function render() {
         const total = TRAINER_TOPICS.length;
         const remaining = (loadDeck() || []).length;
@@ -410,6 +476,8 @@ export function initParagraphTrainer(container, options = {}) {
                     <p class="text-sm leading-relaxed text-stone-700 dark:text-stone-200" data-preview-text></p>
                 </div>
             </div>
+
+            ${historyHtml()}
         `;
 
         // Restore field texts (textarea content can't be set via innerHTML safely)
@@ -577,6 +645,19 @@ export function initParagraphTrainer(container, options = {}) {
                 previewOpen ? t('paragraphTrainer.previewHide') : t('paragraphTrainer.previewShow');
             return;
         }
+        if (e.target.closest('[data-history-toggle]')) {
+            historyOpen = !historyOpen;
+            expandedHistory = -1;
+            render();
+            return;
+        }
+        const historyItem = e.target.closest('[data-history-item]');
+        if (historyItem) {
+            const idx = Number(historyItem.dataset.historyItem);
+            expandedHistory = expandedHistory === idx ? -1 : idx;
+            render();
+            return;
+        }
         if (e.target.closest('[data-copy]')) {
             const text = assembledText();
             if (!text) {
@@ -584,6 +665,8 @@ export function initParagraphTrainer(container, options = {}) {
                 return;
             }
             navigator.clipboard.writeText(text).then(() => {
+                recordAttempt(text);
+                render();
                 showToast(t('paragraphTrainer.copied'), { duration: 2000 });
             }).catch(() => {
                 showToast(t('paragraphTrainer.copyFailed'), { duration: 3000 });
@@ -596,6 +679,8 @@ export function initParagraphTrainer(container, options = {}) {
                 showToast(t('paragraphTrainer.previewEmpty'), { duration: 2000 });
                 return;
             }
+            recordAttempt(text);
+            render();
             Promise.resolve(options.onSaveDocument({
                 title: currentTopic[contentLang],
                 text,
@@ -605,6 +690,20 @@ export function initParagraphTrainer(container, options = {}) {
             });
         }
     });
+
+    /** Log a finished attempt (called from copy/save — the two finish actions). */
+    function recordAttempt(text) {
+        const checks = evaluateChecks(stepTexts);
+        const entry = {
+            ts: new Date().toISOString(),
+            topic: currentTopic ? currentTopic[contentLang] : '',
+            text,
+            checksPassed: checks.filter(c => c.pass).length,
+            checksTotal: checks.length,
+            words: countWords(text),
+        };
+        saveHistory(appendHistoryEntry(loadHistory(), entry));
+    }
 
     render();
     updateDeckStatus();

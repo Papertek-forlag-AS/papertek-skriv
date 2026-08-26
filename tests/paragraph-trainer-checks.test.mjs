@@ -44,3 +44,24 @@ test('check 4: closing must echo a keyword from the topic sentence', () => {
     ]);
     assert.equal(bad[3].pass, false);
 });
+
+test('appendHistoryEntry prepends, dedupes consecutive identical texts, and caps', async () => {
+    const { appendHistoryEntry } = await import('../public/js/editor-core/student/paragraph-trainer.js');
+    const e = (text, ts) => ({ ts, topic: 'T', text, checksPassed: 4, checksTotal: 4, words: 10 });
+
+    let list = appendHistoryEntry([], e('a', '1'));
+    assert.equal(list.length, 1);
+    list = appendHistoryEntry(list, e('b', '2'));
+    assert.deepEqual(list.map(x => x.text), ['b', 'a'], 'newest first');
+    // Copy then save of the same paragraph is ONE attempt
+    list = appendHistoryEntry(list, e('b', '3'));
+    assert.equal(list.length, 2, 'consecutive duplicate text must not double-log');
+    // But re-finishing an older text is a new attempt
+    list = appendHistoryEntry(list, e('a', '4'));
+    assert.equal(list.length, 3);
+    // Cap
+    for (let i = 0; i < 30; i++) list = appendHistoryEntry(list, e('t' + i, String(i)));
+    assert.equal(list.length, 20, 'history is capped at 20 entries');
+    // Garbage input tolerated
+    assert.equal(appendHistoryEntry('garbage', e('x', '9')).length, 1);
+});
