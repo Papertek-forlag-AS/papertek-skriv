@@ -196,15 +196,6 @@ export default {
         keepSlash: 'Skriv "/"',
     },
 
-    starterDrill: {
-        title: 'Setningsstart',
-        intro: 'Skriv én setning som gjør denne jobben. Bruk gjerne en av startene.',
-        placeholder: 'Skriv setningen din her...',
-        newTask: 'Ny funksjon',
-        checkOneSentence: 'Én fullført setning (med punktum)',
-        checkMinWords: 'Minst tre ord',
-    },
-
     readAloud: {
         title: 'Opplesing',
         play: 'Les opp',
