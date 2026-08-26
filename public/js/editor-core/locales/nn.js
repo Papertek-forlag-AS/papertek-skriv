@@ -154,6 +154,7 @@ export default {
         vg3: 'VG3 Studiespesialisering',
         vg3Sub: 'Tredje år på vidaregåande',
         changeLevel: 'Byt trinn',
+        chooseLater: 'Vel seinare',
     },
 
     language: {
@@ -161,6 +162,39 @@ export default {
     },
 
 
+
+    insights: {
+        close: 'Lukk',
+        search: 'Søk',
+        searchDesc: 'Søk etter ord og uttrykk i teksten',
+        focus: 'Fokusmodus',
+        focusDesc: 'Skjul alt anna og fokuser berre på teksten din',
+        spin: 'Spinn',
+        spinDesc: 'Få hjelp til å variere språket og ordvalet ditt',
+        feedback: 'Tilbakemelding',
+        feedbackDesc: 'Få umiddelbar formativ vurdering av teksten',
+        versions: 'Versjonar',
+        versionsDesc: 'Sjå og gjenopprett tidlegare versjonar av teksten',
+        radar: 'Ord-radar',
+        radarDesc: 'Finn ord som blir brukte ofte, for å skape meir variasjon',
+        sentence: 'Setningslengd',
+        sentenceDesc: 'Visuell sjekk for å sikre god flyt og variasjon i lengd',
+        paragraphMap: 'Avsnittskart',
+        paragraphMapDesc: 'Sjå den visuelle oppbygginga og balansen i teksten',
+        lix: 'LIX',
+        lixDesc: 'Mål kor lesbar og kompleks teksten er',
+        argument: 'Argument-flyt',
+        argumentDesc: 'Analyser korleis argumenta dine heng saman',
+    },
+
+    slashMenu: {
+        h1: 'Overskrift 1',
+        h2: 'Overskrift 2',
+        bulletList: 'Punktliste',
+        numberedList: 'Nummerert liste',
+        table: 'Tabell',
+        keepSlash: 'Skriv "/"',
+    },
 
     readAloud: {
         title: 'Opplesing',

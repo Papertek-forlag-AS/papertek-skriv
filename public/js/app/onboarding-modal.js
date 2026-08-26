@@ -1,7 +1,7 @@
 /**
  * Onboarding modal — first-time school level selection.
  * Shows a centered modal with 5 clickable cards (one per school level).
- * No cancel button on first use (student must pick a level).
+ * "Velg senere" dismisses without picking (caller defers the question).
  * When called with allowCancel=true (e.g. from sidebar), Escape closes it.
  *
  * Depends on: school-level.js, i18n.js, html-escape.js, dom-helpers.js
@@ -104,6 +104,10 @@ export function showOnboardingModal({ allowCancel = false } = {}) {
                 <div class="flex flex-col gap-2">
                     ${cardsHtml}
                 </div>
+                <button data-onboarding-later
+                    class="block w-full mt-4 text-center text-sm text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 underline underline-offset-2 transition-colors">
+                    ${escapeHtml(t('level.chooseLater'))}
+                </button>
             </div>
         `;
 
@@ -123,6 +127,11 @@ export function showOnboardingModal({ allowCancel = false } = {}) {
             btn.addEventListener('click', () => {
                 close(btn.dataset.levelId);
             });
+        });
+
+        // "Choose later" — dismiss without picking; caller decides how to defer
+        overlay.querySelector('[data-onboarding-later]').addEventListener('click', () => {
+            close(null);
         });
 
         // Escape key — only if cancellable (e.g. changing level from sidebar)

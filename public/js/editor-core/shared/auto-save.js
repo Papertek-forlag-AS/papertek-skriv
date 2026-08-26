@@ -108,6 +108,9 @@ export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, 
         if (document.visibilityState === 'hidden') saveNow();
     }
     window.addEventListener('beforeunload', onBeforeUnload);
+    // pagehide fires where beforeunload doesn't (mobile Safari, bfcache
+    // navigations) — same best-effort flush.
+    window.addEventListener('pagehide', onBeforeUnload);
     if (typeof document !== 'undefined') {
         document.addEventListener('visibilitychange', onVisibilityChange);
     }
@@ -115,6 +118,7 @@ export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, 
     function destroy() {
         if (timer) clearTimeout(timer);
         window.removeEventListener('beforeunload', onBeforeUnload);
+        window.removeEventListener('pagehide', onBeforeUnload);
         if (typeof document !== 'undefined') {
             document.removeEventListener('visibilitychange', onVisibilityChange);
         }

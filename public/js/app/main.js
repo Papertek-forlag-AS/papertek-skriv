@@ -44,10 +44,18 @@ async function init() {
     // instead of at init so pure practice surfaces reached by deep link
     // (#/avsnitt) skip the question — the level has no function there.
     // The modal appears on first navigation into the app proper instead.
+    // "Velg senere" defers the question for the rest of the session —
+    // level-aware features fall back to showing everything, and the level
+    // can always be set from the sidebar ("Bytt trinn").
+    let levelPromptDeferred = false;
     async function ensureSchoolLevel() {
-        if (hasSchoolLevel()) return;
+        if (hasSchoolLevel() || levelPromptDeferred) return;
         const levelId = await showOnboardingModal();
-        setSchoolLevel(levelId);
+        if (levelId) {
+            setSchoolLevel(levelId);
+        } else {
+            levelPromptDeferred = true;
+        }
     }
 
     async function route() {

@@ -9,9 +9,9 @@ export function initInsightsDrawer(container, actions) {
     header.className = 'flex items-center justify-between p-4 border-b border-stone-200 dark:border-stone-700';
     header.innerHTML = `
         <h2 class="text-base font-semibold text-stone-800 dark:text-stone-100">${t('skriv.insightsTitle') || 'Gjennomgang'}</h2>
-        <button id="close-insights" type="button" class="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 active:bg-stone-300 transition-colors flex-shrink-0" title="Lukk (Esc)">
+        <button id="close-insights" type="button" class="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 active:bg-stone-300 transition-colors flex-shrink-0" title="${t('insights.close')} (Esc)">
             <svg class="w-3.5 h-3.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-            <span>Lukk</span>
+            <span>${t('insights.close')}</span>
         </button>
     `;
     
@@ -49,8 +49,8 @@ export function initInsightsDrawer(container, actions) {
         return section;
     }
 
-    const toolsSection = createSection(t('skriv.insightsTools') || 'Verktøy', actions.filter(a => ['Fokusmodus', 'Spinn', 'Tilbakemelding', 'Versjoner'].includes(a.label) || a.isTool));
-    const analysisSection = createSection(t('skriv.insightsAnalysis') || 'Analyse', actions.filter(a => ['Ord-radar', 'Setningslengde', 'Avsnittskart', 'LIX', 'Argument-flyt'].includes(a.label) || a.isAnalysis));
+    const toolsSection = createSection(t('skriv.insightsTools') || 'Verktøy', actions.filter(a => a.isTool));
+    const analysisSection = createSection(t('skriv.insightsAnalysis') || 'Analyse', actions.filter(a => a.isAnalysis));
 
     body.appendChild(toolsSection);
     body.appendChild(analysisSection);

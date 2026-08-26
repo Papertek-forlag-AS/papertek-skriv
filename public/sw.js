@@ -3,7 +3,7 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v88';
+const CACHE_NAME = 'skriv-v89';
 const ASSETS = [
     '/',
     '/index.html',
@@ -54,7 +54,6 @@ const ASSETS = [
     '/js/editor-core/student/focus-mode.js',
     '/js/editor-core/student/frame-parser.js',
     '/js/editor-core/student/frame-guide.js',
-    '/js/editor-core/student/frame-manager.js',
     '/js/editor-core/student/frame-selector.js',
     '/js/editor-core/student/keyboard-shortcuts.js',
     '/js/editor-core/student/lix-score.js',
@@ -155,10 +154,6 @@ const ASSETS = [
     '/frames/en/bokmelding.md',
     '/frames/en/soeknad.md',
     '/frames/en/formelt-brev.md',
-    // Legacy paths (backward compatibility)
-    '/frames/droefting.md',
-    '/frames/analyse.md',
-    '/frames/kronikk.md',
     // Leksihjelp loader (chrome.* shim — must precache so it survives offline)
     '/js/leksihjelp-loader.js',
 ];

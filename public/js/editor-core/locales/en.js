@@ -163,6 +163,7 @@ export default {
         vg3: 'Upper secondary year 3',
         vg3Sub: 'Third year of upper secondary',
         changeLevel: 'Change level',
+        chooseLater: 'Choose later',
     },
 
     language: {
@@ -170,6 +171,39 @@ export default {
     },
 
 
+
+    insights: {
+        close: 'Close',
+        search: 'Search',
+        searchDesc: 'Search for words and phrases in the text',
+        focus: 'Focus mode',
+        focusDesc: 'Hide everything else and focus only on your text',
+        spin: 'Spin',
+        spinDesc: 'Get help varying your language and word choice',
+        feedback: 'Feedback',
+        feedbackDesc: 'Get instant formative feedback on the text',
+        versions: 'Versions',
+        versionsDesc: 'View and restore earlier versions of the text',
+        radar: 'Word radar',
+        radarDesc: 'Find frequently used words to create more variation',
+        sentence: 'Sentence length',
+        sentenceDesc: 'Visual check for good flow and varied length',
+        paragraphMap: 'Paragraph map',
+        paragraphMapDesc: 'See the visual structure and balance of the text',
+        lix: 'LIX',
+        lixDesc: 'Measure the readability and complexity of the text',
+        argument: 'Argument flow',
+        argumentDesc: 'Analyse how your arguments connect',
+    },
+
+    slashMenu: {
+        h1: 'Heading 1',
+        h2: 'Heading 2',
+        bulletList: 'Bullet list',
+        numberedList: 'Numbered list',
+        table: 'Table',
+        keepSlash: 'Type "/"',
+    },
 
     readAloud: {
         title: 'Read aloud',
