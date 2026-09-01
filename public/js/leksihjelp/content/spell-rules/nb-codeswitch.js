@@ -87,6 +87,53 @@
     ['alma', 'mater'], ['a', 'cappella'],
   ];
 
+  // 2026-08-28 (UAT-funn lockdown): TYPO-TETTE NORSKE VINDAUGE ER IKKJE
+  // FRAMANDSPRÅK. Tre ekte norske skrivefeil på fem ord («Hva sierr du?
+  // Fungerrer stavekontrolllen?») nådde 3-av-5-terskelen og HEILE vindauget
+  // vart dempa for ALLE reglar — nett dei svakaste stavarane (3 feil på 5
+  // ord) mista all hjelp, stilt og utan spor.
+  //
+  // Motgrepet: eit ukjent ord som ligg éin redigering (sletting, utbyting,
+  // innskot) frå eit FREKVENT ord i gjeldande register er langt oftare ein
+  // norsk skrivefeil enn framandspråk, og tel difor ikkje mot
+  // framand-tettleiken. Speglar slip-nabo-skanninga i nb-typo-fuzzy.js
+  // (goal-loop 2, 2026-06-12): same frekvensgolv (zipf >= 4.5), same
+  // nabogenerering. Lengdvindauget er 5–12, IKKJE malens 4–12: framande
+  // funksjonsord er korte (das, und, give, talk, more) og har tette
+  // d1-nabolag i norsk (das→dag, give→gave, talk→tak, more→mor) — golvet
+  // på 5 teikn er det som held dei tyske/engelske sitatvindauga dempa.
+  //
+  // Ytelse: nabogenereringa køyrer BERRE for token som alt har feila
+  // ordboksprøvene (siste steg i isUnknown) — same arbeidsklasse som
+  // typo-fuzzy sjølv legg på kvart ukjent ord.
+  const D1_ALPHA = 'abcdefghijklmnopqrstuvwxyzæøå';
+  function hasFrequentD1Neighbor(word, vocab) {
+    if (word.length < 5 || word.length > 12) return false;
+    const freq = vocab.freq;
+    if (!(freq instanceof Map) || freq.size === 0) return false;
+    const validWords = vocab.curatedValidWords || vocab.validWords;
+    if (!validWords || typeof validWords.has !== 'function') return false;
+    const isHigh = (v) => {
+      const z = freq.get(v);
+      return typeof z === 'number' && z >= 4.5 && validWords.has(v);
+    };
+    for (let d = 0; d < word.length; d++) {
+      // sletting
+      if (isHigh(word.slice(0, d) + word.slice(d + 1))) return true;
+      // utbyting
+      for (const c of D1_ALPHA) {
+        if (c !== word[d] && isHigh(word.slice(0, d) + c + word.slice(d + 1))) return true;
+      }
+    }
+    // innskot
+    for (let d = 0; d <= word.length; d++) {
+      for (const c of D1_ALPHA) {
+        if (isHigh(word.slice(0, d) + c + word.slice(d))) return true;
+      }
+    }
+    return false;
+  }
+
   function isUnknown(t, idx, tokens, text, vocab) {
     // Tokens that count for code-switching density. Punctuation fragments,
     // known Norwegian words (either dialect), recognized typos, and proper
@@ -106,6 +153,11 @@
     const typoFix = vocab.typoFix;
     if (typoFix && typeof typoFix.has === 'function' && typoFix.has(t.word)) return false;
     if (isLikelyProperNoun(t, idx, tokens, text)) return false;
+    // Truleg norsk skrivefeil (d1-nabo i frekvent ordforråd) — tel ikkje
+    // mot framand-tettleiken. Sjå blokkommentaren over hasFrequentD1Neighbor.
+    // Merk: dette endrar BERRE tettleiks-teljinga — KVA demping dekkjer når
+    // ho fyrst utløysest (heile vindauget), står urørt.
+    if (hasFrequentD1Neighbor(t.word, vocab)) return false;
     return true;
   }
 

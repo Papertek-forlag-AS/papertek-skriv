@@ -251,6 +251,101 @@
     return map.get(word.toLowerCase());
   }
 
+  // ── Stammekart-stien (26.08.2026) ────────────────────────────────────
+  //
+  // Maps above work on WHOLE tokens, so a bokmålisme sitjande INNE i eit
+  // lengre ord er usynleg: i «muligheit» er tokenet heile ordet, og
+  // stammen `mulig` blir aldri prøvd. Den opprinnelege målinga
+  // (.planning/deferred/nb-nn-stammekart.md) prøvde fem prediktat mot
+  // NB-korpuset og fann berre feilklassar å velje mellom — «ordet er
+  // ukjent» ryk på `stillheit`, «stammen står ikkje i Ordbanken» ryk på
+  // `strikkefastheit`. Det som mangla var kartet.
+  //
+  // Prediktatet er difor: STAMMEN ER BOKMÅLSK **OG** STÅR I KARTET.
+  // Det utelukkar samansetjingar (dei har inga stammeoppføring) og
+  // produktive nynorske avleiingar (stammen er alt nynorsk, og er halden
+  // ute med vilje — sjå `utelatne` i datafila).
+  //
+  // FELLA: `samansett_form` er null på 46 av 70, og null tyder to ting
+  // som ikkje lèt seg skilje — anten er forma god nynorsk som Norsk
+  // ordbank ikkje fører (`personlegheit`), eller så lagar nynorsk
+  // substantivet heilt annleis (`uenig`→`usamd`, men substantivet er
+  // `usemje`; `kjedsom`→`keisam`, men `keisemd`). Difor: kartet styrer
+  // PREDIKATET alltid, men gjev FORSLAG berre der samansetjinga er
+  // attestert. Elles melder vi på stammenivå, utan heilordsfiks.
+
+  // Suffikshovud. `-heit` er nynorskforma, `-het` bokmålsforma; begge er
+  // bokmålismer i eit nynorskdokument så snart stammen er det.
+  const ABSTRACT_HEADS = ['heit', 'het'];
+  // Bøyingshalar for det same substantivet. Tom hale = grunnforma, den
+  // einaste som `samansett_form` er attestert for — dei andre ville kravd
+  // at vi bøygde forslaget sjølve, og det er same slaget sammenliming som
+  // fella åtvarar mot.
+  const ABSTRACT_TAILS = ['', 'a', 'en', 'er', 'ar', 'ene', 'ane', 's'];
+
+  /**
+   * Finn ein bokmålsk stamme i eit avleidd ord.
+   * @returns {null|{stem,entry,bare}} `bare` er sann berre for grunnforma
+   *   (stamme + heit/het), som er den einaste som kan bere eit
+   *   heilordsforslag frå `samansettForm`.
+   *
+   * Samansetjingar med fuge-s (`virkelighetsflukt`, `menighetsbladet`) er
+   * med VILJE utanfor. Målt 26.08.2026 mot NB-korpuset (`lang=nno`, tekst
+   * frå 2012 og seinare): ein slik gren ville treft 775 typar / 6 589
+   * postar — 13,97 % av all mid-ords fuge-s-bruk — og dei mest frekvente
+   * treffa er EIGENNAMN: `offentlighetsloven` (647), `menighetsfakultetet`
+   * (320), `trefoldighetskirken` (97). Eit namn held på skrivemåten sin
+   * same kva målform teksten er i, så meldinga «stammen er bokmålsk» er
+   * feil der. Grunnforma og bøyingane har ikkje den klassen. Sjå
+   * `.planning/deferred/nb-nn-stammekart.md` for tala og kva ein
+   * eigennamnvakt måtte gjere før grena kan skruast på.
+   */
+  function findStemBokmalisme(word, vocab) {
+    const map = vocab && vocab.nbNnStemCrossref;
+    if (!map || typeof map.get !== 'function' || !map.size) return null;
+
+    // Kartet er den EINASTE gata. Same avgjerd, og av same grunn, som
+    // CROSS_DIALECT_MAP-narrowinga i Phase 05.1-05 lenger nede: eit
+    // `validWords.has(word) → continue` framfor oppslaget ser ut som ei
+    // trygg sikring, men NN-oppføringane ber bokmålsglosene sine i
+    // `translation`, og seamen såer dei inn i BEGGE validWords-setta
+    // (`translationLeak` i vocab-seam-core). Ei slik gate slår difor av
+    // nettopp dei orda kartet vart laga for.
+    //
+    // Målt mot NB-korpuset (`lang=nno`, ≥2012) med data frå 25.08.2026:
+    // gata ville tagd `oppmerksomhet` (3 873 postar), `virkeligheten`
+    // (3 699) og `personlighet` (747) — 8 319 av 76 068, alle tre
+    // utvitydig bokmål. Det er variant B sin blindsone attende. Og glosene
+    // skal BLI verande: den kryss-dialektale toleransen er med vilje.
+    //
+    // Det som sparer `stillheit`, `tryggheit` og `klarheit` er ikkje ei
+    // gyldig-gate, men at `still`, `trygg` og `klar` ikkje står i kartet —
+    // og dei står der ikkje fordi eit menneske heldt dei ute. Kurateringa
+    // held òg stammer som alt ER gyldig nynorsk ute (`utidsmessig`), så
+    // ei oppføring kan ikkje kome hit og vere rett nynorsk på ein gong.
+
+    for (const head of ABSTRACT_HEADS) {
+      const hIdx = word.lastIndexOf(head);
+      if (hIdx <= 0) continue;
+      const rest = word.slice(hIdx + head.length);
+      const stem = word.slice(0, hIdx);
+      const entry = map.get(stem);
+      if (!entry) continue;
+      if (ABSTRACT_TAILS.indexOf(rest) !== -1) {
+        return { stem, entry, bare: rest === '' };
+      }
+    }
+    return null;
+  }
+
+  // § 15-4: alle likestilte former skal fram, ingen skal favoriserast.
+  // `former` er [primær, ...likestilte] frå kartet.
+  function joinForms(former) {
+    const items = former.map(f => `<em>${escapeHtml(f)}</em>`);
+    if (items.length === 1) return items[0];
+    return items.slice(0, -1).join(', ') + ' eller ' + items[items.length - 1];
+  }
+
   const rule = {
     id: 'dialect-mix',
     languages: ['nb', 'nn'],
@@ -266,6 +361,24 @@
       const docDialect = finding.lang === 'nn' ? 'nynorsk' : 'bokmål';
       const hasFix = !!finding.fix;
       const base = `<em>${escapeHtml(finding.original)}</em> er ${other}`;
+      // Stammekart-treff. `stemForms` er alle likestilte nynorskformer av
+      // stammen (§ 15-4 — ingen av dei skal haldast tilbake).
+      if (finding.stem && Array.isArray(finding.stemForms) && finding.stemForms.length) {
+        const stemNote = `Stammen <em>${escapeHtml(finding.stem)}</em> heiter `
+          + joinForms(finding.stemForms) + ' på nynorsk';
+        let msg;
+        if (hasFix) {
+          // Samansetjinga er attestert i Norsk ordbank — forslaget står.
+          msg = `${base} — prøv <em>${escapeHtml(finding.fix)}</em>. ${stemNote}.`;
+        } else {
+          // Ingen attestert samansetjing. Vi melder stammen og seier rett
+          // ut at substantivet ikkje er stamme + suffiks — elles limer
+          // eleven det saman sjølv («usamdheit» for `usemje`).
+          msg = `${base}. ${stemNote} — men nynorsk lagar ikkje alltid `
+            + 'substantivet av stammen, så slå ordet opp i ordboka.';
+        }
+        return { nb: msg, nn: msg };
+      }
       if (hasFix) {
         const tail = ` — prøv <em>${escapeHtml(finding.fix)}</em>.`;
         // Same template renders identically in both NB and NN popovers —
@@ -371,7 +484,34 @@
         // dense unknown spans still silence the rule for cross-dialect
         // tokens that happen to live inside an English/French quotation.
         let rawFix = crossMap.get(t.word);
-        if (!rawFix) continue;
+        if (!rawFix) {
+          // Ingen heilordstreff — prøv stammekartet. NN-dokument berre:
+          // kartet går bokmål→nynorsk, så det seier ingenting om ein
+          // nynorskisme i ein bokmålstekst.
+          if (lang !== 'nn') continue;
+          const hit = findStemBokmalisme(t.word, vocab);
+          if (!hit) continue;
+          // Heilordsforslag berre for grunnforma OG berre når
+          // samansetjinga er attestert. Alt anna melder utan fiks.
+          const compForm = hit.bare ? hit.entry.samansettForm : null;
+          const stemFix = compForm ? matchCase(t.display, compForm) : null;
+          out.push({
+            rule_id: 'dialect-mix',
+            priority: rule.priority,
+            start: t.start,
+            end: t.end,
+            original: t.display,
+            lang,
+            fix: stemFix,
+            noAutoFix: !stemFix,
+            stem: hit.stem,
+            stemForms: hit.entry.former,
+            message: stemFix
+              ? `Bokmålsform: "${t.display}" → "${stemFix}"`
+              : `Bokmålsk stamme: "${t.display}" — stammen "${hit.stem}" heiter "${hit.entry.former.join('" eller "')}" på nynorsk`,
+          });
+          continue;
+        }
         // goal-loop 3 (2026-06-13): «kvar» is BOTH NN hver («kvar dag») and
         // NN hvor («kvar er du»). The map's unconditional kvar→hvor gave
         // «trener fotball kvar tirsdag» the fix hvor. Determiner reading

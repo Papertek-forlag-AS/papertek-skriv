@@ -71,7 +71,9 @@ const INVENTORY = {
         'toast-notification.js',
         'in-page-modal.js',   // editor-toolbar.js -> showInPageConfirm
         'frame-elements.js',  // editor-toolbar.js, image-manager.js
-        'word-counter.js'     // text-export.js -> countWords; also the live counter
+        'word-counter.js',    // text-export.js -> countWords; also the live counter
+        'auto-save.js',       // Debounced save with status display
+        'aria-live.js'        // Screen reader announcements
     ],
     'student': [
         'slash-menu.js',
@@ -79,6 +81,7 @@ const INVENTORY = {
         'image-manager.js',
         'table-manager.js',
         'keyboard-shortcuts.js',
+        'matte.js',           // Superscript / subscript formatting
         // text-export ships downloadText/downloadDocx/downloadPDF. The first
         // two need nothing extra — .docx is built as HTML carrying Word's XML
         // headers, no library. downloadPDF needs a `window.jspdf` GLOBAL that

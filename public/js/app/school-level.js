@@ -31,22 +31,23 @@ export const LEVEL_SUBJECTS = {
     vg3:          ['Norsk', 'Historie', 'Religion og etikk'],
 };
 
-/**
- * Coarse level bands used by content that differentiates on level
- * (writing-frame recommendations, starter tiers). vg1–vg3 collapse to 'vgs'.
- */
-export const SCHOOL_LEVEL_BANDS = {
+/** Broad bands used by portable learning supports such as writing frames. */
+export const SCHOOL_LEVEL_BANDS = Object.freeze({
     barneskole: 'barneskole',
     ungdomsskole: 'ungdomsskole',
     vg1: 'vgs',
     vg2: 'vgs',
     vg3: 'vgs',
-};
+});
 
-/** Get the band ('barneskole' | 'ungdomsskole' | 'vgs') for a level ID.
- *  Defaults to 'ungdomsskole' when no level is stored. */
+/**
+ * Map a stored school-level ID to a broad pedagogical band.
+ * Defaults to the stored level, so callers that mean "this student" need not
+ * repeat the lookup. Returns null for missing or unknown values so portable
+ * modules can choose an unfiltered fallback instead of guessing a level.
+ */
 export function getSchoolLevelBand(levelId = getSchoolLevel()) {
-    return SCHOOL_LEVEL_BANDS[levelId] || 'ungdomsskole';
+    return SCHOOL_LEVEL_BANDS[levelId] || null;
 }
 
 /** Get the stored school level ID, or null if not set. */

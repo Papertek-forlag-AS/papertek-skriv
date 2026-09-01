@@ -1,7 +1,7 @@
 /**
  * Document list UI — the "home screen" of Skriv.
- * Two-column layout: sidebar (folder tree) + main content (document cards).
- * Includes search, folder filtering, and trash view.
+ * Three-column desktop layout: folder tree + cleanup desk + document cards.
+ * The cleanup desk becomes a compact section above the list on smaller screens.
  */
 
 import { listDocuments, createDocument, getDocument, saveDocument } from './document-store.js';
@@ -9,28 +9,35 @@ import {
     trashDocument, restoreDocument, listTrashedDocuments,
     permanentlyDelete, emptyTrash, getTrashCount, getRetentionDays,
 } from './trash-store.js';
-import { escapeHtml } from '../editor-core/shared/html-escape.js';
+import { escapeAttr, escapeHtml } from '../editor-core/shared/html-escape.js';
 import { countWords } from '../editor-core/shared/word-counter.js';
 import { showInPageConfirm } from '../editor-core/shared/in-page-modal.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
-import { t, getDateLocale } from '../editor-core/shared/i18n.js';
+import { t, getDateLocale, renderLanguageSelector } from '../editor-core/shared/i18n.js';
 import { showWordCountStats } from './word-count-stats.js';
 import { createSearchBar, filterDocuments } from './document-search.js';
 import { cycleTheme, getThemeIconSVG } from '../editor-core/shared/theme.js';
 import { createSidebar } from './sidebar.js';
 import { createFolderPicker, createFolderBadges } from './folder-picker.js';
+import { initCleanupDesk, getCleanupDocuments, getCleanupReasons } from './cleanup-desk.js';
 import {
     getCurrentSchoolYear, getAllFolders, setDocFolders,
     isPersonalFolder, PERSONAL_FOLDER_NAME,
 } from './folder-store.js';
+import { isMicrosoftLocalhost } from './microsoft-config.js';
+import { createMicrosoftStorage } from './microsoft-storage.js';
+import { showMicrosoftStorageDialog } from './microsoft-storage-dialog.js';
 
 /**
  * Render the document list into a container.
  * @param {HTMLElement} container - The element to render into
- * @param {Function} onOpenDocument - Called with doc.id when user opens a doc
+ * @param {Function} onOpenDocument - Called with doc.id and optional focus intent when opening a doc
  */
 export async function renderDocumentList(container, onOpenDocument) {
     container.innerHTML = '';
+
+    const microsoftStorage = createMicrosoftStorage();
+    const showMicrosoftButton = microsoftStorage.isConfigured() || isMicrosoftLocalhost();
 
     const trashCount = await getTrashCount();
     const docs = await listDocuments();
@@ -41,7 +48,30 @@ export async function renderDocumentList(container, onOpenDocument) {
     let currentSchoolYear = getCurrentSchoolYear();
     let allFolders = await getAllFolders();
 
-    // Two-column layout
+    let desktopSidebar = null;
+    let mobileSidebarInstance = null;
+    let searchBar = null;
+    let cardPickerApis = [];
+
+    async function handleDocumentChanged({ type, doc }) {
+        if (type === 'trash') {
+            const index = docs.findIndex(item => item.id === doc.id);
+            if (index !== -1) docs.splice(index, 1);
+        }
+        applyFilters();
+        if (type === 'trash') await updateTrashBadge();
+    }
+
+    const cleanupDesk = initCleanupDesk({
+        onOpenDocument,
+        onDocumentChanged: handleDocumentChanged,
+        onDragStateChange: (active) => {
+            desktopSidebar?.setDragActive(active);
+            mobileSidebarInstance?.setDragActive(active);
+        },
+    });
+
+    // Responsive three-column layout
     const layout = document.createElement('div');
     layout.className = 'skriv-layout flex h-screen';
 
@@ -49,38 +79,63 @@ export async function renderDocumentList(container, onOpenDocument) {
     const sidebarContainer = document.createElement('aside');
     sidebarContainer.className = 'skriv-sidebar-container hidden md:block w-56 flex-shrink-0 border-r border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 overflow-y-auto';
 
-    // Cleanup desk — orphan documents panel (desktop only, between sidebar and docs)
-    const cleanupDeskEl = document.createElement('div');
-    cleanupDeskEl.className = 'skriv-cleanup-desk hidden md:flex md:flex-col w-56 flex-shrink-0 border-r border-stone-100 dark:border-stone-700/50 overflow-y-auto';
-
     // Main content area
     const mainContent = document.createElement('div');
     mainContent.className = 'flex-1 overflow-y-auto flex flex-col';
 
     layout.appendChild(sidebarContainer);
-    layout.appendChild(cleanupDeskEl);
+    layout.appendChild(cleanupDesk.desktopElement);
     layout.appendChild(mainContent);
     container.appendChild(layout);
 
     // Mobile sidebar overlay
     const mobileOverlay = document.createElement('div');
     mobileOverlay.className = 'skriv-sidebar-overlay fixed inset-0 z-40 bg-black/30 hidden';
-    mobileOverlay.addEventListener('click', () => closeMobileSidebar());
+    mobileOverlay.addEventListener('click', () => closeMobileSidebar({ restoreFocus: true }));
 
     const mobileSidebar = document.createElement('aside');
+    mobileSidebar.id = 'mobile-folder-navigation';
     mobileSidebar.className = 'skriv-mobile-sidebar fixed top-0 left-0 z-50 h-full w-64 bg-stone-50 dark:bg-stone-800 border-r border-stone-200 dark:border-stone-700 overflow-y-auto transform -translate-x-full transition-transform duration-200';
+    mobileSidebar.setAttribute('aria-label', t('sidebar.folders'));
+    mobileSidebar.setAttribute('aria-hidden', 'true');
+    mobileSidebar.tabIndex = -1;
+    mobileSidebar.inert = true;
     container.appendChild(mobileOverlay);
     container.appendChild(mobileSidebar);
+
+    let hamburgerButton = null;
 
     function openMobileSidebar() {
         mobileOverlay.classList.remove('hidden');
         mobileSidebar.classList.remove('-translate-x-full');
+        mobileSidebar.setAttribute('aria-hidden', 'false');
+        mobileSidebar.inert = false;
+        layout.inert = true;
+        hamburgerButton?.setAttribute('aria-expanded', 'true');
+        requestAnimationFrame(() => {
+            const firstControl = mobileSidebar.querySelector('button, select, [tabindex="0"]');
+            (firstControl || mobileSidebar).focus();
+        });
     }
 
-    function closeMobileSidebar() {
+    function closeMobileSidebar({ restoreFocus = false } = {}) {
+        const wasOpen = mobileSidebar.getAttribute('aria-hidden') === 'false';
         mobileOverlay.classList.add('hidden');
         mobileSidebar.classList.add('-translate-x-full');
+        mobileSidebar.setAttribute('aria-hidden', 'true');
+        mobileSidebar.inert = true;
+        layout.inert = false;
+        hamburgerButton?.setAttribute('aria-expanded', 'false');
+        if (restoreFocus || wasOpen) hamburgerButton?.focus();
     }
+
+    function handleMobileSidebarKeydown(event) {
+        if (event.key === 'Escape' && mobileSidebar.getAttribute('aria-hidden') === 'false') {
+            event.preventDefault();
+            closeMobileSidebar({ restoreFocus: true });
+        }
+    }
+    document.addEventListener('keydown', handleMobileSidebarKeydown);
 
     // Header
     const header = document.createElement('div');
@@ -88,7 +143,7 @@ export async function renderDocumentList(container, onOpenDocument) {
     header.innerHTML = `
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
-                <button id="btn-hamburger" class="md:hidden p-2 -ml-2 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg transition-colors">
+                <button id="btn-hamburger" class="md:hidden p-2 -ml-2 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg transition-colors" aria-label="${t('sidebar.folders')}" aria-controls="mobile-folder-navigation" aria-expanded="false">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
                 <div>
@@ -97,12 +152,16 @@ export async function renderDocumentList(container, onOpenDocument) {
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <span id="ui-language-selector"></span>
+                <button id="btn-microsoft" class="${showMicrosoftButton ? '' : 'hidden '}px-3 py-2.5 text-stone-400 hover:text-emerald-600 dark:text-stone-500 dark:hover:text-emerald-400 rounded-lg text-sm transition-colors" title="${escapeAttr(t('microsoft.buttonTitle'))}" aria-label="${escapeAttr(t('microsoft.buttonTitle'))}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 18h10a4 4 0 00.8-7.919A6 6 0 006.34 8.53 4.5 4.5 0 007 18z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 13h6m-3-3v6"/></svg>
+                </button>
                 <button id="btn-theme" class="px-3 py-2.5 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg text-sm transition-colors" title="${t('theme.toggle')}">
                     ${getThemeIconSVG()}
                 </button>
                 <button id="btn-trash" class="relative px-3 py-2.5 text-stone-400 hover:text-stone-600 dark:text-stone-500 dark:hover:text-stone-300 rounded-lg text-sm transition-colors" title="${t('skriv.trashButton')}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    ${trashCount > 0 ? `<span class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">${trashCount > 9 ? '9+' : trashCount}</span>` : ''}
+                    ${trashCount > 0 ? `<span data-trash-count class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">${trashCount > 9 ? '9+' : trashCount}</span>` : ''}
                 </button>
                 <button id="btn-new-doc" class="px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
                     + ${t('skriv.newDocument')}
@@ -110,7 +169,26 @@ export async function renderDocumentList(container, onOpenDocument) {
             </div>
         </div>
     `;
+    hamburgerButton = header.querySelector('#btn-hamburger');
+    renderLanguageSelector(header.querySelector('#ui-language-selector'), { compact: true });
     mainContent.appendChild(header);
+
+    async function updateTrashBadge() {
+        const button = header.querySelector('#btn-trash');
+        const count = await getTrashCount();
+        let badge = button.querySelector('[data-trash-count]');
+        if (count === 0) {
+            badge?.remove();
+            return;
+        }
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.setAttribute('data-trash-count', '');
+            badge.className = 'absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center';
+            button.appendChild(badge);
+        }
+        badge.textContent = count > 9 ? '9+' : String(count);
+    }
 
     // Footer
     const footer = document.createElement('div');
@@ -127,6 +205,7 @@ export async function renderDocumentList(container, onOpenDocument) {
     // Document list container
     const listEl = document.createElement('div');
     listEl.className = 'max-w-2xl mx-auto px-4 pb-8 w-full';
+    listEl.appendChild(cleanupDesk.compactElement);
     mainContent.appendChild(listEl);
 
     // Event handlers
@@ -141,11 +220,23 @@ export async function renderDocumentList(container, onOpenDocument) {
         showToast(t(`theme.${newTheme}`), { duration: 1500 });
     });
 
-    header.querySelector('#btn-trash').addEventListener('click', () => {
-        renderTrashView(container, onOpenDocument);
+    header.querySelector('#btn-microsoft').addEventListener('click', () => {
+        showMicrosoftStorageDialog({
+            storage: microsoftStorage,
+            onConfigurationChanged: () => globalThis.location.reload(),
+            onImported: (importedDocument) => {
+                if (importedDocument?.id) onOpenDocument(importedDocument.id);
+            },
+        }).catch(() => {
+            showToast(t('microsoft.error.generic'), { duration: 3000 });
+        });
     });
 
-    header.querySelector('#btn-hamburger').addEventListener('click', openMobileSidebar);
+    header.querySelector('#btn-trash').addEventListener('click', () => {
+        window.location.hash = '#/trash';
+    });
+
+    hamburgerButton.addEventListener('click', openMobileSidebar);
 
     // --- File drag & drop import ---
     const dragOverlay = document.createElement('div');
@@ -158,40 +249,51 @@ export async function renderDocumentList(container, onOpenDocument) {
     `;
     container.appendChild(dragOverlay);
 
+    const fileDragController = new AbortController();
     let dragCounter = 0;
+    let dragLeaveTimer = null;
     container.addEventListener('dragenter', (e) => {
         if (e.dataTransfer.types.includes('Files')) {
             e.preventDefault();
+            if (dragLeaveTimer) {
+                clearTimeout(dragLeaveTimer);
+                dragLeaveTimer = null;
+            }
             dragCounter++;
             dragOverlay.classList.remove('hidden');
             dragOverlay.classList.add('flex');
             requestAnimationFrame(() => dragOverlay.classList.remove('opacity-0'));
         }
-    });
+    }, { signal: fileDragController.signal });
     container.addEventListener('dragover', (e) => {
         if (e.dataTransfer.types.includes('Files')) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
         }
-    });
+    }, { signal: fileDragController.signal });
     container.addEventListener('dragleave', (e) => {
         if (e.dataTransfer.types.includes('Files')) {
             dragCounter--;
             if (dragCounter === 0) {
                 dragOverlay.classList.add('opacity-0');
-                setTimeout(() => {
+                dragLeaveTimer = setTimeout(() => {
                     if (dragCounter === 0) {
                         dragOverlay.classList.add('hidden');
                         dragOverlay.classList.remove('flex');
                     }
+                    dragLeaveTimer = null;
                 }, 200);
             }
         }
-    });
+    }, { signal: fileDragController.signal });
     container.addEventListener('drop', async (e) => {
         if (e.dataTransfer.types.includes('Files')) {
             e.preventDefault();
             dragCounter = 0;
+            if (dragLeaveTimer) {
+                clearTimeout(dragLeaveTimer);
+                dragLeaveTimer = null;
+            }
             dragOverlay.classList.add('opacity-0', 'hidden');
             dragOverlay.classList.remove('flex');
             
@@ -216,7 +318,7 @@ export async function renderDocumentList(container, onOpenDocument) {
                 onOpenDocument(doc.id);
             }
         }
-    });
+    }, { signal: fileDragController.signal });
     // --------------------------------
 
     // Sidebar options
@@ -234,11 +336,35 @@ export async function renderDocumentList(container, onOpenDocument) {
             closeMobileSidebar();
             applyFilters();
         },
+        onLibraryChanged: async () => {
+            const [refreshedDocs, refreshedFolders] = await Promise.all([
+                listDocuments(),
+                getAllFolders(),
+            ]);
+            docs.splice(0, docs.length, ...refreshedDocs);
+            allFolders = refreshedFolders;
+            applyFilters();
+        },
     };
 
     // Create sidebars (desktop + mobile)
-    const desktopSidebar = createSidebar(sidebarContainer, sidebarOptions);
-    const mobileSidebarInstance = createSidebar(mobileSidebar, sidebarOptions);
+    desktopSidebar = createSidebar(sidebarContainer, sidebarOptions);
+    mobileSidebarInstance = createSidebar(mobileSidebar, sidebarOptions);
+
+    const destroyScreen = () => {
+        cardPickerApis.forEach(api => api.destroy?.());
+        cardPickerApis = [];
+        fileDragController.abort();
+        if (dragLeaveTimer) clearTimeout(dragLeaveTimer);
+        searchBar?.destroy?.();
+        cleanupDesk.destroy();
+        Promise.resolve(microsoftStorage.destroy?.()).catch(() => {});
+        desktopSidebar.destroy?.();
+        mobileSidebarInstance.destroy?.();
+        document.removeEventListener('keydown', handleMobileSidebarKeydown);
+    };
+
+    cleanupDesk.update(getCleanupDocuments(docs, currentSchoolYear), allFolders);
 
     if (docs.length === 0) {
         // First-run empty state: point the pupil at the tools, not just
@@ -273,7 +399,7 @@ export async function renderDocumentList(container, onOpenDocument) {
             onOpenDocument(doc.id);
         });
         mainContent.appendChild(footer);
-        return;
+        return { destroy: destroyScreen };
     }
 
     function getDescendantFolderIds(folderId) {
@@ -292,6 +418,9 @@ export async function renderDocumentList(container, onOpenDocument) {
 
     function applyFilters() {
         let filtered = docs;
+
+        // The cleanup task intentionally ignores search and folder filters.
+        cleanupDesk.update(getCleanupDocuments(docs, currentSchoolYear), allFolders);
 
         // School year filter
         filtered = filtered.filter(d => d.schoolYear === currentSchoolYear);
@@ -314,7 +443,18 @@ export async function renderDocumentList(container, onOpenDocument) {
         // Search filter
         filtered = filterDocuments(filtered, currentQuery);
 
-        renderDocumentCards(cardsContainer, docs, filtered, currentQuery, currentFolderFilter, currentSchoolYear, onOpenDocument, container, allFolders, cleanupDeskEl);
+        cardPickerApis.forEach(api => api.destroy?.());
+        cardPickerApis = renderDocumentCards(
+            cardsContainer,
+            docs,
+            filtered,
+            currentQuery,
+            currentFolderFilter,
+            currentSchoolYear,
+            onOpenDocument,
+            allFolders,
+            handleDocumentChanged
+        );
 
         // Update sidebar counts
         desktopSidebar.update({ docs, activeFilter: currentFolderFilter, schoolYear: currentSchoolYear });
@@ -322,7 +462,7 @@ export async function renderDocumentList(container, onOpenDocument) {
     }
 
     // Search bar
-    const searchBar = createSearchBar(listEl, (query) => {
+    searchBar = createSearchBar(listEl, (query) => {
         currentQuery = query;
         applyFilters();
     });
@@ -341,46 +481,26 @@ export async function renderDocumentList(container, onOpenDocument) {
         desktopSidebar.setDragActive(false);
         mobileSidebarInstance.setDragActive(false);
     });
-    cleanupDeskEl.addEventListener('dragstart', () => {
-        desktopSidebar.setDragActive(true);
-        mobileSidebarInstance.setDragActive(true);
-    });
-    cleanupDeskEl.addEventListener('dragend', () => {
-        desktopSidebar.setDragActive(false);
-        mobileSidebarInstance.setDragActive(false);
-    });
-
     // Initial render
     applyFilters();
 
     mainContent.appendChild(footer);
 
     return {
-        destroy() {
-            if (desktopSidebar && typeof desktopSidebar.destroy === 'function') {
-                desktopSidebar.destroy();
-            }
-            if (mobileSidebarInstance && typeof mobileSidebarInstance.destroy === 'function') {
-                mobileSidebarInstance.destroy();
-            }
-        }
+        destroy: destroyScreen,
     };
 }
 
 /**
  * Render document cards into the list element.
  */
-function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter, schoolYear, onOpenDocument, container, folders, cleanupDeskEl) {
+function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter, schoolYear, onOpenDocument, folders, onDocumentChanged) {
     // Clear all cards — search bar and tag filter live outside this container
     listEl.innerHTML = '';
 
-    // Split docs: when viewing "all", separate filed and orphan docs
-    let mainDocs = filteredDocs;
-    let orphanDocs = [];
-    if (folderFilter === 'all' && !query) {
-        mainDocs = filteredDocs; // Show everything in the main list
-        orphanDocs = filteredDocs.filter(d => !d.folderIds || d.folderIds.length === 0);
-    }
+    // All documents have one canonical card. Cleanup work is shown separately.
+    const mainDocs = filteredDocs;
+    const pickerApis = [];
 
     const isFiltering = query || folderFilter !== 'all';
 
@@ -422,7 +542,7 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
             <p class="text-stone-400 text-sm">${t('search.noResults')}</p>
         `;
         listEl.appendChild(noResults);
-        return;
+        return pickerApis;
     }
 
     // Document cards
@@ -437,11 +557,11 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
         card.setAttribute('tabindex', '0');
         card.setAttribute('draggable', 'true');
         card.setAttribute('data-doc-id', doc.id);
-        const isOrphan = !doc.folderIds || doc.folderIds.length === 0;
-        const orphanStyles = isOrphan ? 'border-l-4 border-l-amber-400 ' : '';
-        card.className = `group bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 ${orphanStyles}rounded-xl p-4 mb-3 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1`;
+        const needsCleanup = getCleanupReasons(doc).length > 0;
+        const cleanupStyles = needsCleanup ? 'border-l-4 border-l-amber-400 ' : '';
+        card.className = `group bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 ${cleanupStyles}rounded-xl p-4 mb-3 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-sm transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1`;
 
-        const title = doc.title || t('skriv.untitled');
+        const title = String(doc.title || '').trim() || t('skriv.untitled');
         const wordCount = doc.wordCount || 0;
         const updatedAt = doc.updatedAt ? formatRelativeTime(doc.updatedAt) : '';
         const preview = doc.plainText ? doc.plainText.substring(0, 120).trim() : '';
@@ -509,20 +629,19 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
                 if (fullDoc) {
                     await trashDocument(fullDoc);
                 }
-                await deleteDocument(doc.id);
-                showToast(t('skriv.trashMovedToTrash', { title }));
-                renderDocumentList(container, onOpenDocument);
+                showToast(t('sidebar.cleanupMovedToTrash', { title }));
+                await onDocumentChanged({ type: 'trash', doc });
             }
         });
 
         // Folder assign button for orphans (the "Choose folder" badge)
         const assignBtn = badgesContainer.querySelector('.folder-assign-btn');
         if (assignBtn) {
-            createFolderPicker(assignBtn, [], async (newFolderIds) => {
+            pickerApis.push(createFolderPicker(assignBtn, [], async (newFolderIds) => {
                 await setDocFolders(doc.id, newFolderIds);
                 doc.folderIds = newFolderIds;
-                renderDocumentList(container, onOpenDocument);
-            });
+                await onDocumentChanged({ type: 'folders', doc });
+            }));
         }
 
         // Drag start
@@ -548,250 +667,28 @@ function renderDocumentCards(listEl, allDocs, filteredDocs, query, folderFilter,
         cardList.appendChild(card);
     });
 
-    // --- Desktop cleanup desk (between sidebar and document list) ---
-    if (cleanupDeskEl) {
-        updateCleanupDesk(cleanupDeskEl, orphanDocs, onOpenDocument, container, folders);
-    }
-
-    // --- Mobile orphan section (below documents, hidden on desktop) ---
-    if (orphanDocs.length > 0) {
-        const GRIP_ICON = '<svg class="w-4 h-5" viewBox="0 0 16 20" fill="currentColor"><circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/><circle cx="5" cy="10" r="1.5"/><circle cx="11" cy="10" r="1.5"/><circle cx="5" cy="16" r="1.5"/><circle cx="11" cy="16" r="1.5"/></svg>';
-
-        const mobileOrphanWrap = document.createElement('div');
-        mobileOrphanWrap.className = 'md:hidden';
-
-        const divider = document.createElement('div');
-        divider.className = 'flex items-center gap-3 mt-8 mb-4';
-        divider.innerHTML = `
-            <div class="flex-1 border-t border-amber-200 dark:border-amber-800"></div>
-            <span class="text-xs font-medium text-amber-600 dark:text-amber-400">${escapeHtml(t('sidebar.orphanSection'))} (${orphanDocs.length})</span>
-            <div class="flex-1 border-t border-amber-200 dark:border-amber-800"></div>
-        `;
-        mobileOrphanWrap.appendChild(divider);
-
-        const hint = document.createElement('p');
-        hint.className = 'text-xs text-stone-400 dark:text-stone-500 mb-3';
-        hint.textContent = t('sidebar.orphanCleanupHint');
-        mobileOrphanWrap.appendChild(hint);
-
-        const orphanList = document.createElement('div');
-        orphanList.setAttribute('role', 'list');
-        orphanList.setAttribute('aria-label', t('sidebar.orphanSection'));
-        mobileOrphanWrap.appendChild(orphanList);
-
-        orphanDocs.forEach(doc => {
-            const oCard = document.createElement('div');
-            oCard.setAttribute('role', 'listitem');
-            oCard.setAttribute('draggable', 'true');
-            oCard.setAttribute('data-doc-id', doc.id);
-            oCard.className = 'group bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 border-l-4 border-l-amber-400 rounded-xl p-3 mb-2 hover:border-stone-300 dark:hover:border-stone-600 hover:shadow-sm transition-all cursor-pointer';
-
-            const oTitle = doc.title || t('skriv.untitled');
-            const oWordCount = doc.wordCount || 0;
-
-            oCard.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <span class="cursor-grab text-stone-300 dark:text-stone-600 hover:text-stone-500 dark:hover:text-stone-400 flex-shrink-0" title="${t('sidebar.dragHint')}">${GRIP_ICON}</span>
-                    <div class="flex-1 min-w-0">
-                        <h3 class="font-medium text-sm text-stone-900 dark:text-stone-100 truncate">${escapeHtml(oTitle)}</h3>
-                        <span class="text-xs text-stone-400">${oWordCount} ${t('wordCounter.count', { count: oWordCount }).split(' ').pop()}</span>
-                    </div>
-                    <button class="orphan-assign-btn px-2.5 py-1 text-xs rounded-lg border border-dashed border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors flex-shrink-0">
-                        ${escapeHtml(t('sidebar.chooseFolder'))}
-                    </button>
-                </div>
-            `;
-
-            oCard.addEventListener('click', (e) => {
-                if (e.target.closest('.orphan-assign-btn')) return;
-                onOpenDocument(doc.id);
-            });
-
-            const assignBtn = oCard.querySelector('.orphan-assign-btn');
-            createFolderPicker(assignBtn, [], async (newFolderIds) => {
-                await setDocFolders(doc.id, newFolderIds);
-                doc.folderIds = newFolderIds;
-                renderDocumentList(container, onOpenDocument);
-            });
-
-            oCard.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', doc.id);
-                e.dataTransfer.effectAllowed = 'move';
-                oCard.classList.add('opacity-50');
-                const ghost = document.createElement('div');
-                ghost.className = 'px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-full shadow-lg whitespace-nowrap';
-                ghost.style.position = 'fixed';
-                ghost.style.top = '-100px';
-                const truncName = oTitle.length > 30 ? oTitle.substring(0, 30) + '\u2026' : oTitle;
-                ghost.textContent = truncName;
-                document.body.appendChild(ghost);
-                e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
-                requestAnimationFrame(() => ghost.remove());
-            });
-            oCard.addEventListener('dragend', () => {
-                oCard.classList.remove('opacity-50');
-            });
-
-            orphanList.appendChild(oCard);
-        });
-
-        listEl.appendChild(mobileOrphanWrap);
-    }
-}
-
-/**
- * Update the desktop cleanup desk panel with orphan documents or "all clear" state.
- */
-function updateCleanupDesk(deskEl, orphanDocs, onOpenDocument, container, folders) {
-    deskEl.innerHTML = '';
-    deskEl.style.display = '';
-
-    if (orphanDocs.length === 0) {
-        // "All clear" reward state — celebrate the empty desk
-        const clearPanel = document.createElement('div');
-        clearPanel.className = 'flex flex-col items-center justify-center h-full p-4 text-center';
-        clearPanel.innerHTML = `
-            <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mb-2">
-                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                </svg>
-            </div>
-            <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400">${escapeHtml(t('sidebar.allOrganized'))}</p>
-        `;
-        deskEl.appendChild(clearPanel);
-        return;
-    }
-
-    // "Messy desk" state — orphans need cleanup
-    const header = document.createElement('div');
-    header.className = 'p-3 pb-2 sticky top-0 bg-amber-50/90 dark:bg-amber-950/60 backdrop-blur-sm z-10';
-    header.innerHTML = `
-        <div class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span class="text-xs font-bold truncate">${escapeHtml(t('sidebar.cleanupDesk'))}</span>
-        </div>
-        <p class="text-[10px] text-amber-500/70 dark:text-amber-400/50 mt-0.5">${orphanDocs.length} dok.</p>
-    `;
-    deskEl.appendChild(header);
-
-    // Trash drop-zone: large visual target above the cards. Drop a card here
-    // to soft-delete (30-day retention via trashDocument).
-    const trashZone = document.createElement('div');
-    trashZone.className = 'mx-2 mt-2 mb-3 p-3 flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-stone-300 dark:border-stone-600 text-stone-400 dark:text-stone-500 hover:border-red-400 hover:text-red-500 hover:bg-red-50/40 dark:hover:bg-red-950/20 transition-colors';
-    trashZone.innerHTML = `
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
-        </svg>
-        <span class="text-[10px] text-center leading-tight">${escapeHtml(t('sidebar.cleanupTrashHint'))}</span>
-    `;
-    trashZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        trashZone.classList.add('border-red-500', 'text-red-600', 'bg-red-50/60', 'dark:bg-red-950/30');
-    });
-    trashZone.addEventListener('dragleave', () => {
-        trashZone.classList.remove('border-red-500', 'text-red-600', 'bg-red-50/60', 'dark:bg-red-950/30');
-    });
-    trashZone.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        trashZone.classList.remove('border-red-500', 'text-red-600', 'bg-red-50/60', 'dark:bg-red-950/30');
-        const docId = e.dataTransfer.getData('text/plain');
-        if (!docId) return;
-        const fullDoc = await getDocument(docId);
-        if (fullDoc) {
-            await trashDocument(fullDoc);
-            renderDocumentList(container, onOpenDocument);
-        }
-    });
-    deskEl.appendChild(trashZone);
-
-    // Scrollable card area
-    const cardArea = document.createElement('div');
-    cardArea.className = 'px-2 pb-3 flex-1';
-
-    const rotations = [
-        'rotate-[-2deg]', 'rotate-[1.5deg]', 'rotate-[-1deg]',
-        'rotate-[2.5deg]', 'rotate-[-0.5deg]', 'rotate-[1deg]',
-    ];
-
-    const FULL_CARD_LIMIT = 3;
-    const fullDocs = orphanDocs.slice(0, FULL_CARD_LIMIT);
-    const deckDocs = orphanDocs.slice(FULL_CARD_LIMIT);
-
-    function bindDocInteractions(card, doc, title) {
-        card.addEventListener('click', () => onOpenDocument(doc.id));
-        card.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', doc.id);
-            e.dataTransfer.effectAllowed = 'move';
-            card.classList.add('opacity-50');
-            const ghost = document.createElement('div');
-            ghost.className = 'px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-full shadow-lg whitespace-nowrap';
-            ghost.style.position = 'fixed';
-            ghost.style.top = '-100px';
-            const truncTitle = title.length > 20 ? title.substring(0, 20) + '\u2026' : title;
-            ghost.textContent = truncTitle;
-            document.body.appendChild(ghost);
-            e.dataTransfer.setDragImage(ghost, ghost.offsetWidth / 2, ghost.offsetHeight / 2);
-            requestAnimationFrame(() => ghost.remove());
-        });
-        card.addEventListener('dragend', () => card.classList.remove('opacity-50'));
-    }
-
-    // Full cards: first FULL_CARD_LIMIT orphans
-    fullDocs.forEach((doc, i) => {
-        const card = document.createElement('div');
-        card.setAttribute('draggable', 'true');
-        card.setAttribute('data-doc-id', doc.id);
-        const rotation = rotations[i % rotations.length];
-        card.className = `mb-2 p-2 bg-white dark:bg-stone-800 border border-amber-200 dark:border-amber-700/60 border-l-[3px] border-l-amber-400 rounded-lg cursor-pointer hover:shadow-md hover:rotate-0 transition-all ${rotation}`;
-
-        const title = doc.title || t('skriv.untitled');
-        const wordCount = doc.wordCount || 0;
-        card.innerHTML = `
-            <p class="text-[11px] font-medium text-stone-700 dark:text-stone-200 truncate leading-tight">${escapeHtml(title)}</p>
-            <span class="text-[10px] text-stone-400">${wordCount} ${t('wordCounter.count', { count: wordCount }).split(' ').pop()}</span>
-        `;
-
-        bindDocInteractions(card, doc, title);
-        cardArea.appendChild(card);
-    });
-
-    // Deck cards: 4th onward, rendered as thin peek strips overlapping each
-    // other so the user sees just a "flik" (edge) of each. Click to open.
-    if (deckDocs.length > 0) {
-        const deck = document.createElement('div');
-        deck.className = 'skriv-cleanup-deck mt-1 relative';
-        deckDocs.forEach((doc, i) => {
-            const card = document.createElement('div');
-            card.setAttribute('draggable', 'true');
-            card.setAttribute('data-doc-id', doc.id);
-            const rotation = rotations[(FULL_CARD_LIMIT + i) % rotations.length];
-            // Peek card: short height, overlapping previous via negative margin
-            card.className = `block px-2 py-1 bg-white dark:bg-stone-800 border border-amber-200 dark:border-amber-700/60 border-l-[3px] border-l-amber-400 rounded-md cursor-pointer hover:shadow-md hover:translate-x-0.5 hover:rotate-0 transition-all ${rotation}`;
-            card.style.marginTop = i === 0 ? '0' : '-14px';
-            card.style.zIndex = String(deckDocs.length - i);
-
-            const title = doc.title || t('skriv.untitled');
-            card.innerHTML = `
-                <p class="text-[10px] font-medium text-stone-600 dark:text-stone-300 truncate leading-tight">${escapeHtml(title)}</p>
-            `;
-            card.title = title;
-
-            bindDocInteractions(card, doc, title);
-            deck.appendChild(card);
-        });
-        cardArea.appendChild(deck);
-    }
-
-    deskEl.appendChild(cardArea);
+    return pickerApis;
 }
 
 /**
  * Render the trash view.
  */
-async function renderTrashView(container, onOpenDocument) {
+export async function renderTrashView(container, onBack, lifecycle = null) {
+    const owner = lifecycle || { destroyed: false, version: 0 };
+    const renderVersion = ++owner.version;
+    const isStale = () => owner.destroyed || renderVersion !== owner.version;
+    const api = {
+        destroy: () => {
+            owner.destroyed = true;
+            owner.version++;
+            container.innerHTML = '';
+        },
+    };
+    const refresh = async () => {
+        if (isStale()) return;
+        await renderTrashView(container, onBack, owner);
+    };
+
     container.innerHTML = '';
 
     const days = getRetentionDays();
@@ -816,7 +713,7 @@ async function renderTrashView(container, onOpenDocument) {
     container.appendChild(header);
 
     header.querySelector('#btn-back-from-trash').addEventListener('click', () => {
-        renderDocumentList(container, onOpenDocument);
+        if (!isStale()) onBack();
     });
 
     const listEl = document.createElement('div');
@@ -824,6 +721,7 @@ async function renderTrashView(container, onOpenDocument) {
     container.appendChild(listEl);
 
     const trashedDocs = await listTrashedDocuments();
+    if (isStale()) return api;
 
     if (trashedDocs.length === 0) {
         listEl.innerHTML = `
@@ -832,7 +730,7 @@ async function renderTrashView(container, onOpenDocument) {
                 <p class="text-stone-400 text-sm">${t('skriv.trashEmpty')}</p>
             </div>
         `;
-        return;
+        return api;
     }
 
     const emptyBtn = header.querySelector('#btn-empty-trash');
@@ -844,9 +742,9 @@ async function renderTrashView(container, onOpenDocument) {
             t('skriv.trashEmptyAllConfirmYes'),
             t('common.cancel')
         );
-        if (confirmed) {
+        if (confirmed && !isStale()) {
             await emptyTrash();
-            renderTrashView(container, onOpenDocument);
+            if (!isStale()) await refresh();
         }
     });
 
@@ -887,8 +785,9 @@ async function renderTrashView(container, onOpenDocument) {
 
         card.querySelector('[data-restore-id]').addEventListener('click', async () => {
             await restoreDocument(doc.id);
+            if (isStale()) return;
             showToast(t('skriv.trashRestored'), { duration: 2000 });
-            renderTrashView(container, onOpenDocument);
+            await refresh();
         });
 
         card.querySelector('[data-permadelete-id]').addEventListener('click', async () => {
@@ -898,14 +797,16 @@ async function renderTrashView(container, onOpenDocument) {
                 t('skriv.trashDeletePermanentlyConfirmYes'),
                 t('common.cancel')
             );
-            if (confirmed) {
+            if (confirmed && !isStale()) {
                 await permanentlyDelete(doc.id);
-                renderTrashView(container, onOpenDocument);
+                if (!isStale()) await refresh();
             }
         });
 
         listEl.appendChild(card);
     });
+
+    return api;
 }
 
 /**
@@ -927,3 +828,4 @@ function formatRelativeTime(isoString) {
 
     return date.toLocaleDateString(getDateLocale(), { day: 'numeric', month: 'short' });
 }
+

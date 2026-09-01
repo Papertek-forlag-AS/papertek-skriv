@@ -45,6 +45,24 @@ class FakeIndex {
     }
 }
 
+// One cursor shape for both store and index walks. `advance` re-fires the
+// owning request, which is how IndexedDB delivers the next row.
+function makeCursor(store, key, advance) {
+    return {
+        get value() { return structuredClone(store.records.get(key)); },
+        get primaryKey() { return key; },
+        update(newValue) {
+            store.records.set(key, structuredClone(newValue));
+            return new FakeRequest();
+        },
+        delete() {
+            store.records.delete(key);
+            return new FakeRequest();
+        },
+        continue() { later(advance); },
+    };
+}
+
 class FakeObjectStore {
     constructor(name, options = {}) {
         this.name = name;
@@ -62,6 +80,41 @@ class FakeObjectStore {
         const idx = new FakeIndex(name, keyPath, options);
         this.indexes.set(name, idx);
         return idx;
+    }
+
+    // Index reads over a single-property keyPath: enough for the version
+    // snapshot purge, which walks the 'docId' index and deletes as it goes.
+    index(name) {
+        const idx = this.indexes.get(name);
+        if (!idx) throw new Error(`NotFoundError: no index ${name} on ${this.name}`);
+        const store = this;
+        const matching = (query) => [...store.records.entries()]
+            .filter(([, value]) => query === undefined || value[idx.keyPath] === query)
+            .map(([key]) => key);
+
+        return {
+            name,
+            keyPath: idx.keyPath,
+            getAll(query) {
+                const req = new FakeRequest();
+                req._succeed(matching(query).map(k => structuredClone(store.records.get(k))));
+                return req;
+            },
+            openCursor(query) {
+                const req = new FakeRequest();
+                // Snapshot the key list up front so deleting during the walk
+                // cannot disturb the iteration, as a real index cursor does.
+                const keys = matching(query);
+                let i = -1;
+                function fire() {
+                    i += 1;
+                    if (i >= keys.length) { req._succeed(null); return; }
+                    req._succeed(makeCursor(store, keys[i], fire));
+                }
+                later(fire);
+                return req;
+            },
+        };
     }
 
     _key(value) { return value[this.keyPath]; }
@@ -127,16 +180,7 @@ class FakeObjectStore {
         function fire() {
             i += 1;
             if (i >= keys.length) { req._succeed(null); return; }
-            const key = keys[i];
-            const cursor = {
-                get value() { return structuredClone(store.records.get(key)); },
-                update(newValue) {
-                    store.records.set(key, structuredClone(newValue));
-                    return new FakeRequest();
-                },
-                continue() { later(fire); },
-            };
-            req._succeed(cursor);
+            req._succeed(makeCursor(store, keys[i], fire));
         }
         later(fire);
         return req;

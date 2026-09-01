@@ -107,6 +107,90 @@
     }
   }
 
+  // ── Verts-lesarar (trelagsarkitekturen, fase 3) ──
+  // Lag 1-filene spell-check-core (examMode), i18n/strings (uiLanguage) og
+  // lang-detect (deteksjonsvokabular) er reine og kan ikkje røre chrome.*
+  // sjølve — dei delegerer lazily til desse globalane. Defaultane her er
+  // chrome-baserte og verkar i alle fire vertar (embed-shimmane leverer
+  // chrome.storage/runtime). Ein vert kan overstyre ved å setje globalane
+  // FØR første bruk (kallarane les dei ved kalltidspunkt, ikkje last-tid);
+  // embed/host-runtime.js gjer det via dataSource-adapteren (fase 4+).
+  if (!self.__lexiExamModeReader) {
+    self.__lexiExamModeReader = function () {
+      return new Promise(resolve => {
+        try {
+          if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+            resolve(false);
+            return;
+          }
+          chrome.storage.local.get(['examMode'], (res) => {
+            resolve(!!(res && res.examMode));
+          });
+        } catch (_) {
+          resolve(false);
+        }
+      });
+    };
+  }
+  if (!self.__lexiUiLangReader) {
+    self.__lexiUiLangReader = function () {
+      return new Promise(resolve => {
+        try {
+          if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+            resolve(null);
+            return;
+          }
+          chrome.storage.local.get(['uiLanguage'], (res) => {
+            resolve((res && res.uiLanguage) || null);
+          });
+        } catch (_) {
+          resolve(null);
+        }
+      });
+    };
+  }
+  if (!self.__lexiDetectVocabLoader) {
+    self.__lexiDetectVocabLoader = function (lang) {
+      try {
+        const url = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL)
+          ? chrome.runtime.getURL('data/' + lang + '.json')
+          : null;
+        if (!url || typeof fetch !== 'function') return Promise.resolve(null);
+        return fetch(url)
+          .then(function (r) { return r.json(); })
+          .catch(function () { return null; });
+      } catch (_) {
+        return Promise.resolve(null);
+      }
+    };
+  }
+
+  // ── Dataloader-saumen (trelagsarkitekturen, fase 9 / lockdown fase 4) ──
+  // ALL bundla vocab-datalast (rådictar + sidecars) går gjennom denne
+  // globalen. Default er chrome-henting (identisk åtferd i extensionen);
+  // embed-vertar får han installert dataSource-bunden av host-runtimens
+  // install() FØR denne fila lastar — lockdown legg IndexedDB-lese-gjennom
+  // i sin dataSource for eksamens-resiliens. Same kontrakt som dei tre
+  // verts-lesarane over: set berre om FRÅVERANDE, les ved KALLTID.
+  // KONTRAKT: loaderen MÅ alltid resolve (null ved feil), ALDRI rejecte —
+  // kallstadene har inga catch, og ein rejectande verts-loader ville drepe
+  // baseline-hydreringa utan 'error'-emisjon.
+  if (!self.__lexiVocabDataLoader) {
+    self.__lexiVocabDataLoader = function (filename) {
+      try {
+        const url = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL)
+          ? chrome.runtime.getURL('data/' + filename)
+          : null;
+        if (!url || typeof fetch !== 'function') return Promise.resolve(null);
+        return fetch(url)
+          .then(function (r) { return (r && r.ok) ? r.json() : null; })
+          .catch(function () { return null; });
+      } catch (_) {
+        return Promise.resolve(null);
+      }
+    };
+  }
+
   // ── Dependencies ──
   const core = self.__lexiVocabCore;
   if (!core) {
@@ -221,26 +305,16 @@
   // broken — emit a single error path, no fallback to IDB/API.
   async function loadBundledRaw(lang) {
     if (!BUNDLED_LANGS.includes(lang)) return null;
-    try {
-      const url = chrome.runtime.getURL(`data/${lang}.json`);
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('not bundled');
-      return await res.json();
-    } catch (e) {
-      console.warn('[lexi-vocab] bundled load failed for ' + lang, e);
+    const data = await self.__lexiVocabDataLoader(`${lang}.json`);
+    if (!data) {
+      console.warn('[lexi-vocab] bundled load failed for ' + lang);
       return null;
     }
+    return data;
   }
 
   async function loadBundledSidecar(filename) {
-    try {
-      const url = chrome.runtime.getURL(`data/${filename}`);
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (_) {
-      return null;
-    }
+    return self.__lexiVocabDataLoader(filename);
   }
 
   // F38-1 / F38-3 (Plan 38-01.2): cached one-shot loader for the bundled FR
@@ -254,14 +328,7 @@
   let _frBundledPromise = null;
   function loadFrBundledOnce() {
     if (!_frBundledPromise) {
-      _frBundledPromise = (async () => {
-        try {
-          const url = chrome.runtime.getURL('data/fr.json');
-          const res = await fetch(url);
-          if (!res.ok) return null;
-          return await res.json();
-        } catch (_) { return null; }
-      })();
+      _frBundledPromise = self.__lexiVocabDataLoader('fr.json');
     }
     return _frBundledPromise;
   }
@@ -280,6 +347,8 @@
   const FREQ_LANGS = new Set(['nb', 'nn']);
   const PITFALL_LANGS = new Set(['en']);
   const NON_COMPOUND_PAIRS_LANGS = new Set(['nb', 'nn']);
+  // Stammekartet er bokmål→nynorsk og blir berre lese i NB/NN-økter.
+  const STEM_CROSSREF_LANGS = new Set(['nb', 'nn']);
   // Phase 48 Wave A.0: per-language spell-check accept-list sidecar.
   // v3.0.123: de + es added — validwords-de.json shipped in the bundle but
   // this set (then nb/nn-only) meant the browser never loaded it; real users
@@ -317,6 +386,12 @@
   async function loadValidwordsExtra(lang) {
     if (!VALIDWORDS_LANGS.has(lang)) return null;
     return loadBundledSidecar(`validwords-${lang}.json`);
+  }
+  // Bokmål→nynorsk stammekartet. Same språkgate som non-compound-pairs:
+  // fila er NB/NN-spesifikk og har ingen tyding for dei andre språka.
+  async function loadStemCrossref(lang) {
+    if (!STEM_CROSSREF_LANGS.has(lang)) return null;
+    return loadBundledSidecar('nb-nn-stem-crossref.json');
   }
 
   // ── Index building + swap ──
@@ -362,12 +437,12 @@
     } else {
       enabledFeatures = new Set();
     }
-    const [bigrams, freq, sisterRaw, pitfalls, nonCompoundPairs, validwordsExtra] = await Promise.all([
+    const [bigrams, freq, sisterRaw, pitfalls, nonCompoundPairs, validwordsExtra, stemCrossref] = await Promise.all([
       loadBigrams(lang), loadFrequency(lang), loadSister(lang), loadPitfalls(lang),
-      loadNonCompoundPairs(lang), loadValidwordsExtra(lang),
+      loadNonCompoundPairs(lang), loadValidwordsExtra(lang), loadStemCrossref(lang),
     ]);
     const isFeatureEnabled = buildFeaturePredicate(lang);
-    const fresh = core.buildIndexes({ raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled, nonCompoundPairs, validwordsExtra });
+    const fresh = core.buildIndexes({ raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled, nonCompoundPairs, validwordsExtra, stemCrossref });
     fresh.pitfalls = pitfalls || {};
     fresh._sourceTag = source; // diagnostic
     state = fresh;
@@ -444,12 +519,13 @@
           loadBigrams(BASELINE_LANG), loadFrequency(BASELINE_LANG), loadSister(BASELINE_LANG), loadPitfalls(BASELINE_LANG),
         ]);
       }
-      const [nonCompoundPairs, validwordsExtra] = await Promise.all([
+      const [nonCompoundPairs, validwordsExtra, stemCrossref] = await Promise.all([
         loadNonCompoundPairs(BASELINE_LANG), loadValidwordsExtra(BASELINE_LANG),
+        loadStemCrossref(BASELINE_LANG),
       ]);
       const baseline = core.buildIndexes({
         raw, bigrams, freq, sisterRaw, lang: BASELINE_LANG, isFeatureEnabled: () => true,
-        nonCompoundPairs, validwordsExtra,
+        nonCompoundPairs, validwordsExtra, stemCrossref,
       });
       baseline.pitfalls = pitfalls || {};
       baseline._sourceTag = usingTrimmedBaseline ? 'baseline-nb-trimmed' : 'baseline-nb';
@@ -607,6 +683,7 @@
     getCompoundNouns: () => (state && state.compoundNouns) ? state.compoundNouns : new Set(),
     getVariantSpellings: () => (state && state.variantSpellings) ? state.variantSpellings : new Set(),
     getNonCompoundPairs: () => (state && state.nonCompoundPairs) ? state.nonCompoundPairs : new Set(),
+    getNbNnStemCrossref: () => (state && state.nbNnStemCrossref) ? state.nbNnStemCrossref : new Map(),
     getPitfalls: () => (state && state.pitfalls) ? state.pitfalls : {},
     phoneticNormalize: (str) => core.phoneticNormalize(str, currentLang),
     phoneticMatchScore: (queryPhonetic, targetPhonetic) => core.phoneticMatchScore(queryPhonetic, targetPhonetic),

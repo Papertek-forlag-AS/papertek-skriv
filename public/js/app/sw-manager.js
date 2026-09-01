@@ -1,13 +1,15 @@
 /**
  * Service Worker Manager for Skriv.
- * Handles registration, update detection, and forced refresh.
- * Disabled on localhost to avoid caching headaches during dev.
- *
- * Pattern borrowed from Papertek's tysk project (service-worker-manager.js).
+ * Registers the worker and lets the student choose when a waiting update may
+ * activate. Open editors get an awaited save hook before activation/reload.
+ * Disabled on localhost to avoid caching headaches during development.
  */
 
 import { t } from '../editor-core/shared/i18n.js';
 import { showToast } from '../editor-core/shared/toast-notification.js';
+
+const BEFORE_APP_RELOAD_EVENT = 'skriv:before-app-reload';
+const APP_RELOAD_CANCELLED_EVENT = 'skriv:app-reload-cancelled';
 
 const isLocalhost = () =>
     window.location.hostname === 'localhost' ||
@@ -15,8 +17,27 @@ const isLocalhost = () =>
     window.location.hostname.startsWith('192.168.');
 
 /**
- * Initialise the service worker. Call once from main.js.
+ * Give mounted screens a chance to persist local state before activation.
+ * Listeners register promises through detail.waitUntil(), mirroring the
+ * service-worker event pattern.
  */
+async function flushBeforeAppReload() {
+    const pending = [];
+    const waitUntil = (promise) => {
+        pending.push(
+            Promise.resolve(promise).then((result) => {
+                if (result === false) throw new Error('A reload safety hook failed');
+            })
+        );
+    };
+
+    document.dispatchEvent(new CustomEvent(BEFORE_APP_RELOAD_EVENT, {
+        detail: { waitUntil },
+    }));
+    await Promise.all(pending);
+}
+
+/** Initialise the service worker. Call once from main.js. */
 export function initServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
 
@@ -28,30 +49,46 @@ export function initServiceWorker() {
         return;
     }
 
+    let reloadRequested = false;
+
+    async function activateWaitingWorker(waitingWorker) {
+        await flushBeforeAppReload();
+        reloadRequested = true;
+        try {
+            waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+        } catch (err) {
+            reloadRequested = false;
+            throw err;
+        }
+    }
+
     // --- Production: register + listen for updates ---
     navigator.serviceWorker.register('/sw.js')
         .then(registration => {
             // Already a new worker waiting (e.g. user returned to a stale tab)
             if (registration.waiting) {
-                showUpdatePrompt(registration.waiting);
+                showUpdatePrompt(registration.waiting, activateWaitingWorker);
             }
 
             registration.addEventListener('updatefound', () => {
                 const newWorker = registration.installing;
+                if (!newWorker) return;
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New version downloaded and ready
-                        showUpdatePrompt(newWorker);
+                        // New version downloaded and ready; it remains waiting
+                        // until the student explicitly accepts the prompt.
+                        showUpdatePrompt(newWorker, activateWaitingWorker);
                     }
                 });
             });
         })
         .catch(err => console.warn('SW registration failed:', err));
 
-    // When a new SW takes over, reload so the user gets fresh code
+    // Initial installation may claim this page, but must never reload it.
+    // Reload only follows an explicit click after every save hook has settled.
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return;
+        if (!reloadRequested || refreshing) return;
         refreshing = true;
         window.location.reload();
     });
@@ -59,10 +96,8 @@ export function initServiceWorker() {
 
 /* ------------------------------------------------------------------ */
 
-/**
- * Show a small bar at the top prompting the user to update.
- */
-function showUpdatePrompt(waitingWorker) {
+/** Show a small bar at the top prompting the user to update. */
+function showUpdatePrompt(waitingWorker, activateWaitingWorker) {
     if (document.getElementById('sw-update-bar')) return;
 
     const bar = document.createElement('div');
@@ -89,17 +124,14 @@ function showUpdatePrompt(waitingWorker) {
         bar.innerHTML = `<span>${t('sw.updating')}</span>`;
 
         try {
-            // 1. Clear all caches
-            const names = await caches.keys();
-            await Promise.all(names.map(n => caches.delete(n)));
-
-            // 2. Tell waiting worker to activate
-            waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-
-            // controllerchange handler above will reload the page
+            await activateWaitingWorker(waitingWorker);
+            // controllerchange above reloads after the waiting worker activates.
         } catch (err) {
             console.error('Update failed:', err);
-            window.location.reload();
+            document.dispatchEvent(new CustomEvent(APP_RELOAD_CANCELLED_EVENT));
+            bar.remove();
+            showToast(t('skriv.saveError'));
+            showUpdatePrompt(waitingWorker, activateWaitingWorker);
         }
     });
 }

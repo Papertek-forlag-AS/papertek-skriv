@@ -29,8 +29,8 @@
  *   { rule_id, start, end, fix, message, severity, priority_band, ... }
  *
  * Dual-export footer (mirrors spell-check-core.js exactly):
- *   - Node:    module.exports = { runCheck }
- *   - Browser: self.__lexiSpellCheckEngine = { runCheck }
+ *   - Node:    module.exports = { runCheck, nextFindingByOffset }
+ *   - Browser: self.__lexiSpellCheckEngine = { runCheck, nextFindingByOffset }
  *
  * Purity contract (enforced by scripts/check-engine-purity.js):
  *   - No DOM references (document, window, getElementById, querySelector, …)
@@ -102,9 +102,53 @@
 
   // Dual-export footer. Mirrors spell-check-core.js exactly — Node gets
   // module.exports, browser gets self.__lexiSpellCheckEngine.
+
+  /**
+   * Kva funn skal «neste» opne etter at eleven har fiksa eller avvist eitt?
+   *
+   * IKKJE array-indeksen. spell-check-core byggjer findings[] REGEL FOR
+   * REGEL — reglane er sorterte på priority, og kvar regel legg sine treff
+   * bakerst. Rekkjefølgja er altså pedagogisk, ikkje tekstleg, og den
+   * ordninga er berande: dedupeOverlapping held det FØRSTE funnet når to
+   * spenn overlappar, og fixture-suiten i Plan 03 festar det. Ho skal ikkje
+   * røyrast.
+   *
+   * Men gjennomgangen skal følgje TEKSTEN. Å gå til findings[i] etter at
+   * i vart fjerna, gir det funnet som glei inn i slot i — som kan liggje
+   * kvar som helst i dokumentet. Meldt av ein brukar 29.08.2026: popoveren
+   * «hoppar» til ei anna setning lenger nede i staden for å halde fram der
+   * ein var.
+   *
+   * Difor: minste `start` som er STØRRE enn der vi var; wrap til det
+   * tidlegaste funnet når vi er forbi det siste. Uavgjort held det første
+   * array-elementet — der har prioriteten allereie bestemt kven som vann.
+   *
+   * @param {Array<{start?: number}>} findings
+   * @param {number} fromStart  offset til funnet vi kom frå (-1 = frisk start)
+   * @returns {number} indeks i findings, eller -1 når det ikkje finst noko
+   */
+  function nextFindingByOffset(findings, fromStart) {
+    if (!Array.isArray(findings) || findings.length === 0) return -1;
+    const from = typeof fromStart === 'number' ? fromStart : -1;
+    let idx = -1;
+    let best = Infinity;
+    let wrapIdx = -1;
+    let wrapBest = Infinity;
+    for (let i = 0; i < findings.length; i++) {
+      const f = findings[i];
+      const s = f && f.start;
+      // Eit funn utan numerisk start kan ikkje plasserast i teksten. Hopp
+      // over det — å la det falle til 0 ville gjort det til «første funn».
+      if (typeof s !== 'number' || !Number.isFinite(s)) continue;
+      if (s < wrapBest) { wrapBest = s; wrapIdx = i; }
+      if (s > from && s < best) { best = s; idx = i; }
+    }
+    return idx >= 0 ? idx : wrapIdx;
+  }
+
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { runCheck };
+    module.exports = { runCheck, nextFindingByOffset };
   } else if (typeof self !== 'undefined') {
-    self.__lexiSpellCheckEngine = { runCheck };
+    self.__lexiSpellCheckEngine = { runCheck, nextFindingByOffset };
   }
 })();

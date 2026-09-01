@@ -1,124 +1,250 @@
 # Data Model
 
-> Last updated: 2026-05-11
+> Last updated: 2026-09-01
 
-## IndexedDB
+Skriv is local-first. Documents, trash, folders, and version snapshots remain in the browser unless the student explicitly downloads a backup/export or opts into a school-enabled Microsoft 365 connection. There is no Papertek account or server-side document copy. Even when a remote `.skriv` copy is linked, the IndexedDB document remains the canonical working copy and every edit is saved locally first.
+
+## IndexedDB: `skriv-documents`
 
 - **Database name:** `skriv-documents`
-- **Version:** 4
+- **Current version:** 4
+- **Canonical opener:** `public/js/app/db.js`
+
+Every feature opens this database through `openSkrivDatabase()`. The opener owns the complete schema upgrade chain and performs a post-open repair for records affected by older v4 builds whose competing migration cursors could leave `folderIds` or `schoolYear` unset. The repair preserves a legacy `subject` association by matching it to an existing folder name.
+
+When another tab requests a schema change, the connection dispatches `skriv:before-app-reload` and waits for registered editor flushes before closing. If a flush fails, Skriv keeps the connection open instead of reloading with unsaved writing. A blocked open emits `skriv:database-blocked` so the UI can ask the student to close another Skriv tab.
 
 ### Object store: `documents`
 
 Key path: `id`
 
-| Field        | Type     | Required | Index    | Notes                             |
-|------------- |--------- |--------- |--------- |---------------------------------- |
-| `id`         | string   | yes      | keyPath  | UUID via `crypto.randomUUID()`    |
-| `title`      | string   | yes      |          | User-entered document title       |
-| `html`       | string   | yes      |          | Full editor innerHTML             |
-| `plainText`  | string   | yes      |          | Stripped text (for search/count)  |
-| `wordCount`  | number   | yes      |          | Cached word count                 |
-| `createdAt`  | string   | yes      |          | ISO 8601 timestamp                |
-| `updatedAt`  | string   | yes      | yes      | ISO 8601, sorted descending       |
-| `references` | array    | no       |          | Array of citation objects          |
-| `tags`       | array    | no       |          | **Legacy.** No longer written by UI. May exist on older documents. |
-| `frameType`  | string   | no       |          | Active writing frame (`analyse`, `droefting`, `kronikk`, or `null`) |
-| `subject`    | string   | no       | yes      | **Legacy.** Subject name or `null`. Kept for backward compat; no longer written by UI. Use `folderIds` instead. Added in v3. |
-| `schoolYear` | string   | no       | yes      | School year label e.g. `'2025/2026'`. Aug 1 – Jul 31. Added in v3. |
-| `folderIds`  | array    | no       | yes (multiEntry) | Array of folder IDs the document belongs to (default `[]`). Orphan = empty array. Added in v4. |
-| `germanHint` | object   | no       |          | German exam draft pair `{ simple: string, rich: string }`. Set by `german-exam-route.js` when seeding a Tysk task; read by `german-hint-drawer.js` in the editor. Absent on non-German docs. Schemaless — no DB version bump required. |
+| Field | Type | Required | Index | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | string | yes | keyPath | `crypto.randomUUID()` with a local fallback |
+| `title` | string | yes | | Student-entered title |
+| `html` | string | yes | | Full editor HTML, including inline images |
+| `plainText` | string | yes | | Text used for search and counts |
+| `wordCount` | number | yes | | Cached count |
+| `writingLanguage` | string | yes for new records | | One of `nb`, `nn`, `en`, `de`, `es`, `fr`; belongs to the document, not the interface |
+| `createdAt` | string | yes | | ISO 8601 timestamp |
+| `updatedAt` | string | yes | yes | ISO 8601; document lists sort descending |
+| `references` | array | no | | Citation objects |
+| `frameType` | string/null | no | | Active writing-frame ID |
+| `schoolYear` | string | no | yes | Label such as `2026/2027` (Aug 1–Jul 31) |
+| `folderIds` | string[] | no | yes, multiEntry | Folder membership; an empty array is unfiled |
+| `germanHint` | object | no | | `{ simple, rich }` draft pair for German tasks |
+| `microsoft365` | object/null | no | | Pseudonymous account binding plus target/item/eTag/sync metadata for an explicitly linked remote copy; never contains a token, email, Microsoft home-account ID, or pasted folder link |
+| `subject` | string/null | legacy | yes | Retained for compatibility; new UI uses `folderIds` |
+| `tags` | array | legacy | | May exist on older records; no longer written |
+
+New documents take their initial `writingLanguage` from the current interface language when supported. Older records are read as Bokmål unless they contain `germanHint`, in which case Skriv infers German. The editor writes the resolved value on the next save.
+
+`microsoft365`, when non-null, is a version 1 link descriptor:
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `version` | number | Link schema version, currently `1` |
+| `tenantId` | string | Required configured school tenant ID |
+| `accountBinding` | string | Required lowercase SHA-256 of the tenant-scoped MSAL account identity with a Skriv domain prefix; prevents another account from reusing the link without storing its home-account ID or email |
+| `driveId`, `folderId`, `folderName`, `folderWebUrl` | string | Resolved canonical target; never the pasted sharing URL |
+| `remoteDocumentId` | string/null | Stable document identity carried inside the remote file; retained across local import ID changes |
+| `itemId`, `fileName`, `webUrl`, `eTag`, `cTag` | string/null | Acknowledged drive-item metadata; nullable before the first successful create |
+| `lastSyncedAt`, `lastSyncedHash` | string/null | Successful acknowledgement time and exact serialized UTF-8 SHA-256 |
+| `state`, `errorCode` | string/null | Pupil-facing state and non-sensitive operational code; never a raw Graph response/body |
+| `attemptId` | string/null | Unique compare-and-swap token while one upload attempt is pending; cleared on acknowledgement/error and nullable otherwise |
+
+Persisted sync states are `pending`, `synced`, `conflict`, `error`, `needs-sign-in`, `permission-denied`, `remote-missing`, `account-mismatch`, `target-required`, and `target-mismatch`. A document with no valid link is `local-only` at runtime. `destroyed`, `cancelled`, `unlinked`, and `superseded` may appear only as transient operation results.
+
+Asynchronous connector acknowledgements call `saveDocument(..., { preserveUpdatedAt: true, expectedFields: { microsoft365: ... } })`. The document store performs the read, deep expected-field comparison, merge, and write in one IndexedDB transaction. A failed comparison returns `null` without writing, so a late upload acknowledgement cannot overwrite a newer autosave, unlink, or removal. Explicit unlink instead atomically clears the current `microsoft365` field without a stale expected value, and background sync re-checks that a link exists when its timer executes, so opt-out wins across controllers/tabs. If another edit/sync request arrives while the document upload is in flight, the controller coalesces it into one queued follow-up pass after the current attempt settles.
 
 ### Object store: `trash`
 
 Key path: `id`
 
-| Field        | Type     | Required | Index    | Notes                             |
-|------------- |--------- |--------- |--------- |---------------------------------- |
-| `id`         | string   | yes      | keyPath  | Same ID as original document      |
-| `title`      | string   | yes      |          | Preserved from document           |
-| `html`       | string   | yes      |          | Preserved from document           |
-| `plainText`  | string   | yes      |          | Preserved from document           |
-| `wordCount`  | number   | yes      |          | Preserved from document           |
-| `createdAt`  | string   | yes      |          | Preserved from document           |
-| `updatedAt`  | string   | yes      |          | Preserved from document           |
-| `trashedAt`  | string   | yes      | yes      | ISO 8601 — when it was trashed    |
-| `expiresAt`  | string   | yes      |          | ISO 8601 — when auto-purge fires  |
-| `references` | array    | no       |          | Preserved from document           |
-| `frameType`  | string   | no       |          | Preserved from document           |
-| `subject`    | string   | no       |          | Legacy. Preserved from document   |
-| `schoolYear` | string   | no       |          | Preserved from document           |
-| `folderIds`  | array    | no       |          | Preserved from document. Added in v4. |
+Trash records preserve the complete document record, including `writingLanguage`, `references`, `frameType`, `folderIds`, `schoolYear`, and `germanHint`, and add:
 
-**Trash retention:** 30 days. `purgeExpired()` runs on app startup and deletes documents where `expiresAt` has passed.
+| Field | Type | Required | Index | Notes |
+| --- | --- | --- | --- | --- |
+| `trashedAt` | string | yes | yes | ISO 8601 soft-delete time |
+| `expiresAt` | string | yes | | ISO 8601 automatic-purge time |
+
+Trash retention is 30 days. Moving a document to trash retains its version snapshots so restore remains complete. Permanent delete, empty trash, and expiry purge also delete snapshots for the affected document IDs.
 
 ### Object store: `folders`
 
 Key path: `id`
 
-| Field        | Type     | Required | Index    | Notes                             |
-|------------- |--------- |--------- |--------- |---------------------------------- |
-| `id`         | string   | yes      | keyPath  | Deterministic: `sys_<norm>` for system, `cust_<norm>` for custom, `usr_<uuid>` for user-created |
-| `name`       | string   | yes      |          | Display name (e.g. `'Norsk'`, `'Personlig mappe'`) |
-| `parentId`   | string   | no       | yes      | Parent folder ID, or `null` for root |
-| `isSystem`   | boolean  | yes      |          | `true` for seeded system/subject folders |
-| `schoolYear` | string   | no       | yes      | Reserved for future per-year folders |
-| `sortOrder`  | number   | yes      |          | Display order within siblings     |
-| `createdAt`  | string   | yes      |          | ISO 8601 timestamp                |
+| Field | Type | Required | Index | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | string | yes | keyPath | Deterministic for seeded/migrated folders; timestamp-suffixed for new custom folders |
+| `name` | string | yes | | Display name |
+| `parentId` | string/null | yes | yes | Parent folder or `null` at the root |
+| `isSystem` | boolean | yes | | Seeded subject/personal folder flag |
+| `schoolYear` | string/null | yes | yes | Reserved for year-scoped folders |
+| `sortOrder` | number | yes | | Sibling order |
+| `createdAt` | string | yes | | ISO 8601 timestamp |
 
-**Folder ID convention:**
-- `sys___personal__` — Personal folder (system)
-- `sys_<normalized_name>` — Predefined subject folders (e.g. `sys_norsk`, `sys_matematikk`)
-- `cust_<normalized_name>` — Migrated custom subjects from localStorage
-- `usr_<uuid>` — User-created folders after migration
+Folder IDs:
 
-**Normalization:** lowercase, Norwegian chars transliterated (æ→ae, ø→oe, å→aa), non-alphanumeric → `_`, collapsed.
+- `sys___personal__` for the built-in personal folder.
+- `sys_<normalized-name>` for seeded subjects, for example `sys_norsk`.
+- `cust_<normalized-name>` for custom subjects migrated from `skriv_custom_subjects`.
+- `cust_<normalized-name>_<timestamp>` for folders created in the current UI.
 
-**Max depth:** 3 levels (root → child → grandchild).
+Normalization lowercases, transliterates æ/ø/å to ae/oe/aa, converts other non-alphanumeric runs to `_`, and trims leading/trailing underscores. The maximum tree depth is three levels (root, child, grandchild).
 
-### DB migration history
+### Migration history
 
-| Version | Changes |
-|---------|---------|
-| 1       | `documents` store with `updatedAt` index |
-| 2       | `trash` store with `trashedAt` index |
-| 3       | `subject` and `schoolYear` indexes on `documents`. Backfill: existing docs get `subject: null`, `schoolYear` derived from `createdAt`. |
-| 4       | `folders` store with `parentId` and `schoolYear` indexes. `folderIds` multiEntry index on `documents`. Seed system folders from hardcoded subject list + `skriv_custom_subjects` localStorage. Walk all documents and trash: map `subject` → folder ID → set `folderIds`. |
+| Version | Change |
+| --- | --- |
+| 1 | `documents` with `updatedAt` index |
+| 2 | `trash` with `trashedAt` index |
+| 3 | `subject` and `schoolYear` indexes on documents; missing values backfilled |
+| 4 | `folders`, `folderIds` multiEntry index, deterministic folder seed, legacy subject/custom-subject migration |
+
+The current post-open repair deliberately remains at version 4. Bumping the schema solely to repair data would force active older tabs to close and could endanger unsaved text.
+
+## IndexedDB: `skriv-versions`
+
+- **Database name:** `skriv-versions`
+- **Current version:** 1
+
+### Object store: `snapshots`
+
+Key path: `id`, auto-incrementing. Indexes: non-unique `docId` and `timestamp`.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | number | Local auto-increment key; ignored when merging backups |
+| `docId` | string | Owning live or trashed document |
+| `timestamp` | number | `Date.now()` milliseconds at snapshot time |
+| `content` | string | Editor HTML at this point in time |
+| `wordCount` | number | Count at snapshot time |
+| `preview` | string | Short timeline preview |
+| `isMajor` | boolean | Marks normal timeline/automatic snapshots; pre-restore safety checkpoints may be `false` |
+
+Snapshots are written only when content changes: at most every five minutes or after 100 additional words. At most 50 snapshots are kept per document. On quota pressure, the module prunes older snapshots and retries once.
+
+## Portable library backup
+
+The downloaded `.skriv` file is UTF-8 JSON:
+
+```json
+{
+  "format": "papertek-skriv-backup",
+  "version": 1,
+  "createdAt": "2026-08-22T12:00:00.000Z",
+  "data": {
+    "documents": [],
+    "trash": [],
+    "folders": [],
+    "versions": [],
+    "settings": {}
+  }
+}
+```
+
+Restore is validated before writes and is merge-only: local records are never overwritten. Exact replays are idempotent, deterministic conflict IDs keep related folder/document/version records connected, and version auto-increment IDs do not participate in deduplication. Microsoft metadata must match the exact version 1 key/type/length/URL/state schema; unknown identity/credential-like fields and duplicate `(tenantId, driveId, itemId)` identities across live/trash records are rejected. A restored collision or remote identity already owned by another local record drops `microsoft365`, because two local identities must not autosync the same drive item. Primary document/folder/trash changes use one transaction; later version/settings phase failures are retryable partial restores.
+
+The parser applies size/count/depth limits and rejects duplicate identities, missing folder parents, document-to-folder references that do not exist in the backup, invalid folder topology, unsafe active HTML, event attributes, unsafe URL schemes, and network-capable inline CSS. A legacy version snapshot whose `docId` is absent is accepted for portability, then counted as orphaned and skipped during restore.
+
+Only these preferences travel in a library backup: `skriv_language`, `skriv_theme`, legacy `theme`, `skriv_school_year`, `skriv_school_level`, and the three core Leksihjelp language/limited-assistance keys.
+
+An optional `document.microsoft365` object is ordinary document metadata and therefore travels with that document in a whole-library backup. It contains no token, email address, Microsoft home-account ID, or pasted folder sharing link. It does include a pseudonymous SHA-256 `accountBinding` and remote organizational metadata such as tenant/drive/folder/item IDs, names, canonical URLs, eTags, timestamps, hashes, state/error codes, and possibly a nullable in-progress `attemptId`. These are not credentials, but they can still be personal or school-organizational metadata, so a library backup must be protected accordingly. Restore does not initiate authentication or remote traffic: the connector must be configured, the matching account must be present, and a target must be selected in the current session before sync can resume.
+
+## Portable Microsoft 365 document
+
+The optional connector stores one live document per remote `.skriv` file. It reuses the validated `papertek-skriv-backup` version 1 JSON envelope, narrowed to exactly:
+
+- one live document with `microsoft365` removed;
+- only the document's referenced folders and their ancestor closure;
+- empty `trash` and `versions` arrays; and
+- an empty `settings` object.
+
+Serialization and import reuse the library backup's size, topology, identity, HTML, URL, and inline-style safety validation; active/resource markup is rejected before browser DOM parsing, and any `microsoft365` field in a remote payload is rejected. The initial readable filename combines a sanitized title with a stable document-ID suffix. The SHA-256 hash covers the exact UTF-8 serialization. Upload and download remain below 60 MiB; download enforces drive-item size, `Content-Length`, a bounded byte stream, and fatal UTF-8 decoding.
+
+Remote item identity and the upload acknowledgement's eTag stay in the local document record; a follow-up metadata GET may enrich other fields but cannot substitute its eTag, a failed enrichment read cannot turn a committed upload into a retry, and a different eTag reports a conflict. Update/download preflight verifies the item remains a `.skriv` file in the selected folder. Updates use `If-Match`; Graph `409`/`412` record conflicts. **Keep both** relinks to a separate file. Import's first local write already records the source item/eTag so interruption cannot make recovery create a new remote file; it otherwise uses current school year, clears legacy `subject`, and enters **Uten mappe**. Skriv does not delete remote files.
 
 ## localStorage
 
-| Key                      | Type   | Purpose                                     |
-|------------------------- |------- |-------------------------------------------- |
-| `skriv_language`         | string | Selected UI language (nb/nn/en)              |
-| `skriv_theme`            | string | Theme preference (`light`, `dark`, `system`) |
-| `skriv_custom_subjects`  | string | **Legacy.** JSON array of student-created subject names. Read during v4 migration to seed custom folders. No longer written. |
-| `skriv_school_year`      | string | Active school year label e.g. `'2025/2026'`  |
-| `skriv_school_level`     | string | Selected school level ID (`barneskole`, `ungdomsskole`, `vg1`, `vg2`, `vg3`) |
-| `papertek.skriv.germanExam.deck.writing.tysk-1` | string | JSON array of remaining writing-mode Tysk 1 task ids; auto-shuffles on exhaustion |
-| `papertek.skriv.germanExam.deck.writing.tysk-2` | string | JSON array of remaining writing-mode Tysk 2 task ids; auto-shuffles on exhaustion |
-| `papertek.skriv.germanExam.deck.exam.tysk-1` | string | JSON array of remaining exam-mode Tysk 1 task ids; auto-shuffles on exhaustion |
-| `papertek.skriv.germanExam.deck.exam.tysk-2` | string | JSON array of remaining exam-mode Tysk 2 task ids; auto-shuffles on exhaustion |
-| `papertek.skriv.germanExam.activeLevel` | string | `'tysk-1'` or `'tysk-2'`; persists last selected level on the spinner screen |
-| `papertek.skriv.germanExam.activeMode`  | string | `'writing'` or `'exam'`; persists last selected German spinner mode |
-| `germanExam.writeExplainSeen`           | string | `'1'` once the user has seen the explain dialog before "Skriv svar" creates a doc |
-| `papertek.skriv.paragraphTrainer.deck`  | string | JSON array of remaining paragraph-trainer topic ids; auto-shuffles on exhaustion |
-| `papertek.skriv.paragraphTrainer.draft` | string | JSON `{ topicId, steps: [string×3], checks: [bool×4] }` — in-progress paragraph-trainer attempt, restored on next visit |
-| `papertek.skriv.paragraphTrainer.history` | string | JSON. Finished trainer attempts, newest first, capped at 20: `[{ts, topic, text, checksPassed, checksTotal, words}]`. Logged on copy/save only |
-| `germanHintDrawer.variant.<docId>`      | string | `'simple'` or `'rich'`; per-document tab selection in the editor hint drawer |
-| `skriv_daily_goal`       | string | Writing-progress daily word goal             |
-| `skriv_writing_streak`   | string | Writing-progress streak count                |
-| `skriv_last_write_date`  | string | ISO date string for last streak update       |
-| `skriv_tour_completed`   | string | `'true'` when editor onboarding tour has been completed |
-| `skriv.leksihjelp.writingLang`          | string | Skrivespråk — drives spell-check + special-chars panel. One of `nb`/`nn`/`en`/`de`/`es`/`fr` |
-| `skriv.leksihjelp.lookupLang`           | string | Oppslagsspråk — drives dictionary popup language |
-| `skriv.leksihjelp.examMode`             | string | `'1'` when eksamensmodus is on, `''` otherwise |
-| `skriv.leksihjelp.grammarFeatures.{lang}` | string | JSON. Per-language grammar feature checkbox state for the dictionary view |
-| `skriv.leksihjelp.activeTab`              | string | `'dictionary'` or `'settings'`; persists last active tab in the Leksihjelp drawer |
-| `skriv.readingSettings`                 | string | JSON. Lesevisning display settings: `{ font, size, lineHeight, letterSpacing }` (see reading-settings.js) |
+### Active application preferences
 
-## Other storage
+| Key | Value | Purpose |
+| --- | --- | --- |
+| `skriv_language` | `nb` / `nn` / `en` | Interface language; first run defaults deterministically to Bokmål |
+| `skriv_theme` | `light` / `dark` / `system` | Theme preference |
+| `skriv_school_year` | year label | Active library year |
+| `skriv_school_level` | `barneskole`, `ungdomsskole`, `vg1`, `vg2`, `vg3` | Selected school level |
+| `skriv.leksihjelp.writingLang` | `nb` / `nn` / `en` / `de` / `es` / `fr` | Compatibility mirror for Leksihjelp; the open document is authoritative in the editor |
+| `skriv.leksihjelp.lookupLang` | supported language | Dictionary lookup language |
+| `skriv.leksihjelp.examMode` | `1` or empty | Technical legacy key for the UI's **Limited assistance** setting; not a secure exam mode or locked browser |
+| `skriv.leksihjelp.activeTab` | `dictionary` / `settings` | Last Leksihjelp drawer tab |
 
-- **Service Worker cache:** `skriv-v{N}` — precaches all static assets listed in `sw.js ASSETS[]` (atomic) plus `LEKSIHJELP_ASSETS[]` and `OPTIONAL_ASSETS[]` (best-effort, individual failures don't block install). Current version: `skriv-v93`.
-- **Images:** Stored inline as base64 data URIs within document `html` field. No separate image storage.
+The embedded loader keeps `enabledGrammarFeatures` only in its in-memory `chrome.storage.local` shim (per-language grammar-feature checkbox state, written by `leksihjelp-settings.js`'s preset pills). Those choices reset on reload and are not localStorage data.
+
+### German task preferences
+
+| Key | Purpose |
+| --- | --- |
+| `papertek.skriv.germanExam.deck.<writing|exam>.<tysk-1|tysk-2>` | Remaining randomized task IDs |
+| `papertek.skriv.germanExam.activeLevel` | Last `tysk-1` / `tysk-2` selection |
+| `papertek.skriv.germanExam.activeMode` | Last `writing` / `exam` task collection |
+| `germanExam.writeExplainSeen` | `1` after the pre-writing explanation has been shown |
+| `germanHintDrawer.variant.<docId>` | `simple` / `rich` hint tab per document |
+
+The word `exam` in these legacy technical keys identifies the German task collection or earlier Leksihjelp integration. It does not imply secure assessment software.
+
+### Paragraph trainer preferences
+
+| Key | Purpose |
+| --- | --- |
+| `papertek.skriv.paragraphTrainer.deck` | JSON array of remaining paragraph-trainer topic ids; auto-shuffles on exhaustion |
+| `papertek.skriv.paragraphTrainer.draft` | JSON `{ topicId, steps: [string×3], checks: [bool×4] }` — in-progress attempt, restored on next visit |
+| `papertek.skriv.paragraphTrainer.history` | JSON array of finished attempts, newest first, capped at 20: `[{ts, topic, text, checksPassed, checksTotal, words}]`; logged on copy/save only |
+
+Shared unchanged between `#/avsnitt` and `school.html`'s standalone trainer (same origin, same keys).
+
+### Reading and dictionary display preferences
+
+| Key | Purpose |
+| --- | --- |
+| `skriv.readingSettings` | JSON. Lesevisning display settings: `{ font, size, lineHeight, letterSpacing }` (see `reading-settings.js`); applies inline styles to the editor container only, saved document HTML is untouched |
+
+### Dormant opt-in feature preferences
+
+The current minimal editor does not mount progress or tour modules automatically, but the portable modules retain their keys for explicit future use:
+
+| Key | Purpose |
+| --- | --- |
+| `skriv_daily_goal` | Daily word target |
+| `skriv_writing_streak` | Streak count |
+| `skriv_last_write_date` | Last streak-update date |
+| `skriv_tour_completed` | Completion marker for an explicitly started tour |
+
+### Legacy preference
+
+- `skriv_custom_subjects` is a JSON string array read only during the v4 folder migration. It is no longer written.
+- `theme` is retained only as a backup pass-through for older installations. Current theme code reads and writes `skriv_theme`.
+
+## sessionStorage
+
+Microsoft connection state is deliberately scoped to the current browser tab/session:
+
+| Key / owner | Value | Purpose |
+| --- | --- | --- |
+| `skriv.microsoft.clientId` | Entra application GUID | Localhost-only development override; production uses HTML metadata |
+| `skriv.microsoft.tenantId` | Entra directory GUID | Localhost-only development override; production uses HTML metadata |
+| `skriv.microsoft.sharePointHost` | Bare `<tenant>.sharepoint.com` hostname | Localhost-only global-cloud SharePoint boundary; schemes, paths, ports, wildcards, and a configured `-my` host are invalid |
+| `skriv.microsoft.target.v1` | `{ version: 1, tenantId, driveId, folderId, folderName, folderWebUrl }` JSON | Current tenant-bound resolved drive/folder target; the pasted sharing URL is not retained |
+| MSAL Browser | library-owned session keys | Account and delegated token cache; Skriv auto-resumes only one unambiguous cached account and clears the connector's complete app cache on disconnect |
+
+Production reads public client ID, tenant ID, and bare SharePoint host from `skriv:microsoft-client-id`, `skriv:microsoft-tenant-id`, and `skriv:microsoft-sharepoint-host` meta tags instead. The connector requests delegated `Files.ReadWrite.All` so Teams' group-owned SharePoint files are available only within the signed-in pupil's existing access. Passwords, MFA codes, access/refresh tokens, client secrets, raw MSAL account identifiers, emails, and pasted folder links are never application data and must not be persisted or backed up.
+
+## Other local storage
+
+- **Service Worker cache:** current static cache is `skriv-v96` (`CACHE_NAME` in `sw.js`). Critical shell/modules/frames (`ASSETS[]`), the Microsoft connector modules, and the main vendored MSAL Browser distribution are precached atomically. `LEKSIHJELP_ASSETS[]` (vendored Leksihjelp code, styles, metadata, and the compact NB fallback) and `OPTIONAL_ASSETS[]` (currently just `/vendor/docx.iife.js`, the ~800 kB docx bundle) are precached best-effort — individual failures don't block install. Larger Leksihjelp language data is cached on first use by the same-origin fetch handler. Cross-origin Microsoft traffic is not cached. The same-origin `/microsoft-auth-redirect.html` and `/vendor/msal-redirect-bridge-5.17.3.min.js` resources also bypass the worker and must be served network-only with `Cache-Control: no-store` and no `Cross-Origin-Opener-Policy` response header.
+- **Images:** compressed images are stored as base64 data URIs inside document HTML; there is no separate image store.
 - **Persistent storage:** `main.js` calls `navigator.storage.persist()` at startup so the browser treats the origin's IndexedDB as protected rather than best-effort (Safari otherwise purges it after 7 days without a visit).
-- **Backup file (`.skriv`):** `library-backup.js` exports `{ format: 'skriv-library-backup', version: 1, exportedAt, documents[], folders[] }` as JSON. Restore is merge-only: folders matched by name+parent (missing ones recreated depth-first), documents with identical `id`+`updatedAt` skipped, everything else imported as a new document with remapped `folderIds`. Trash and version snapshots are not included.
-- **Version snapshots (`skriv-versions` DB):** one snapshot at most per 60 s of editing (major snapshot each 5 min or +100 words), capped at 300 snapshots per document — snapshots store the full editor HTML, so the cap bounds quota usage.
+- **Version snapshots (`skriv-versions` DB):** confirmed in `version-history.js`'s `VERSION_HISTORY_POLICY` — a snapshot at most every 5 minutes (`snapshotIntervalMs: 300000`) or after +100 words (`majorWordThreshold`), capped at 50 snapshots per document (`maxSnapshotsPerDocument`), matching the "Migration history"/snapshot description above. Snapshots store the full editor HTML, so the cap bounds quota usage.
+
+The `.skriv` backup file's exact format and merge-only restore semantics are already fully described above under "Portable library backup" — including that trash and version snapshots *are* part of the backup, contrary to an earlier draft of this note.

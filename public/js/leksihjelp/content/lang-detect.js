@@ -81,13 +81,21 @@
     function loadDetectionVocab(lang) {
         if (detectionVocabs.has(lang)) return Promise.resolve(detectionVocabs.get(lang));
         if (detectionVocabPromise.has(lang)) return detectionVocabPromise.get(lang);
-        const url = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL)
-            ? chrome.runtime.getURL('data/' + lang + '.json')
-            : null;
-        if (!url || typeof fetch !== 'function') return Promise.resolve(null);
-        const p = fetch(url)
-            .then(function (r) { return r.json(); })
+        // Fase 3 (trelagsarkitekturen): sjølve lastinga (chrome.runtime.getURL
+        // + fetch) bur i verts-lesaren __lexiDetectVocabLoader (default
+        // installert av vocab-seam.js) så denne fila held seg lag 1-rein.
+        const loader = self.__lexiDetectVocabLoader;
+        if (typeof loader !== 'function') return Promise.resolve(null);
+        const p = Promise.resolve()
+            .then(function () { return loader(lang); })
             .then(function (json) {
+                // Loader som gav null (t.d. fetch-feil) → same semantikk som
+                // gamal catch-grein: rydd promise-cachen så neste kall prøver
+                // på nytt, og returner null.
+                if (!json) {
+                    detectionVocabPromise.delete(lang);
+                    return null;
+                }
                 const set = buildVocabSet(json);
                 detectionVocabs.set(lang, set);
                 detectionVocabPromise.delete(lang);

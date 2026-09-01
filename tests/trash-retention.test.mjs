@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installFakeIndexedDB, settle } from './helpers/fake-idb.mjs';
+import { closeSkrivDatabase } from '../public/js/app/db.js';
 
 // The trash lifecycle against the module's real IndexedDB code:
 // trashDocument stamps retention metadata, restoreDocument strips it,
@@ -9,6 +10,9 @@ import { installFakeIndexedDB, settle } from './helpers/fake-idb.mjs';
 let cacheBust = 0;
 async function freshTrashStore() {
     const env = installFakeIndexedDB();
+    // The stores share one connection in db.js, which the cache-busted import
+    // below does NOT reload — drop it so this test opens the new fake.
+    closeSkrivDatabase();
     cacheBust += 1;
     const mod = await import(`../public/js/app/trash-store.js?bust=${cacheBust}`);
     return { env, mod };

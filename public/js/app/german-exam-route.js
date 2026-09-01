@@ -60,8 +60,7 @@ function renderInitialDocHtml(task) {
     // No <h1>: the doc title input above the editor already shows the full
     // title, so a heading inside the editor is redundant — and an H1 would
     // trigger the auto Table of Contents, which is noise for a single-task
-    // document. Title becomes a bold paragraph; if the student wants a
-    // proper heading they can enable advanced mode.
+    // document. The title remains a compact bold paragraph instead.
     const titleLine = `<p><strong>${escapeHtml(task.title)}</strong></p>`;
     const attribution = `<p><em>${escapeHtml(task.attribution)}</em></p>`;
     const promptHtml = promptToDocHtml(task.prompt);
@@ -98,7 +97,7 @@ async function handlePickTask(task, levelKey) {
         year: task.year,
         title: task.title,
     });
-    const doc = await createDocument(title);
+    const doc = await createDocument(title, { writingLanguage: 'de' });
     const html = renderInitialDocHtml(task);
     const germanHint = (task.modelAnswers && (task.modelAnswers.simple || task.modelAnswers.rich))
         ? {

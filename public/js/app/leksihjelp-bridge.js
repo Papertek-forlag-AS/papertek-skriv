@@ -254,6 +254,11 @@ export function initLeksihjelpBridge(options = {}) {
         destroy() {
             clearTimeout(detectTimer);
             if (presenceObserver) { presenceObserver.disconnect(); presenceObserver = null; }
+            if (typeof window !== 'undefined'
+                && window.__skrivLeksihjelpShim
+                && typeof window.__skrivLeksihjelpShim.unbindBridge === 'function') {
+                try { window.__skrivLeksihjelpShim.unbindBridge(api); } catch (_) { /* ignore */ }
+            }
             if (typeof window !== 'undefined') {
                 window.removeEventListener('message', onWindowMessage);
                 window.removeEventListener('focus', onFocus);

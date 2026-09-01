@@ -22,20 +22,96 @@
  *   versions.empty = 'Ingen lagrede versjoner ennå'
  */
 
-import { t } from '../shared/i18n.js';
+import { getDateLocale, t } from '../shared/i18n.js';
 import { countWords } from '../shared/word-counter.js';
 import { showToast } from '../shared/toast-notification.js';
 
-// Snapshots hold the full editor HTML (images included as data URIs), so
-// the cadence and cap bound how much storage a single document can eat —
-// unbounded snapshots can exhaust the origin quota and break auto-save.
-const TIMELINE_INTERVAL = 60000;
-const MAJOR_INTERVAL = 300000;
-const MAJOR_WORD_THRESHOLD = 100;
-const MAX_SNAPSHOTS = 300;
+export const VERSION_HISTORY_POLICY = Object.freeze({
+    snapshotIntervalMs: 300000,
+    majorWordThreshold: 100,
+    maxSnapshotsPerDocument: 50,
+});
+
+const TIMELINE_INTERVAL = VERSION_HISTORY_POLICY.snapshotIntervalMs;
+const MAJOR_WORD_THRESHOLD = VERSION_HISTORY_POLICY.majorWordThreshold;
+const MAX_SNAPSHOTS = VERSION_HISTORY_POLICY.maxSnapshotsPerDocument;
 const DB_NAME = 'skriv-versions';
-const STORE_NAME = 'snapshots';
+export const VERSION_HISTORY_STORE_NAME = 'snapshots';
+const STORE_NAME = VERSION_HISTORY_STORE_NAME;
 const DB_VERSION = 1;
+
+/** Open the canonical version-history database and run its schema upgrade. */
+export function openVersionHistoryDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+            const database = e.target.result;
+            if (!database.objectStoreNames.contains(STORE_NAME)) {
+                const store = database.createObjectStore(STORE_NAME, {
+                    keyPath: 'id',
+                    autoIncrement: true,
+                });
+                store.createIndex('docId', 'docId', { unique: false });
+                store.createIndex('timestamp', 'timestamp', { unique: false });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+function waitForTransaction(tx) {
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction failed'));
+        tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
+    });
+}
+
+/**
+ * Delete retained versions for several permanently deleted documents.
+ * Soft-deleted documents intentionally keep their versions so restore works.
+ * @param {Iterable<string>} docIds
+ * @returns {Promise<number>} number of snapshots deleted
+ */
+export async function deleteSnapshotsForDocuments(docIds) {
+    const ids = [...new Set(docIds)].filter(Boolean);
+    if (ids.length === 0) return 0;
+
+    const database = await openVersionHistoryDatabase();
+    try {
+        const tx = database.transaction(STORE_NAME, 'readwrite');
+        const index = tx.objectStore(STORE_NAME).index('docId');
+        const complete = waitForTransaction(tx);
+        let deleted = 0;
+
+        const cursors = ids.map((docId) => new Promise((resolve, reject) => {
+            const request = index.openCursor(docId);
+            request.onsuccess = () => {
+                const cursor = request.result;
+                if (!cursor) {
+                    resolve();
+                    return;
+                }
+                cursor.delete();
+                deleted += 1;
+                cursor.continue();
+            };
+            request.onerror = () => reject(request.error);
+        }));
+
+        await Promise.all(cursors);
+        await complete;
+        return deleted;
+    } finally {
+        database.close();
+    }
+}
+
+/** Delete retained versions for one permanently deleted document. */
+export function deleteSnapshotsForDocument(docId) {
+    return deleteSnapshotsForDocuments([docId]);
+}
 
 let playbackCache = [];
 let playbackIndex = 0;
@@ -113,6 +189,8 @@ const STYLES = `
     border-radius: 1px;
 }
 .version-entry {
+    display: block;
+    width: 100%;
     position: relative;
     margin-bottom: 12px;
     padding: 10px 12px;
@@ -120,6 +198,9 @@ const STYLES = `
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     cursor: pointer;
+    color: inherit;
+    font: inherit;
+    text-align: left;
     transition: border-color 0.15s ease, background 0.15s ease;
 }
 .version-entry:hover {
@@ -316,13 +397,13 @@ function formatRelativeTime(timestamp) {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return 'Akkurat nå';
-    if (minutes < 60) return `${minutes} min siden`;
-    if (hours < 24) return `${hours} t siden`;
-    if (days < 7) return `${days} d siden`;
+    if (minutes < 1) return t('time.now');
+    if (minutes < 60) return t('time.minutesAgo', { count: minutes });
+    if (hours < 24) return t('time.hoursAgo', { count: hours });
+    if (days < 7) return t('time.daysAgo', { count: days });
 
     const date = new Date(timestamp);
-    return date.toLocaleDateString('nb-NO', {
+    return date.toLocaleDateString(getDateLocale(), {
         day: 'numeric',
         month: 'short',
         hour: '2-digit',
@@ -345,63 +426,103 @@ export function initVersionHistory(editor, options = {}) {
     let panel = null;
     let styleEl = null;
     let timelineIntervalId = null;
-    let majorIntervalId = null;
     let lastSnapshotWords = 0;
     let lastMajorSnapshotWords = 0;
+    let lastQueuedMajorSnapshotWords = 0;
     let lastSnapshotContent = '';
+    let snapshotSaveChain = Promise.resolve(true);
     let db = null;
     let overlayEl = null;
+    let overlayReturnFocus = null;
+    let destroyed = false;
 
     // --- Inject styles ---
     styleEl = document.createElement('style');
     styleEl.textContent = STYLES;
     document.head.appendChild(styleEl);
 
-    // --- IndexedDB setup ---
-    async function openDB() {
+    // --- IndexedDB persistence ---
+    function addSnapshot(snapshot) {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            request.onupgradeneeded = (e) => {
-                const database = e.target.result;
-                if (!database.objectStoreNames.contains(STORE_NAME)) {
-                    const store = database.createObjectStore(STORE_NAME, {
-                        keyPath: 'id',
-                        autoIncrement: true,
-                    });
-                    store.createIndex('docId', 'docId', { unique: false });
-                    store.createIndex('timestamp', 'timestamp', { unique: false });
-                }
-            };
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).add(snapshot);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error || new Error('Could not save version snapshot'));
+            tx.onabort = () => reject(tx.error || new Error('Version snapshot transaction aborted'));
         });
     }
 
-    async function saveSnapshot(isMajor = false) {
-        if (!db) return;
-        const content = editor.innerHTML;
-        if (content === lastSnapshotContent) return;
+    function isQuotaError(err) {
+        return err?.name === 'QuotaExceededError' || err?.code === 22 || err?.code === 1014;
+    }
 
-        lastSnapshotContent = content;
-        lastSnapshotWords = countWords(editor.textContent);
-        if (isMajor) lastMajorSnapshotWords = lastSnapshotWords;
+    async function persistSnapshot(content, textContent, isMajor) {
+        if (!db || content === lastSnapshotContent) return true;
 
+        const wordCount = countWords(textContent);
         const snapshot = {
             docId,
             timestamp: Date.now(),
             content,
-            wordCount: lastSnapshotWords,
-            preview: editor.textContent.trim().slice(0, 60),
-            isMajor
+            wordCount,
+            preview: textContent.trim().slice(0, 60),
+            isMajor,
         };
 
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(STORE_NAME, 'readwrite');
-            tx.objectStore(STORE_NAME).add(snapshot);
-            tx.oncomplete = () => {
-                pruneSnapshots().then(resolve);
-            };
-            tx.onerror = () => reject(tx.error);
+        try {
+            await addSnapshot(snapshot);
+        } catch (err) {
+            if (!isQuotaError(err)) {
+                console.warn('[version-history] Could not save snapshot:', err);
+                return false;
+            }
+
+            // Reclaim half this document's history, then retry once. The main
+            // document save remains independent even when snapshots hit quota.
+            try {
+                await pruneSnapshots(Math.floor(MAX_SNAPSHOTS / 2));
+            } catch (pruneErr) {
+                console.warn('[version-history] Could not reclaim snapshot quota:', pruneErr);
+                return false;
+            }
+            try {
+                await addSnapshot(snapshot);
+            } catch (retryErr) {
+                console.warn('[version-history] Snapshot quota retry failed:', retryErr);
+                return false;
+            }
+        }
+
+        // Only claim a snapshot as saved after its transaction commits.
+        lastSnapshotContent = content;
+        lastSnapshotWords = wordCount;
+        if (isMajor) lastMajorSnapshotWords = wordCount;
+        try {
+            await pruneSnapshots();
+        } catch (pruneErr) {
+            console.warn('[version-history] Could not prune old snapshots:', pruneErr);
+        }
+        return true;
+    }
+
+    function saveSnapshot(isMajor = false) {
+        if (destroyed || !db) return Promise.resolve(false);
+        const content = editor.innerHTML;
+        const textContent = editor.textContent || '';
+        const requestedWordCount = countWords(textContent);
+        if (isMajor) lastQueuedMajorSnapshotWords = requestedWordCount;
+
+        // Serialize version writes too: interval and word-threshold triggers
+        // can otherwise overlap and insert duplicate/out-of-order snapshots.
+        snapshotSaveChain = snapshotSaveChain.then(
+            () => persistSnapshot(content, textContent, isMajor),
+            () => persistSnapshot(content, textContent, isMajor)
+        );
+        return snapshotSaveChain.then((didSave) => {
+            if (!didSave && isMajor && lastQueuedMajorSnapshotWords === requestedWordCount) {
+                lastQueuedMajorSnapshotWords = lastMajorSnapshotWords;
+            }
+            return didSave;
         });
     }
 
@@ -421,21 +542,18 @@ export function initVersionHistory(editor, options = {}) {
         });
     }
 
-    async function pruneSnapshots() {
+    async function pruneSnapshots(limit = MAX_SNAPSHOTS) {
         if (!db) return;
         const snapshots = await getSnapshots();
-        if (snapshots.length <= MAX_SNAPSHOTS) return;
+        if (snapshots.length <= limit) return;
 
-        const toDelete = snapshots.slice(MAX_SNAPSHOTS);
+        const toDelete = snapshots.slice(limit);
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         for (const snap of toDelete) {
             store.delete(snap.id);
         }
-        return new Promise((resolve) => {
-            tx.oncomplete = resolve;
-            tx.onerror = resolve;
-        });
+        return waitForTransaction(tx);
     }
 
     async function restoreSnapshot(snapshotId) {
@@ -458,7 +576,7 @@ export function initVersionHistory(editor, options = {}) {
                         options.onRestore();
                     }
 
-                    showToast(t('versions.restored') || 'Versjon gjenopprettet');
+                    showToast(t('versions.restored'));
                     closeOverlay();
                     resolve();
                 });
@@ -467,24 +585,18 @@ export function initVersionHistory(editor, options = {}) {
         });
     }
 
-    // --- Auto-snapshot on interval ---
+    // --- Auto-snapshot every five minutes ---
     timelineIntervalId = setInterval(() => {
         if (document.visibilityState === 'visible') {
-            saveSnapshot(false);
+            void saveSnapshot(true);
         }
     }, TIMELINE_INTERVAL);
-
-    majorIntervalId = setInterval(() => {
-        if (document.visibilityState === 'visible') {
-            saveSnapshot(true);
-        }
-    }, MAJOR_INTERVAL);
 
     // --- Word threshold snapshot ---
     function handleInput() {
         const currentWords = countWords(editor.textContent);
-        if (currentWords - lastMajorSnapshotWords >= MAJOR_WORD_THRESHOLD) {
-            saveSnapshot(true);
+        if (currentWords - lastQueuedMajorSnapshotWords >= MAJOR_WORD_THRESHOLD) {
+            void saveSnapshot(true);
         }
     }
     editor.addEventListener('input', handleInput);
@@ -493,10 +605,13 @@ export function initVersionHistory(editor, options = {}) {
     function createPanel() {
         panel = document.createElement('aside');
         panel.className = 'version-panel';
+        panel.setAttribute('aria-labelledby', 'version-panel-title');
+        panel.setAttribute('aria-hidden', 'true');
+        panel.inert = true;
         panel.innerHTML = `
             <div class="version-panel-header">
-                <h3>${t('versions.title') || 'Versjonshistorikk'}</h3>
-                <button class="version-panel-close" aria-label="${t('versions.close') || 'Lukk'}">&times;</button>
+                <h3 id="version-panel-title">${t('versions.title')}</h3>
+                <button type="button" class="version-panel-close" aria-label="${t('versions.close')}">&times;</button>
             </div>
             <div class="version-list"></div>
         `;
@@ -520,29 +635,32 @@ export function initVersionHistory(editor, options = {}) {
         if (snapshots.length > 0) {
             html += `
                 <div style="padding: 0 0 15px 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 15px;">
-                    <button class="version-play-full-timeline" style="width: 100%; padding: 8px; background: #0f766e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                        ▶ Spill av hele tidslinjen
+                    <button type="button" class="version-play-full-timeline" style="width: 100%; padding: 8px; background: #0f766e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        ▶ ${t('versions.playTimeline')}
                     </button>
                 </div>
             `;
         }
 
         if (majorSnapshots.length === 0) {
-            html += `<div class="version-empty">${t('versions.empty') || 'Ingen lagrede versjoner ennå'}</div>`;
+            html += `<div class="version-empty">${t('versions.empty')}</div>`;
         } else {
             html += '<div class="version-timeline">';
             for (const snap of majorSnapshots) {
                 const timeStr = formatRelativeTime(snap.timestamp);
-                const wordsStr = `${snap.wordCount} ${t('versions.wordsLabel') || 'ord'}`;
-                const preview = escapeForAttr(snap.preview || '');
+                const wordsStr = t('versions.words', { count: snap.wordCount });
+                const entryLabel = t('versions.openVersion', {
+                    time: timeStr,
+                    count: snap.wordCount,
+                });
                 html += `
-                    <div class="version-entry" data-id="${snap.id}">
+                    <button type="button" class="version-entry" data-id="${snap.id}" aria-label="${escapeForAttr(entryLabel)}">
                         <div class="version-entry-time">${timeStr}</div>
                         <div class="version-entry-meta">
                             <span class="version-entry-words">${wordsStr}</span>
                         </div>
                         <div class="version-entry-preview">${escapeHtml(snap.preview || '')}</div>
-                    </div>
+                    </button>
                 `;
             }
             html += '</div>';
@@ -569,6 +687,8 @@ export function initVersionHistory(editor, options = {}) {
 
     function showPanel() {
         if (!panel) createPanel();
+        panel.inert = false;
+        panel.setAttribute('aria-hidden', 'false');
         renderList();
         requestAnimationFrame(() => {
             panel.classList.add('open');
@@ -578,6 +698,8 @@ export function initVersionHistory(editor, options = {}) {
     function hidePanel() {
         if (panel) {
             panel.classList.remove('open');
+            panel.setAttribute('aria-hidden', 'true');
+            panel.inert = true;
         }
     }
 
@@ -596,6 +718,7 @@ export function initVersionHistory(editor, options = {}) {
     // --- Playback overlay ---
     async function showPreview(initialSnapshotId) {
         if (!db) return;
+        const previouslyFocused = document.activeElement;
         const all = await getSnapshots();
         playbackCache = all.reverse(); // Now chronological (oldest first)
         
@@ -607,37 +730,38 @@ export function initVersionHistory(editor, options = {}) {
         overlayEl = document.createElement('div');
         overlayEl.className = 'version-overlay';
         overlayEl.innerHTML = `
-            <div class="version-preview-box" style="display:flex; flex-direction:column; max-width: 900px; height: 90vh;">
+            <div class="version-preview-box" role="dialog" aria-modal="true" aria-labelledby="version-preview-title" tabindex="-1" style="display:flex; flex-direction:column; max-width: 900px; height: 90vh;">
                 <div class="version-preview-header" style="flex-direction:column; align-items: stretch; gap: 10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h4>${t('versions.preview') || 'Tidslinjeavspilling'}</h4>
+                        <h4 id="version-preview-title">${t('versions.preview')}</h4>
                         <div class="version-preview-actions">
-                            <button class="version-btn-restore" style="display:none;">${t('versions.restore') || 'Gjenopprett'}</button>
-                            <button class="version-btn-close">${t('versions.close') || 'Lukk'}</button>
+                            <button type="button" class="version-btn-restore" style="display:none;">${t('versions.restore')}</button>
+                            <button type="button" class="version-btn-close">${t('versions.close')}</button>
                         </div>
                     </div>
                     
                     <div style="display:flex; align-items:center; gap: 15px; background: #f8fafc; padding: 10px 15px; border-radius: 6px;">
-                        <button id="playback-prev" style="padding: 6px 12px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;">◀</button>
-                        <button id="playback-toggle" style="padding: 6px 16px; border:none; border-radius:4px; background:#0d9488; color:#fff; font-weight:bold; cursor:pointer; min-width: 90px;">Spill av</button>
-                        <button id="playback-next" style="padding: 6px 12px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;">▶</button>
+                        <button type="button" id="playback-prev" aria-label="${t('versions.previous')}" style="padding: 6px 12px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;">◀</button>
+                        <button type="button" id="playback-toggle" style="padding: 6px 16px; border:none; border-radius:4px; background:#0d9488; color:#fff; font-weight:bold; cursor:pointer; min-width: 90px;">${t('versions.play')}</button>
+                        <button type="button" id="playback-next" aria-label="${t('versions.next')}" style="padding: 6px 12px; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer;">▶</button>
                         
                         <div style="flex:1; display:flex; align-items:center; gap: 10px; font-size:13px; color:#475569;">
-                            <span id="playback-status" style="white-space:nowrap; min-width: 100px;">Snapshot 0/0</span>
-                            <input type="range" id="playback-slider" min="0" max="${playbackCache.length - 1}" value="${playbackIndex}" style="flex:1; cursor:pointer;">
+                            <span id="playback-status" aria-live="polite" style="white-space:nowrap; min-width: 100px;">${t('versions.snapshotPosition', { current: 0, total: playbackCache.length })}</span>
+                            <input type="range" id="playback-slider" aria-label="${t('versions.timelineSlider')}" min="0" max="${playbackCache.length - 1}" value="${playbackIndex}" style="flex:1; cursor:pointer;">
                         </div>
                         
-                        <button id="playback-jump-live" style="padding: 6px 12px; border:none; border-radius:4px; background:#dcfce7; color:#166534; font-weight:bold; cursor:pointer;">● Gå til nåværende versjon av dokumentet</button>
+                        <button type="button" id="playback-jump-live" style="padding: 6px 12px; border:none; border-radius:4px; background:#dcfce7; color:#166534; font-weight:bold; cursor:pointer;">● ${t('versions.jumpCurrent')}</button>
                     </div>
                     
                     <div style="display:flex; justify-content:space-between; font-size:12px; color:#64748b;">
-                        <span id="playback-time-label">Tid</span>
-                        <span id="playback-word-label" style="color:#059669; font-weight:bold;">0 ord</span>
+                        <span id="playback-time-label">${t('versions.timeLabel')}</span>
+                        <span id="playback-word-label" style="color:#059669; font-weight:bold;">${t('versions.wordChange', { change: 0, total: 0 })}</span>
                     </div>
                 </div>
-                <div class="version-preview-content" style="white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 16px; flex:1; overflow-y:auto;"></div>
+                <div class="version-preview-content" role="region" aria-label="${t('versions.previewContent')}" tabindex="0" style="white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 16px; flex:1; overflow-y:auto;"></div>
             </div>
         `;
+        overlayReturnFocus = previouslyFocused;
         document.body.appendChild(overlayEl);
 
         const contentEl = overlayEl.querySelector('.version-preview-content');
@@ -661,12 +785,18 @@ export function initVersionHistory(editor, options = {}) {
             contentEl.innerHTML = generateDiffHtml(oldHtml, newHtml);
             
             sliderEl.value = playbackIndex;
-            statusEl.textContent = `Snapshot ${playbackIndex + 1}/${playbackCache.length}`;
+            statusEl.textContent = t('versions.snapshotPosition', {
+                current: playbackIndex + 1,
+                total: playbackCache.length,
+            });
             timeLabel.textContent = formatRelativeTime(currentSnap.timestamp);
             
             const wordDiff = prevSnap ? (currentSnap.wordCount - prevSnap.wordCount) : currentSnap.wordCount;
             const sign = wordDiff > 0 ? '+' : '';
-            wordLabel.textContent = `${sign}${wordDiff} ord (${currentSnap.wordCount} totalt)`;
+            wordLabel.textContent = t('versions.wordChange', {
+                change: `${sign}${wordDiff}`,
+                total: currentSnap.wordCount,
+            });
             
             // Show restore button only if paused
             restoreBtn.style.display = (!isPlaying) ? 'block' : 'none';
@@ -675,14 +805,14 @@ export function initVersionHistory(editor, options = {}) {
         function togglePlay() {
             if (isPlaying) {
                 isPlaying = false;
-                toggleBtn.textContent = 'Spill av';
+                toggleBtn.textContent = t('versions.play');
                 toggleBtn.style.background = '#0d9488';
                 clearTimeout(playbackTimer);
                 renderFrame();
             } else {
                 if (playbackIndex >= playbackCache.length - 1) playbackIndex = 0; // loop
                 isPlaying = true;
-                toggleBtn.textContent = 'Pause';
+                toggleBtn.textContent = t('versions.pause');
                 toggleBtn.style.background = '#0f766e';
                 renderFrame();
                 playNext();
@@ -732,7 +862,7 @@ export function initVersionHistory(editor, options = {}) {
 
         overlayEl.querySelector('.version-btn-close').addEventListener('click', closeOverlay);
         restoreBtn.addEventListener('click', () => {
-            const msg = t('versions.restoreConfirm') || 'Erstatte nåværende tekst med denne versjonen?';
+            const msg = t('versions.restoreConfirm');
             if (confirm(msg)) {
                 restoreSnapshot(playbackCache[playbackIndex].id);
             }
@@ -741,8 +871,49 @@ export function initVersionHistory(editor, options = {}) {
         overlayEl.addEventListener('click', (e) => {
             if (e.target === overlayEl) closeOverlay();
         });
+
+        overlayEl.addEventListener('keydown', handleOverlayKeydown);
         
         renderFrame();
+        requestAnimationFrame(() => {
+            if (overlayEl) overlayEl.querySelector('.version-btn-close')?.focus();
+        });
+    }
+
+    function getOverlayFocusableElements() {
+        if (!overlayEl) return [];
+        const selector = 'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+        return [...overlayEl.querySelectorAll(selector)].filter((element) => {
+            if (element.hidden || element.getAttribute('aria-hidden') === 'true') return false;
+            const styles = window.getComputedStyle(element);
+            return styles.display !== 'none' && styles.visibility !== 'hidden';
+        });
+    }
+
+    function handleOverlayKeydown(event) {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeOverlay();
+            return;
+        }
+        if (event.key !== 'Tab' || !overlayEl) return;
+
+        const focusable = getOverlayFocusableElements();
+        if (focusable.length === 0) {
+            event.preventDefault();
+            overlayEl.querySelector('[role="dialog"]')?.focus();
+            return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && (document.activeElement === first || !overlayEl.contains(document.activeElement))) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
     }
 
     function generateDiffHtml(oldHtml, newHtml) {
@@ -798,10 +969,15 @@ export function initVersionHistory(editor, options = {}) {
 
     function closeOverlay() {
         if (overlayEl) {
+            const returnFocus = overlayReturnFocus;
             isPlaying = false;
             clearTimeout(playbackTimer);
             overlayEl.remove();
             overlayEl = null;
+            overlayReturnFocus = null;
+            if (returnFocus?.isConnected && typeof returnFocus.focus === 'function') {
+                returnFocus.focus();
+            }
         }
     }
 
@@ -813,13 +989,23 @@ export function initVersionHistory(editor, options = {}) {
     }
 
     function escapeForAttr(str) {
-        return str.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
     // --- Init ---
     async function init() {
         try {
-            db = await openDB();
+            const openedDb = await openVersionHistoryDatabase();
+            if (destroyed) {
+                openedDb.close();
+                return;
+            }
+            db = openedDb;
+            await pruneSnapshots();
             const snaps = await getSnapshots();
             const majorSnaps = snaps.filter(s => s.isMajor);
             
@@ -830,6 +1016,8 @@ export function initVersionHistory(editor, options = {}) {
                 // Just initialize state to prevent duplicate saving
                 lastSnapshotContent = editor.innerHTML;
                 lastSnapshotWords = countWords(editor.textContent);
+                lastMajorSnapshotWords = lastSnapshotWords;
+                lastQueuedMajorSnapshotWords = lastSnapshotWords;
             }
         } catch (err) {
             console.warn('[version-history] Failed to initialize IndexedDB:', err);
@@ -839,11 +1027,11 @@ export function initVersionHistory(editor, options = {}) {
 
     // --- Destroy ---
     function destroy() {
+        destroyed = true;
         editor.removeEventListener('input', handleInput);
         if (timelineIntervalId) clearInterval(timelineIntervalId);
-        if (majorIntervalId) clearInterval(majorIntervalId);
         if (panel) panel.remove();
-        if (overlayEl) overlayEl.remove();
+        closeOverlay();
         if (styleEl) styleEl.remove();
         if (db) db.close();
         panel = null;

@@ -4,24 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Papertek Skriv</title>
-    <meta name="description" content="Gratis skriveverksted for elever. Skriv, formater, eksporter til PDF.">
+    <meta name="description" content="Minimalistisk, lokal-først skriveverksted for elever i norsk skole.">
     <meta name="theme-color" content="#059669">
+
+    <!-- Optional school-managed Microsoft 365 connector. Leave these public
+         values empty to keep Skriv fully local-only. They are not credentials. -->
+    <meta name="skriv:microsoft-client-id" content="">
+    <meta name="skriv:microsoft-tenant-id" content="">
+    <meta name="skriv:microsoft-sharepoint-host" content="">
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icons/icon-192.svg">
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Pinned local dependencies: the editor must start without network access. -->
+    <script src="/vendor/tailwindcss-3.4.17.js"></script>
     <script>tailwind.config = { darkMode: 'class' }</script>
 
     <!-- jsPDF for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="/vendor/jspdf-2.5.1.umd.min.js"></script>
 
-    <!-- Leksihjelp scoped CSS (must come before any leksihjelp DOM renders) -->
-    <link rel="stylesheet" href="/js/leksihjelp/styles/leksihjelp.css">
+    <!-- Leksihjelp CSS (must come before any leksihjelp DOM renders).
+         content.css is scoped under .skriv-leksihjelp at sync time;
+         popup-views.css arrives hard-scoped under #leksihjelp-sidepanel-root. -->
+    <link rel="stylesheet" href="/js/leksihjelp/styles/content.css">
+    <link rel="stylesheet" href="/js/leksihjelp/styles/popup-views.css">
 
-    <link rel="stylesheet" href="/css/main.css?v=74">
+    <link rel="stylesheet" href="/css/main.css">
 
     <script>
         // Init theme early to prevent flash. Mirrors shared/theme.js:
@@ -41,36 +51,49 @@
     <!-- <body>, so the wrapper has to live on <body>. The scoped CSS only -->
     <!-- targets leksihjelp-specific selectors (#lexi-*, .lh-*) so it -->
     <!-- doesn't bleed onto Skriv's own UI. -->
-    <a href="#app" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold" id="skip-to-content">Hopp til innhold</a>
+    <!-- Safe Bokmål fallback; main.js replaces it with a11y.skipToContent after i18n initializes. -->
+    <a href="#app" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-semibold" id="skip-to-content" data-i18n-key="a11y.skipToContent">Hopp til innhold</a>
     <main id="app" role="main"></main>
 
     <!--
       Leksihjelp vendored bundle. Loaded as classic <script> tags BEFORE Skriv's
       ES module entry so that:
-        1. The chrome.* shim (leksihjelp-loader.js) is in place before any
-           vendored module touches chrome.runtime / chrome.storage.
+        1. embed/host-runtime.js defines the shared runtime, and
+           leksihjelp-loader.js installs it (chrome.* shim + capabilities),
+           before any vendored module touches chrome.runtime / chrome.storage.
         2. Each rule file's IIFE pushes its rule object onto __lexiSpellRules
            by the time spell-check-engine.js initialises (engine reads the
            array at construction time).
         3. window.__lexiVocab / __lexiSpellCore / __lexiI18n are published
            before the bridge in main.js calls bindBridge().
-      Order below mirrors lockdown/public/js/leksihjelp-loader.js LEKSI_BUNDLE,
-      with new rule files added in alphabetical order within each section.
-      Re-sync regenerates this section if the file inventory changes.
+      The whole block — version, runtime, loader, content scripts, shared
+      views — is generated from load-order.json by scripts/sync-leksihjelp.js.
+      Do not hand-edit it; re-run the sync instead.
     -->
 
+    <!-- BEGIN GENERATED LEKSIHJELP BUNDLE -->
+    <script>window.__skrivLeksihjelpVersion = "3.8.136";</script>
+    <script src="/js/leksihjelp/embed/host-runtime.js"></script>
     <script src="/js/leksihjelp-loader.js"></script>
-
-    <!-- Foundation -->
     <script src="/js/leksihjelp/i18n/strings.js"></script>
+    <script src="/js/leksihjelp/host-capabilities.js"></script>
     <script src="/js/leksihjelp/exam-registry.js"></script>
+    <script src="/js/leksihjelp/content/vocab-store.js"></script>
     <script src="/js/leksihjelp/content/vocab-seam-core.js"></script>
     <script src="/js/leksihjelp/content/vocab-seam.js"></script>
+    <script src="/js/leksihjelp/content/lang-detect.js"></script>
     <script src="/js/leksihjelp/content/pause-domain.js"></script>
+    <script src="/js/leksihjelp/content/word-boundary.js"></script>
+    <script src="/js/leksihjelp/content/tts-segmentation-engine.js"></script>
+    <script src="/js/leksihjelp/content/tts-timing-engine.js"></script>
+    <script src="/js/leksihjelp/content/rsvp-engine.js"></script>
+    <script src="/js/leksihjelp/content/rsvp-source-dom.js"></script>
+    <script src="/js/leksihjelp/content/rsvp-reader.js"></script>
+    <script src="/js/leksihjelp/content/floating-widget.js"></script>
+    <script src="/js/leksihjelp/content/prediction-engine.js"></script>
+    <script src="/js/leksihjelp/content/prediction-renderer.js"></script>
     <script src="/js/leksihjelp/content/rule-features.js"></script>
     <script src="/js/leksihjelp/content/spell-check-core.js"></script>
-
-    <!-- Spell rules (order mirrors leksihjelp extension/manifest.json) -->
     <script src="/js/leksihjelp/content/spell-rules/grammar-tables.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/quotation-suppression.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/de-capitalization.js"></script>
@@ -252,21 +275,18 @@
     <script src="/js/leksihjelp/content/spell-rules/nb-impersonal-det.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-noun-plural-quantifier.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-bare-infinitive-present.js"></script>
-
-    <!-- Lang detect must load before engines/renderers -->
-    <script src="/js/leksihjelp/content/lang-detect.js"></script>
-
-    <!-- Engines + renderers (engines BEFORE renderers — Phase 43 split).
-         pedagogy-render + personalization-store must precede the renderer,
-         which hard-requires their globals (3.8.x). -->
     <script src="/js/leksihjelp/content/spell-check-engine.js"></script>
     <script src="/js/leksihjelp/content/pedagogy-render.js"></script>
     <script src="/js/leksihjelp/content/personalization-store.js"></script>
     <script src="/js/leksihjelp/content/spell-check-renderer.js"></script>
-
-    <!-- Dictionary popup helpers -->
     <script src="/js/leksihjelp/popup/dict-state-builder.js"></script>
-    <script src="/js/leksihjelp/popup/grammar-features-section.js"></script>
+    <script src="/js/leksihjelp/popup/views/lang-consolidation.js"></script>
+    <script src="/js/leksihjelp/popup/views/dictionary-view.js"></script>
+    <script src="/js/leksihjelp/popup/views/library-view.js"></script>
+    <script src="/js/leksihjelp/popup/views/language-picker.js"></script>
+    <script src="/js/leksihjelp/popup/views/settings-view.js"></script>
+    <script src="/js/leksihjelp/content/lesson-render.js"></script>
+    <!-- END GENERATED LEKSIHJELP BUNDLE -->
 
     <!-- Skriv app entry (must run AFTER leksihjelp bundle so the bridge can bindBridge) -->
     <script type="module" src="/js/app/main.js"></script>

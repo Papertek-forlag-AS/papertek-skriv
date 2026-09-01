@@ -20,10 +20,7 @@ import { parseFrameMarkdown } from './frame-parser.js';
  * File paths use {{lang}} placeholder, resolved at runtime via getFramePath().
  * Can be overridden via options.frames.
  */
-const DEFAULT_FRAME_REGISTRY = [
-    // `levels` lists the RECOMMENDED school-level bands for each genre.
-    // Recommendation, not prohibition: frames outside the pupil's band
-    // remain available under "Flere skriverammer" in the picker.
+export const DEFAULT_FRAME_REGISTRY = [
     { id: 'fortelling', file: '/frames/{{lang}}/fortelling.md', labelKey: 'skriv.frameFortelling', descKey: 'skriv.frameFortellingDesc', levels: ['barneskole', 'ungdomsskole'] },
     { id: 'faktatekst', file: '/frames/{{lang}}/faktatekst.md', labelKey: 'skriv.frameFaktatekst', descKey: 'skriv.frameFaktatekstDesc', levels: ['barneskole', 'ungdomsskole'] },
     { id: 'bokmelding', file: '/frames/{{lang}}/bokmelding.md', labelKey: 'skriv.frameBokmelding', descKey: 'skriv.frameBokmeldingDesc', levels: ['barneskole', 'ungdomsskole'] },
@@ -43,38 +40,49 @@ const DEFAULT_FRAME_REGISTRY = [
     { id: 'sammenligning', file: '/frames/{{lang}}/sammenligning.md', labelKey: 'skriv.frameSammenligning', descKey: 'skriv.frameSammenligningDesc', levels: ['ungdomsskole', 'vgs'] },
 ];
 
-/**
- * Split a frame registry into recommended / other for a level band.
- * A frame with no `levels` array is always recommended.
- * @param {Array} registry
- * @param {string|null} band - 'barneskole' | 'ungdomsskole' | 'vgs' | null
- * @returns {{ recommended: Array, other: Array }}
- */
-export function partitionFramesByLevel(registry, band) {
-    if (!band) return { recommended: registry, other: [] };
-    const recommended = [];
-    const other = [];
-    for (const frame of registry) {
-        (!frame.levels || frame.levels.includes(band) ? recommended : other).push(frame);
-    }
-    // A band with no matches (misconfigured registry) falls back to all.
-    if (!recommended.length) return { recommended: registry, other: [] };
-    return { recommended, other };
+const FRAME_LANGUAGES = ['nb', 'nn', 'en'];
+
+/** Resolve the available frame language for a document writing language. */
+export function resolveFrameLanguage(lang) {
+    return FRAME_LANGUAGES.includes(lang) ? lang : 'nb';
+}
+
+/** Resolve a registry path without coupling frame language to interface language. */
+export function resolveFramePath(pathTemplate, writingLanguage) {
+    return pathTemplate.replace('{{lang}}', resolveFrameLanguage(writingLanguage));
 }
 
 /**
- * Resolve a frame file path for a content language.
+ * Split frames into recommended and additional groups for a broad level band.
+ * Registries without level metadata remain fully backward compatible.
+ */
+export function partitionFramesByLevel(frames, levelBand) {
+    if (!levelBand) return { recommended: [...frames], additional: [] };
+
+    const recommended = [];
+    const additional = [];
+    for (const frame of frames) {
+        if (!Array.isArray(frame.levels) || frame.levels.includes(levelBand)) {
+            recommended.push(frame);
+        } else {
+            additional.push(frame);
+        }
+    }
+
+    // An unknown/custom level must never produce an empty picker.
+    if (recommended.length === 0) return { recommended: [...frames], additional: [] };
+    return { recommended, additional };
+}
+
+/**
+ * Resolve a frame file path for the current language.
  * Falls back to 'nb' if the language-specific file doesn't exist.
  * @param {string} pathTemplate - Path with {{lang}} placeholder
- * @param {string} [contentLang] - 'nb' | 'nn' | 'en'; defaults to the UI language
  * @returns {string} Resolved path
  */
-function getFramePath(pathTemplate, contentLang) {
-    const lang = contentLang || getCurrentLanguage();
-    // Bokmål (nb), Nynorsk (nn) and English (en) have their own frame
-    // directories. Other languages fall back to nb for now.
-    const frameLang = ['nb', 'nn', 'en'].includes(lang) ? lang : 'nb';
-    return pathTemplate.replace('{{lang}}', frameLang);
+function getFramePath(pathTemplate, getWritingLanguage) {
+    const lang = getWritingLanguage?.() || getCurrentLanguage();
+    return resolveFramePath(pathTemplate, lang);
 }
 
 /**
@@ -82,11 +90,11 @@ function getFramePath(pathTemplate, contentLang) {
  * @param {HTMLElement} button - The Struktur button
  * @param {HTMLElement} editor - The contenteditable element
  * @param {object} frameGuide - The frame guide panel API (applyFrame, removeFrame, getActiveFrame, hasFrame, toggle, hide)
- * @param {{ onFrameApplied?: () => void, frames?: Array, getLevelBand?: () => string, getContentLang?: () => string }} options
- * @returns {{ destroy: () => void, updateButtonState: () => void }}
+ * @param {{ onFrameApplied?: () => void, frames?: Array, getWritingLanguage?: () => string, getLevelBand?: () => string|null }} options
+ * @returns {{ destroy: () => void, updateButtonState: () => void, reloadActiveFrame: () => Promise<void> }}
  */
 export function initFrameSelector(button, editor, frameGuide, options = {}) {
-    const { onFrameApplied, getLevelBand, getContentLang } = options;
+    const { onFrameApplied } = options;
     const frameRegistry = options.frames || DEFAULT_FRAME_REGISTRY;
 
     // --- Build dropdown panel (appended to body to avoid overflow clipping) ---
@@ -148,50 +156,61 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
         }
     }
 
-    function appendFrameButton(frame) {
-        const btn = document.createElement('button');
-        btn.className = 'block w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors';
-
-        const isActive = frameGuide.getActiveFrame() === frame.id;
-
-        btn.innerHTML = `
-            <div class="text-sm font-medium ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-700 dark:text-stone-300'}">
-                ${isActive ? '&#10003; ' : ''}${t(frame.labelKey)}
-            </div>
-            <div class="text-xs text-stone-400 mt-0.5">${t(frame.descKey)}</div>
-        `;
-
-        btn.addEventListener('click', () => {
-            panel.classList.add('hidden');
-            if (isActive) return;
-            handleSelectFrame(frame);
-        });
-
-        panel.appendChild(btn);
-    }
-
-    function appendSectionTitle(text) {
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'px-4 py-1 text-xs font-semibold text-stone-400 uppercase tracking-wide';
-        titleDiv.textContent = text;
-        panel.appendChild(titleDiv);
-    }
-
     function buildFramePickerList() {
         panel.innerHTML = '';
 
-        const band = getLevelBand ? getLevelBand() : null;
-        const { recommended, other } = partitionFramesByLevel(frameRegistry, band);
+        // Title
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'px-4 py-1 text-xs font-semibold text-stone-400 uppercase tracking-wide';
+        titleDiv.textContent = t('skriv.frameSelectorTitle');
+        panel.appendChild(titleDiv);
 
-        appendSectionTitle(t('skriv.frameSelectorTitle'));
-        for (const frame of recommended) appendFrameButton(frame);
+        const writingLanguage = options.getWritingLanguage?.() || getCurrentLanguage();
+        if (resolveFrameLanguage(writingLanguage) !== writingLanguage) {
+            const languageNote = document.createElement('p');
+            languageNote.className = 'px-4 py-1.5 text-xs leading-snug text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20';
+            languageNote.textContent = t('skriv.frameLanguageFallback');
+            panel.appendChild(languageNote);
+        }
 
-        if (other.length) {
-            const divider = document.createElement('div');
-            divider.className = 'border-t border-stone-200 dark:border-stone-700 my-1';
-            panel.appendChild(divider);
-            appendSectionTitle(t('skriv.frameMoreFrames'));
-            for (const frame of other) appendFrameButton(frame);
+        const levelBand = options.getLevelBand?.() || null;
+        const { recommended, additional } = partitionFramesByLevel(frameRegistry, levelBand);
+
+        function appendGroupTitle(key, withDivider = false) {
+            const heading = document.createElement('div');
+            heading.className = `px-4 pt-2 pb-1 text-[11px] font-semibold text-stone-400 uppercase tracking-wide${withDivider ? ' border-t border-stone-100 dark:border-stone-700 mt-1' : ''}`;
+            heading.textContent = t(key);
+            panel.appendChild(heading);
+        }
+
+        function appendFrame(frame) {
+            const btn = document.createElement('button');
+            btn.className = 'block w-full text-left px-4 py-2 hover:bg-stone-50 transition-colors';
+
+            const isActive = frameGuide.getActiveFrame() === frame.id;
+
+            btn.innerHTML = `
+                <div class="text-sm font-medium ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-stone-700 dark:text-stone-300'}">
+                    ${isActive ? '&#10003; ' : ''}${t(frame.labelKey)}
+                </div>
+                <div class="text-xs text-stone-400 mt-0.5">${t(frame.descKey)}</div>
+            `;
+
+            btn.addEventListener('click', () => {
+                panel.classList.add('hidden');
+                if (isActive) return;
+                handleSelectFrame(frame);
+            });
+
+            panel.appendChild(btn);
+        }
+
+        if (levelBand) appendGroupTitle('skriv.frameRecommendedForLevel');
+        recommended.forEach(appendFrame);
+
+        if (additional.length > 0) {
+            appendGroupTitle('skriv.frameMoreOptions', true);
+            additional.forEach(appendFrame);
         }
     }
 
@@ -225,9 +244,21 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
         await applyFrameFromRegistry(frame);
     }
 
-    async function applyFrameFromRegistry(frame) {
+    function commitFrameMarkdown(md, frame, rehydrate = false) {
+        const wasVisible = frameGuide.isVisible?.() ?? true;
+        const frameData = parseFrameMarkdown(md);
+        frameGuide.applyFrame(frameData, frame.id);
+        if (rehydrate) {
+            frameGuide.rehydrate?.();
+            if (!wasVisible) frameGuide.hide();
+        }
+        updateButtonState();
+        if (onFrameApplied) onFrameApplied();
+    }
+
+    async function applyFrameFromRegistry(frame, { rehydrate = false } = {}) {
         try {
-            const filePath = getFramePath(frame.file, getContentLang?.());
+            const filePath = getFramePath(frame.file, options.getWritingLanguage);
             const res = await fetch(filePath);
             if (!res.ok) {
                 // Fallback to nb if language-specific frame not found
@@ -235,20 +266,21 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
                 const fallbackRes = await fetch(fallbackPath);
                 if (!fallbackRes.ok) throw new Error(`Failed to load frame: ${res.status}`);
                 const md = await fallbackRes.text();
-                const frameData = parseFrameMarkdown(md);
-                frameGuide.applyFrame(frameData, frame.id);
-                updateButtonState();
-                if (onFrameApplied) onFrameApplied();
+                commitFrameMarkdown(md, frame, rehydrate);
                 return;
             }
             const md = await res.text();
-            const frameData = parseFrameMarkdown(md);
-            frameGuide.applyFrame(frameData, frame.id);
-            updateButtonState();
-            if (onFrameApplied) onFrameApplied();
+            commitFrameMarkdown(md, frame, rehydrate);
         } catch (err) {
             console.error('Frame load error:', err);
         }
+    }
+
+    async function reloadActiveFrame() {
+        const activeId = frameGuide.getActiveFrame();
+        const frame = frameRegistry.find(item => item.id === activeId);
+        if (!frame) return;
+        await applyFrameFromRegistry(frame, { rehydrate: true });
     }
 
     async function handleRemoveFrame() {
@@ -307,5 +339,5 @@ export function initFrameSelector(button, editor, frameGuide, options = {}) {
         panel.remove();
     }
 
-    return { destroy, updateButtonState, openDialog };
+    return { destroy, updateButtonState, openDialog, reloadActiveFrame };
 }

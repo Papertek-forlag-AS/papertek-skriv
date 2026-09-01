@@ -1,152 +1,1006 @@
 /**
- * Library backup — whole-library export/restore as a .skriv file.
+ * Whole-library backup and restore.
  *
- * Browser-profile storage is not a backup: IndexedDB can be evicted by
- * the browser or wiped by "clear browsing data". This module gives the
- * pupil a file they own.
- *
- * Export: all active documents plus custom folders as one JSON file.
- * Restore: merge-only — nothing existing is ever overwritten or deleted.
- *   - Folders are matched by name+parent; missing ones are recreated
- *     (depth-ordered) and imported documents are remapped onto them.
- *   - A document whose id and updatedAt already exist locally is skipped;
- *     everything else is imported as a new document.
- *
- * Trash and version snapshots are deliberately not exported: trash is
- * transient by design, and snapshots would multiply the file size.
+ * The portable `.skriv` file contains documents, trash, folders, version
+ * snapshots, and the small set of Skriv preferences needed to make the
+ * library understandable on another browser profile. Restore is merge-only:
+ * existing records are never overwritten, and retries are deterministic.
  */
 
-import { listDocuments, createDocument, saveDocument, getDocument } from './document-store.js';
-import { getAllFolders, createFolder, isSystemFolder } from './folder-store.js';
+import { openSkrivDatabase } from './db.js';
+import {
+    openVersionHistoryDatabase,
+    VERSION_HISTORY_STORE_NAME,
+} from '../editor-core/student/version-history.js';
 
-export const BACKUP_FORMAT = 'skriv-library-backup';
-export const BACKUP_VERSION = 1;
+const BACKUP_FORMAT = 'papertek-skriv-backup';
+const BACKUP_VERSION = 1;
+const MAX_BACKUP_TEXT_LENGTH = 100 * 1024 * 1024;
+const MAX_DOCUMENTS_PER_COLLECTION = 10000;
+const MAX_FOLDERS = 10000;
+const MAX_VERSIONS = 50000;
+const MAX_HTML_LENGTH = 50 * 1024 * 1024;
+const MAX_ID_LENGTH = 512;
+const MAX_FOLDER_DEPTH = 3;
+const MAX_JSON_DEPTH = 20;
+const MAX_RECORD_ARRAY_LENGTH = 10000;
+const MAX_REFERENCES_PER_DOCUMENT = 1000;
+
+const DOCUMENT_STORES = ['documents', 'trash', 'folders'];
+const SETTINGS_KEYS = [
+    'skriv_language',
+    'skriv_theme',
+    'theme',
+    'skriv_school_year',
+    'skriv_school_level',
+    'skriv.leksihjelp.writingLang',
+    'skriv.leksihjelp.lookupLang',
+    'skriv.leksihjelp.examMode',
+];
+
+const ACTIVE_HTML_TAGS = new Set([
+    'script', 'iframe', 'object', 'embed', 'applet', 'meta', 'link', 'base',
+    'style', 'form', 'template', 'noscript', 'xmp', 'plaintext', 'noembed', 'noframes',
+]);
+const URL_ATTRIBUTES = new Set([
+    'href', 'src', 'xlink:href', 'action', 'formaction', 'poster', 'background',
+]);
+const RESOURCE_URL_ATTRIBUTES = new Set(['src', 'xlink:href', 'poster', 'background']);
+const MICROSOFT_LINK_KEYS = Object.freeze([
+    'version', 'tenantId', 'accountBinding', 'driveId', 'folderId', 'folderName',
+    'folderWebUrl', 'remoteDocumentId', 'itemId', 'fileName', 'webUrl', 'eTag',
+    'cTag', 'lastSyncedAt', 'lastSyncedHash', 'state', 'errorCode', 'attemptId',
+]);
+const MICROSOFT_LINK_STATES = new Set([
+    'pending', 'synced', 'conflict', 'error', 'needs-sign-in',
+    'permission-denied', 'remote-missing', 'account-mismatch',
+    'target-required', 'target-mismatch',
+]);
+const MICROSOFT_GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MICROSOFT_ZERO_GUID = '00000000-0000-0000-0000-000000000000';
+const MICROSOFT_HASH_PATTERN = /^[0-9a-f]{64}$/;
+const MICROSOFT_SHAREPOINT_HOST_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:-my)?\.sharepoint\.com$/i;
+
+function invalidBackup(reason) {
+    throw new Error(`invalid-backup:${reason}`);
+}
+
+function isPlainObject(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function assertPlainRecord(value, collection) {
+    if (!isPlainObject(value)) invalidBackup(`${collection}-record`);
+}
+
+function assertBoundedJson(value, field, depth = 0) {
+    if (depth > MAX_JSON_DEPTH) invalidBackup(`${field}-depth`);
+    if (value === null || typeof value === 'boolean') return;
+    if (typeof value === 'string') {
+        if (value.length > MAX_HTML_LENGTH) invalidBackup(`${field}-string`);
+        return;
+    }
+    if (typeof value === 'number') {
+        if (!Number.isFinite(value)) invalidBackup(`${field}-number`);
+        return;
+    }
+    if (Array.isArray(value)) {
+        if (value.length > MAX_RECORD_ARRAY_LENGTH) invalidBackup(`${field}-array`);
+        for (const entry of value) assertBoundedJson(entry, field, depth + 1);
+        return;
+    }
+    if (isPlainObject(value)) {
+        const entries = Object.entries(value);
+        if (entries.length > MAX_RECORD_ARRAY_LENGTH) invalidBackup(`${field}-properties`);
+        for (const [key, entry] of entries) {
+            if (key.length > MAX_ID_LENGTH) invalidBackup(`${field}-property`);
+            assertBoundedJson(entry, field, depth + 1);
+        }
+        return;
+    }
+    invalidBackup(`${field}-value`);
+}
+
+function assertString(value, field, { optional = false, max = MAX_HTML_LENGTH } = {}) {
+    if (value === undefined && optional) return;
+    if (typeof value !== 'string' || value.length > max) invalidBackup(field);
+}
+
+function assertOptionalNumber(value, field) {
+    if (value !== undefined && (!Number.isFinite(value) || value < 0)) invalidBackup(field);
+}
+
+function assertOptionalBoolean(value, field) {
+    if (value !== undefined && typeof value !== 'boolean') invalidBackup(field);
+}
+
+function assertId(value, field) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > MAX_ID_LENGTH) {
+        invalidBackup(field);
+    }
+}
+
+function assertNullableString(value, field, max = MAX_ID_LENGTH) {
+    if (value === null) return;
+    if (typeof value !== 'string' || !value || value.length > max) invalidBackup(field);
+}
+
+function assertCanonicalSharePointUrl(value, field, { nullable = false } = {}) {
+    if (nullable && value === null) return;
+    assertNullableString(value, field, 10000);
+    let url;
+    try {
+        url = new URL(value);
+    } catch {
+        invalidBackup(field);
+    }
+    if (url.protocol !== 'https:' || url.username || url.password || url.port
+        || !MICROSOFT_SHAREPOINT_HOST_PATTERN.test(url.hostname)) {
+        invalidBackup(field);
+    }
+}
+
+function validateMicrosoftLink(value, collection) {
+    if (value === undefined || value === null) return;
+    assertPlainRecord(value, `${collection}-microsoft365`);
+    const keys = Object.keys(value).sort();
+    const expected = [...MICROSOFT_LINK_KEYS].sort();
+    if (keys.length !== expected.length
+        || keys.some((key, index) => key !== expected[index])) {
+        invalidBackup(`${collection}-microsoft365-shape`);
+    }
+    if (value.version !== 1) invalidBackup(`${collection}-microsoft365-version`);
+    if (!MICROSOFT_GUID_PATTERN.test(value.tenantId || '')
+        || value.tenantId.toLowerCase() === MICROSOFT_ZERO_GUID) {
+        invalidBackup(`${collection}-microsoft365-tenantId`);
+    }
+    if (!MICROSOFT_HASH_PATTERN.test(value.accountBinding || '')) {
+        invalidBackup(`${collection}-microsoft365-accountBinding`);
+    }
+    for (const field of ['driveId', 'folderId']) {
+        if (value[field] === null) invalidBackup(`${collection}-microsoft365-${field}`);
+        assertNullableString(value[field], `${collection}-microsoft365-${field}`);
+    }
+    if (value.folderName === null) invalidBackup(`${collection}-microsoft365-folderName`);
+    assertNullableString(value.folderName, `${collection}-microsoft365-folderName`, 1000);
+    assertCanonicalSharePointUrl(
+        value.folderWebUrl,
+        `${collection}-microsoft365-folderWebUrl`,
+    );
+    for (const field of ['remoteDocumentId', 'itemId', 'eTag', 'cTag', 'attemptId']) {
+        assertNullableString(value[field], `${collection}-microsoft365-${field}`, 2048);
+    }
+    if (value.fileName !== null) {
+        assertNullableString(value.fileName, `${collection}-microsoft365-fileName`, 512);
+        if (!/\.skriv$/i.test(value.fileName) || /[\\/]/.test(value.fileName)) {
+            invalidBackup(`${collection}-microsoft365-fileName`);
+        }
+    }
+    assertCanonicalSharePointUrl(
+        value.webUrl,
+        `${collection}-microsoft365-webUrl`,
+        { nullable: true },
+    );
+    if (value.lastSyncedAt !== null) {
+        assertNullableString(value.lastSyncedAt, `${collection}-microsoft365-lastSyncedAt`, 1000);
+        if (Number.isNaN(Date.parse(value.lastSyncedAt))) {
+            invalidBackup(`${collection}-microsoft365-lastSyncedAt`);
+        }
+    }
+    if (value.lastSyncedHash !== null
+        && !MICROSOFT_HASH_PATTERN.test(value.lastSyncedHash || '')) {
+        invalidBackup(`${collection}-microsoft365-lastSyncedHash`);
+    }
+    if (!MICROSOFT_LINK_STATES.has(value.state)) {
+        invalidBackup(`${collection}-microsoft365-state`);
+    }
+    if (value.errorCode !== null) {
+        assertNullableString(value.errorCode, `${collection}-microsoft365-errorCode`, 256);
+        if (!/^[a-z0-9._:-]+$/i.test(value.errorCode)) {
+            invalidBackup(`${collection}-microsoft365-errorCode`);
+        }
+    }
+}
+
+function microsoftRemoteIdentity(record) {
+    const link = record?.microsoft365;
+    if (!link?.itemId) return '';
+    return `${String(link.tenantId).toLowerCase()}\0${link.driveId}\0${link.itemId}`;
+}
+
+function decodeUrlEntities(value) {
+    return value
+        .replace(/&#x([0-9a-f]+);?/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
+        .replace(/&#([0-9]+);?/g, (_, decimal) => String.fromCodePoint(Number.parseInt(decimal, 10)))
+        .replace(/&colon;/gi, ':')
+        .replace(/&lpar;/gi, '(')
+        .replace(/&rpar;/gi, ')')
+        .replace(/&tab;/gi, '\t')
+        .replace(/&newline;/gi, '\n')
+        .replace(/&amp;/gi, '&');
+}
+
+function isSafeUrl(value) {
+    const decoded = decodeUrlEntities(String(value || '')).trim();
+    const compact = decoded.replace(/[\u0000-\u0020\u007f-\u009f]/g, '').toLowerCase();
+    if (!compact || compact.startsWith('#') || compact.startsWith('/') || compact.startsWith('./') || compact.startsWith('../')) {
+        return true;
+    }
+    if (/^(?:https?|mailto|tel):/.test(compact)) return true;
+    if (/^data:image\/(?:png|jpe?g|gif|webp);base64,/.test(compact)) return true;
+    return !/^[a-z][a-z0-9+.-]*:/.test(compact);
+}
+
+function isSafeResourceUrl(value) {
+    const decoded = decodeUrlEntities(String(value || '')).trim();
+    const compact = decoded.replace(/[\u0000-\u0020\u007f-\u009f]/g, '').toLowerCase();
+    if (compact.startsWith('//')) return false;
+    if (/^(?:https?|mailto|tel):/.test(compact)) return false;
+    return isSafeUrl(decoded);
+}
+
+function isSafeStyle(value) {
+    const decoded = decodeUrlEntities(String(value || ''));
+    return !/(?:\\|\/\*|\*\/|url\s*\(|image-set\s*\(|expression\s*\(|@import\b|behavior\s*:|-moz-binding|\b(?:blob|data|file|https?|javascript|vbscript):)/i.test(decoded);
+}
+
+function assertSafeHtmlWithDom(html) {
+    const parsed = new DOMParser().parseFromString(html, 'text/html');
+    for (const element of parsed.querySelectorAll('*')) {
+        if (ACTIVE_HTML_TAGS.has(element.tagName.toLowerCase())) invalidBackup('unsafe-html-tag');
+        for (const attribute of element.attributes) {
+            const name = attribute.name.toLowerCase();
+            if (name.startsWith('on') || name === 'srcdoc' || name === 'ping') invalidBackup('unsafe-html-attribute');
+            if (name === 'srcset') invalidBackup('unsafe-html-attribute');
+            if (name === 'style' && !isSafeStyle(attribute.value)) invalidBackup('unsafe-html-style');
+            if (URL_ATTRIBUTES.has(name)) {
+                const tagName = element.tagName.toLowerCase();
+                const isResource = RESOURCE_URL_ATTRIBUTES.has(name)
+                    || (name === 'href' && (tagName === 'image' || tagName === 'use'));
+                if (!(isResource ? isSafeResourceUrl(attribute.value) : isSafeUrl(attribute.value))) {
+                    invalidBackup('unsafe-html-url');
+                }
+            }
+        }
+    }
+}
+
+function assertSafeHtmlFallback(html) {
+    const activeTagPattern = new RegExp(`<\\s*\\/?\\s*(?:${[...ACTIVE_HTML_TAGS].join('|')})(?:\\s|/?>)`, 'i');
+    if (activeTagPattern.test(html)) invalidBackup('unsafe-html-tag');
+    if (/\s(?:on[a-z0-9_-]+|srcdoc|ping)\s*=/i.test(html)) invalidBackup('unsafe-html-attribute');
+    if (/\ssrcset\s*=/i.test(html)) invalidBackup('unsafe-html-attribute');
+
+    for (const match of html.matchAll(/\s(href|src|xlink:href|action|formaction|poster|background)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi)) {
+        const name = match[1].toLowerCase();
+        const value = match[2] ?? match[3] ?? match[4] ?? '';
+        const isResource = RESOURCE_URL_ATTRIBUTES.has(name);
+        if (!(isResource ? isSafeResourceUrl(value) : isSafeUrl(value))) invalidBackup('unsafe-html-url');
+    }
+    for (const match of html.matchAll(/\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi)) {
+        if (!isSafeStyle(match[1] ?? match[2] ?? match[3] ?? '')) invalidBackup('unsafe-html-style');
+    }
+}
+
+function assertSafeHtml(html, field) {
+    if (html === undefined) return;
+    assertString(html, field, { max: MAX_HTML_LENGTH });
+    if (html.includes('\0')) invalidBackup('unsafe-html-null');
+    // Reject active tags and resource-bearing attributes before DOMParser is
+    // constructed. Browser DOMParser documents are inert for script, but may
+    // still start image/frame fetches while parsing hostile imported markup.
+    assertSafeHtmlFallback(html);
+    if (typeof DOMParser === 'function') assertSafeHtmlWithDom(html);
+}
+
+function validateDocumentRecord(record, collection) {
+    assertPlainRecord(record, collection);
+    assertBoundedJson(record, collection);
+    assertId(record.id, `${collection}-id`);
+    for (const field of [
+        'title', 'plainText', 'createdAt', 'updatedAt', 'trashedAt', 'expiresAt',
+        'writingLanguage', 'frameType', 'subject', 'schoolYear',
+    ]) {
+        if (record[field] !== null) assertString(record[field], `${collection}-${field}`, { optional: true, max: 1000000 });
+    }
+    assertSafeHtml(record.html, `${collection}-html`);
+    assertOptionalNumber(record.wordCount, `${collection}-wordCount`);
+    if (record.folderIds !== undefined) {
+        if (!Array.isArray(record.folderIds)) invalidBackup(`${collection}-folderIds`);
+        const unique = new Set();
+        for (const folderId of record.folderIds) {
+            assertId(folderId, `${collection}-folderId`);
+            if (unique.has(folderId)) invalidBackup(`${collection}-duplicate-folderId`);
+            unique.add(folderId);
+        }
+    }
+    if (record.references !== undefined) {
+        if (!Array.isArray(record.references) || record.references.length > MAX_REFERENCES_PER_DOCUMENT) {
+            invalidBackup(`${collection}-references`);
+        }
+        for (const reference of record.references) {
+            assertPlainRecord(reference, `${collection}-reference`);
+            for (const field of ['id', 'author', 'year', 'title', 'url', 'publisher', 'type']) {
+                assertString(reference[field], `${collection}-reference-${field}`, { optional: true, max: 1000000 });
+            }
+        }
+    }
+    if (record.tags !== undefined) {
+        if (!Array.isArray(record.tags) || record.tags.length > MAX_RECORD_ARRAY_LENGTH) invalidBackup(`${collection}-tags`);
+        for (const tag of record.tags) assertString(tag, `${collection}-tag`, { max: 1000000 });
+    }
+    if (record.germanHint !== undefined) {
+        assertPlainRecord(record.germanHint, `${collection}-germanHint`);
+        assertString(record.germanHint.simple, `${collection}-germanHint-simple`, { optional: true, max: 1000000 });
+        assertString(record.germanHint.rich, `${collection}-germanHint-rich`, { optional: true, max: 1000000 });
+    }
+    validateMicrosoftLink(record.microsoft365, collection);
+}
+
+function validateFolderRecord(folder) {
+    assertPlainRecord(folder, 'folders');
+    assertBoundedJson(folder, 'folders');
+    assertId(folder.id, 'folder-id');
+    assertString(folder.name, 'folder-name', { max: 1000 });
+    if (folder.parentId !== undefined && folder.parentId !== null) assertId(folder.parentId, 'folder-parentId');
+    assertOptionalBoolean(folder.isSystem, 'folder-isSystem');
+    assertOptionalNumber(folder.sortOrder, 'folder-sortOrder');
+    if (folder.schoolYear !== undefined && folder.schoolYear !== null) {
+        assertString(folder.schoolYear, 'folder-schoolYear', { max: 1000 });
+    }
+    assertString(folder.createdAt, 'folder-createdAt', { optional: true, max: 1000 });
+}
+
+function validateVersionRecord(version) {
+    assertPlainRecord(version, 'versions');
+    assertBoundedJson(version, 'versions');
+    if (version.id !== undefined
+        && !(typeof version.id === 'string' || (Number.isInteger(version.id) && version.id >= 0))) {
+        invalidBackup('version-id');
+    }
+    assertId(version.docId, 'version-docId');
+    if (version.content === undefined && version.html === undefined) invalidBackup('version-content');
+    assertSafeHtml(version.content, 'version-content');
+    assertSafeHtml(version.html, 'version-html');
+    assertOptionalNumber(version.timestamp, 'version-timestamp');
+    assertOptionalNumber(version.wordCount, 'version-wordCount');
+    assertOptionalBoolean(version.isMajor, 'version-isMajor');
+    assertString(version.preview, 'version-preview', { optional: true, max: 1000000 });
+}
+
+function validateFolderGraph(folders) {
+    const byId = new Map();
+    for (const folder of folders) {
+        if (byId.has(folder.id)) invalidBackup('duplicate-folder-id');
+        byId.set(folder.id, folder);
+    }
+
+    const depthMemo = new Map();
+    const visiting = new Set();
+    const getDepth = (folderId) => {
+        if (depthMemo.has(folderId)) return depthMemo.get(folderId);
+        if (visiting.has(folderId)) invalidBackup('folder-cycle');
+        visiting.add(folderId);
+        const folder = byId.get(folderId);
+        const parentId = folder?.parentId || null;
+        if (parentId && !byId.has(parentId)) invalidBackup('missing-folder-parent');
+        const depth = parentId ? getDepth(parentId) + 1 : 1;
+        visiting.delete(folderId);
+        if (depth > MAX_FOLDER_DEPTH) invalidBackup('folder-depth');
+        depthMemo.set(folderId, depth);
+        return depth;
+    };
+    for (const folder of folders) getDepth(folder.id);
+    return { byId, depthMemo };
+}
+
+function validateBackupData(data) {
+    if (!isPlainObject(data)) invalidBackup('data');
+    for (const key of ['documents', 'trash', 'folders', 'versions']) {
+        if (!Array.isArray(data[key])) invalidBackup(key);
+    }
+    if (data.documents.length > MAX_DOCUMENTS_PER_COLLECTION || data.trash.length > MAX_DOCUMENTS_PER_COLLECTION) {
+        invalidBackup('document-count');
+    }
+    if (data.folders.length > MAX_FOLDERS) invalidBackup('folder-count');
+    if (data.versions.length > MAX_VERSIONS) invalidBackup('version-count');
+
+    const documentIds = new Set();
+    const microsoftRemoteItems = new Set();
+    for (const [collection, records] of [['documents', data.documents], ['trash', data.trash]]) {
+        for (const record of records) {
+            validateDocumentRecord(record, collection);
+            if (documentIds.has(record.id)) invalidBackup('duplicate-document-id');
+            documentIds.add(record.id);
+            const remoteIdentity = microsoftRemoteIdentity(record);
+            if (remoteIdentity && microsoftRemoteItems.has(remoteIdentity)) {
+                invalidBackup('duplicate-microsoft-item');
+            }
+            if (remoteIdentity) microsoftRemoteItems.add(remoteIdentity);
+        }
+    }
+    for (const folder of data.folders) validateFolderRecord(folder);
+    for (const version of data.versions) validateVersionRecord(version);
+
+    const { byId: foldersById } = validateFolderGraph(data.folders);
+    for (const record of [...data.documents, ...data.trash]) {
+        for (const folderId of record.folderIds || []) {
+            if (!foldersById.has(folderId)) invalidBackup('missing-document-folder');
+        }
+    }
+
+    if (data.settings === undefined || data.settings === null) data.settings = {};
+    if (!isPlainObject(data.settings)) invalidBackup('settings');
+    assertBoundedJson(data.settings, 'settings');
+    for (const [key, value] of Object.entries(data.settings)) {
+        if (typeof value !== 'string' || value.length > 1000000) invalidBackup(`setting-${key}`);
+    }
+    return data;
+}
+
+function requestAsPromise(request) {
+    return new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+function transactionDone(transaction) {
+    return new Promise((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error || new Error('IndexedDB transaction failed'));
+        transaction.onabort = () => reject(transaction.error || new Error('IndexedDB transaction aborted'));
+    });
+}
+
+async function readStores(database, storeNames) {
+    const available = storeNames.filter(name => database.objectStoreNames.contains(name));
+    if (available.length !== storeNames.length) throw new Error('database-schema-incomplete');
+    const transaction = database.transaction(available, 'readonly');
+    const complete = transactionDone(transaction);
+    const reads = available.map(name => requestAsPromise(transaction.objectStore(name).getAll()));
+    const [values] = await Promise.all([Promise.all(reads), complete]);
+    return Object.fromEntries(available.map((name, index) => [name, values[index] || []]));
+}
+
+function readSettings(storage) {
+    const settings = {};
+    for (const key of SETTINGS_KEYS) {
+        const value = storage?.getItem(key);
+        if (value !== null && value !== undefined) settings[key] = value;
+    }
+    return settings;
+}
+
+function canonicalize(value) {
+    if (Array.isArray(value)) return value.map(canonicalize);
+    if (isPlainObject(value)) {
+        return Object.fromEntries(
+            Object.keys(value).sort().map(key => [key, canonicalize(value[key])])
+        );
+    }
+    return value;
+}
+
+function canonicalString(value) {
+    return JSON.stringify(canonicalize(value));
+}
+
+function recordsEqual(left, right) {
+    return canonicalString(left) === canonicalString(right);
+}
+
+function withoutMicrosoftLink(record) {
+    const { microsoft365: _microsoft365, ...localOnlyRecord } = record;
+    return localOnlyRecord;
+}
+
+function stableHash(value) {
+    const seeds = [0x811c9dc5, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35];
+    const hashes = seeds.map((seed) => {
+        let hash = seed >>> 0;
+        for (let index = 0; index < value.length; index++) {
+            hash ^= value.charCodeAt(index);
+            hash = Math.imul(hash, 0x01000193) >>> 0;
+        }
+        return hash.toString(16).padStart(8, '0');
+    });
+    return hashes.join('');
+}
+
+function stableConflictId(kind, source) {
+    return `restored_${kind}_${stableHash(canonicalString(source))}`;
+}
+
+function conflictIdCandidate(baseId, attempt) {
+    return attempt === 0 ? baseId : `${baseId}_${attempt + 1}`;
+}
+
+function conflictCandidateAttempt(baseId, candidateId) {
+    if (candidateId === baseId) return 0;
+    if (!candidateId.startsWith(`${baseId}_`)) return null;
+    const suffix = candidateId.slice(baseId.length + 1);
+    if (!/^\d+$/.test(suffix)) return null;
+    const number = Number(suffix);
+    return Number.isSafeInteger(number) && number >= 2 ? number - 1 : null;
+}
+
+function findVerifiedReplay(entries, baseId, matches) {
+    const candidates = [];
+    for (const [candidateId, value] of entries) {
+        const attempt = conflictCandidateAttempt(baseId, candidateId);
+        if (attempt !== null) candidates.push({ attempt, candidateId, value });
+    }
+    candidates.sort((left, right) => left.attempt - right.attempt);
+    return candidates.find(candidate => matches(candidate.candidateId, candidate.value)) || null;
+}
+
+function firstAvailableConflictId(entries, baseId) {
+    for (let attempt = 0; ; attempt++) {
+        const candidateId = conflictIdCandidate(baseId, attempt);
+        if (!entries.has(candidateId)) return candidateId;
+    }
+}
+
+function folderDepth(folder, byId, memo = new Map()) {
+    if (memo.has(folder.id)) return memo.get(folder.id);
+    const parent = folder.parentId ? byId.get(folder.parentId) : null;
+    const depth = parent ? folderDepth(parent, byId, memo) + 1 : 1;
+    memo.set(folder.id, depth);
+    return depth;
+}
 
 /**
- * Serialize the whole library to a JSON string.
- * @returns {Promise<{json: string, documentCount: number}>}
+ * Build a deterministic, non-overwriting plan for the document database.
+ * Exported as a pure helper so conflict/retry behavior can be tested without
+ * coupling tests to a particular IndexedDB mock.
  */
-export async function serializeLibraryBackup() {
-    const documents = await listDocuments();
-    const folders = (await getAllFolders()).filter(f => !isSystemFolder(f));
+export function buildLibraryRestorePlan(data, existingData) {
+    const existingFolders = existingData.folders || [];
+    const existingFolderById = new Map(existingFolders.map(folder => [folder.id, folder]));
+    const folderIdMap = new Map();
+    const folderWrites = [];
+    let foldersSkipped = 0;
+    let folderConflicts = 0;
 
-    const payload = {
+    const sourceFolderById = new Map(data.folders.map(folder => [folder.id, folder]));
+    const depthMemo = new Map();
+    const sortedFolders = [...data.folders].sort((left, right) => (
+        folderDepth(left, sourceFolderById, depthMemo) - folderDepth(right, sourceFolderById, depthMemo)
+        || left.id.localeCompare(right.id)
+    ));
+
+    for (const sourceFolder of sortedFolders) {
+        const mappedParent = sourceFolder.parentId ? folderIdMap.get(sourceFolder.parentId) : null;
+        const expectedAtOriginalId = {
+            ...sourceFolder,
+            parentId: mappedParent || null,
+        };
+        const existingAtOriginalId = existingFolderById.get(sourceFolder.id);
+
+        if (existingAtOriginalId && (sourceFolder.isSystem || sourceFolder.id.startsWith('sys_'))) {
+            // Deterministic system folders belong to the local installation.
+            folderIdMap.set(sourceFolder.id, sourceFolder.id);
+            foldersSkipped++;
+            if (!recordsEqual(existingAtOriginalId, expectedAtOriginalId)) folderConflicts++;
+            continue;
+        }
+
+        const baseId = stableConflictId('folder', sourceFolder);
+        const replay = findVerifiedReplay(
+            existingFolderById,
+            baseId,
+            (candidateId, occupied) => recordsEqual(occupied, {
+                ...sourceFolder,
+                id: candidateId,
+                parentId: mappedParent || null,
+            }),
+        );
+        if (replay) {
+            folderIdMap.set(sourceFolder.id, replay.candidateId);
+            foldersSkipped++;
+            folderConflicts++;
+            continue;
+        }
+
+        if (existingAtOriginalId && recordsEqual(existingAtOriginalId, expectedAtOriginalId)) {
+            folderIdMap.set(sourceFolder.id, sourceFolder.id);
+            foldersSkipped++;
+            continue;
+        }
+
+        if (!existingAtOriginalId) {
+            const restored = { ...sourceFolder, parentId: mappedParent || null };
+            folderIdMap.set(sourceFolder.id, sourceFolder.id);
+            folderWrites.push(restored);
+            existingFolderById.set(sourceFolder.id, restored);
+            continue;
+        }
+
+        const targetId = firstAvailableConflictId(existingFolderById, baseId);
+        const restored = {
+            ...sourceFolder,
+            id: targetId,
+            parentId: mappedParent || null,
+        };
+        folderIdMap.set(sourceFolder.id, targetId);
+        folderWrites.push(restored);
+        existingFolderById.set(targetId, restored);
+        folderConflicts++;
+    }
+
+    const existingEntries = new Map();
+    const existingRemoteOwners = new Map();
+    for (const [storeName, records] of [['documents', existingData.documents || []], ['trash', existingData.trash || []]]) {
+        for (const record of records) {
+            existingEntries.set(record.id, { storeName, record });
+            const remoteIdentity = microsoftRemoteIdentity(record);
+            if (remoteIdentity && !existingRemoteOwners.has(remoteIdentity)) {
+                existingRemoteOwners.set(remoteIdentity, { storeName, id: record.id });
+            }
+        }
+    }
+
+    const documentIdMap = new Map();
+    const documentWrites = [];
+    const trashWrites = [];
+    let imported = 0;
+    let skipped = 0;
+    let conflicts = 0;
+
+    for (const [storeName, records] of [['documents', data.documents], ['trash', data.trash]]) {
+        for (const sourceRecord of records) {
+            const remapped = {
+                ...sourceRecord,
+                folderIds: (sourceRecord.folderIds || []).map(folderId => folderIdMap.get(folderId)),
+            };
+            // A conflict clone has a new local identity and must require a new
+            // explicit Microsoft opt-in. Otherwise two local records can point
+            // at and autosync over the same remote drive item.
+            const conflictRecord = withoutMicrosoftLink(remapped);
+            const existingAtOriginalId = existingEntries.get(sourceRecord.id);
+            const remoteIdentity = microsoftRemoteIdentity(remapped);
+            const remoteOwner = remoteIdentity
+                ? existingRemoteOwners.get(remoteIdentity)
+                : null;
+            const remoteOwnedElsewhere = remoteOwner
+                && (remoteOwner.id !== sourceRecord.id || remoteOwner.storeName !== storeName);
+            const safeRemapped = remoteOwnedElsewhere
+                ? withoutMicrosoftLink(remapped)
+                : remapped;
+            const baseId = stableConflictId(`document_${storeName}`, sourceRecord);
+            const replay = findVerifiedReplay(
+                existingEntries,
+                baseId,
+                (candidateId, occupied) => occupied.storeName === storeName
+                    && recordsEqual(occupied.record, {
+                        ...conflictRecord,
+                        id: candidateId,
+                        title: `${conflictRecord.title || 'Uten tittel'} (gjenopprettet)`,
+                    }),
+            );
+            if (replay) {
+                documentIdMap.set(sourceRecord.id, replay.candidateId);
+                skipped++;
+                conflicts++;
+                continue;
+            }
+
+            if (existingAtOriginalId
+                && existingAtOriginalId.storeName === storeName
+                && recordsEqual(existingAtOriginalId.record, safeRemapped)) {
+                documentIdMap.set(sourceRecord.id, sourceRecord.id);
+                skipped++;
+                continue;
+            }
+
+            const hasConflict = !!existingAtOriginalId;
+            if (!hasConflict) {
+                documentIdMap.set(sourceRecord.id, sourceRecord.id);
+                existingEntries.set(sourceRecord.id, { storeName, record: safeRemapped });
+                (storeName === 'documents' ? documentWrites : trashWrites).push(safeRemapped);
+                if (remoteIdentity && !remoteOwnedElsewhere) {
+                    existingRemoteOwners.set(remoteIdentity, { storeName, id: sourceRecord.id });
+                }
+                imported++;
+                continue;
+            }
+
+            const targetId = firstAvailableConflictId(existingEntries, baseId);
+            const restored = {
+                ...conflictRecord,
+                id: targetId,
+                title: `${conflictRecord.title || 'Uten tittel'} (gjenopprettet)`,
+            };
+            documentIdMap.set(sourceRecord.id, targetId);
+            existingEntries.set(targetId, { storeName, record: restored });
+            (storeName === 'documents' ? documentWrites : trashWrites).push(restored);
+            imported++;
+            conflicts++;
+        }
+    }
+
+    return {
+        folderWrites,
+        documentWrites,
+        trashWrites,
+        folderIdMap,
+        documentIdMap,
+        imported,
+        skipped,
+        conflicts,
+        foldersImported: folderWrites.length,
+        foldersSkipped,
+        folderConflicts,
+    };
+}
+
+function versionSignature(version) {
+    const { id: _id, ...withoutId } = version;
+    return canonicalString(withoutId);
+}
+
+/** Build an idempotent version-import plan for mapped document IDs. */
+export function buildVersionRestorePlan(versions, documentIdMap, existingVersions) {
+    const signatures = new Set(existingVersions.map(versionSignature));
+    const writes = [];
+    let skipped = 0;
+    let orphaned = 0;
+
+    for (const source of versions) {
+        const mappedDocId = documentIdMap.get(source.docId);
+        if (!mappedDocId) {
+            orphaned++;
+            continue;
+        }
+        const { id: _discardedId, ...copy } = source;
+        const restored = { ...copy, docId: mappedDocId };
+        if (restored.content === undefined && typeof restored.html === 'string') {
+            restored.content = restored.html;
+        }
+        const signature = versionSignature(restored);
+        if (signatures.has(signature)) {
+            skipped++;
+            continue;
+        }
+        signatures.add(signature);
+        writes.push(restored);
+    }
+    return { writes, imported: writes.length, skipped, orphaned };
+}
+
+export function serializeLibraryBackup(data, options = {}) {
+    return JSON.stringify({
         format: BACKUP_FORMAT,
         version: BACKUP_VERSION,
-        exportedAt: new Date().toISOString(),
-        documents,
-        folders,
-    };
-    return { json: JSON.stringify(payload, null, 2), documentCount: documents.length };
+        createdAt: options.createdAt || new Date().toISOString(),
+        data: {
+            documents: Array.isArray(data.documents) ? data.documents : [],
+            trash: Array.isArray(data.trash) ? data.trash : [],
+            folders: Array.isArray(data.folders) ? data.folders : [],
+            versions: Array.isArray(data.versions) ? data.versions : [],
+            settings: data.settings && typeof data.settings === 'object' ? data.settings : {},
+        },
+    });
 }
 
-/**
- * Download the library backup as a .skriv file.
- * @returns {Promise<number>} number of documents exported
- */
-export async function downloadLibraryBackup() {
-    const { json, documentCount } = await serializeLibraryBackup();
-    const stamp = new Date().toISOString().slice(0, 10);
-    const blob = new Blob([json], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `skriv-sikkerhetskopi-${stamp}.skriv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    return documentCount;
-}
-
-/**
- * Parse and validate a backup file's text content.
- * Throws Error('invalid') when the file is not a Skriv backup.
- */
 export function parseLibraryBackup(text) {
-    let data;
+    if (typeof text !== 'string' || text.length > MAX_BACKUP_TEXT_LENGTH) invalidBackup('size');
+    let parsed;
     try {
-        data = JSON.parse(text);
-    } catch (_) {
-        throw new Error('invalid');
+        parsed = JSON.parse(text);
+    } catch {
+        throw new Error('invalid-json');
     }
-    if (!data || data.format !== BACKUP_FORMAT || !Array.isArray(data.documents)) {
-        throw new Error('invalid');
-    }
-    const folders = Array.isArray(data.folders) ? data.folders : [];
 
-    const documents = data.documents.filter(d =>
-        d && typeof d.id === 'string'
-        && typeof d.html === 'string'
-        && typeof d.title === 'string'
-        // Reject active content — document HTML is rendered with
-        // innerHTML, so a hostile backup file must not become script.
-        && !/<script|javascript:|\son\w+\s*=/i.test(d.html)
-    );
-    return { documents, folders };
+    if (parsed?.format !== BACKUP_FORMAT || parsed?.version !== BACKUP_VERSION) {
+        throw new Error('unsupported-backup');
+    }
+    if (!parsed.data || typeof parsed.data !== 'object') invalidBackup('data');
+    validateBackupData(parsed.data);
+    return parsed;
 }
 
-/**
- * Merge a parsed backup into the local library.
- * @returns {Promise<{importedDocs: number, skippedDocs: number, createdFolders: number}>}
- */
-export async function restoreLibraryBackup({ documents, folders }) {
-    // --- Folders: match by name+parent, create the missing ones ---
-    const idMap = new Map(); // imported folder id -> local folder id
+async function collectLibraryData(storage) {
+    const documentDb = await openSkrivDatabase();
+    const documentData = await readStores(documentDb, DOCUMENT_STORES);
+    const versionDb = await openVersionHistoryDatabase();
+    try {
+        const versionData = await readStores(versionDb, [VERSION_HISTORY_STORE_NAME]);
+        return {
+            documents: documentData.documents,
+            trash: documentData.trash,
+            folders: documentData.folders,
+            versions: versionData[VERSION_HISTORY_STORE_NAME],
+            settings: readSettings(storage),
+        };
+    } finally {
+        versionDb.close();
+    }
+}
 
-    function depthOf(folder, all, seen = new Set()) {
-        if (!folder.parentId || seen.has(folder.id)) return 0;
-        seen.add(folder.id);
-        const parent = all.find(f => f.id === folder.parentId);
-        return parent ? 1 + depthOf(parent, all, seen) : 0;
+async function mergeDocumentData(data) {
+    const db = await openSkrivDatabase();
+    const existing = await readStores(db, DOCUMENT_STORES);
+    const plan = buildLibraryRestorePlan(data, existing);
+    const writeCount = plan.folderWrites.length + plan.documentWrites.length + plan.trashWrites.length;
+
+    if (writeCount > 0) {
+        const transaction = db.transaction(DOCUMENT_STORES, 'readwrite');
+        const complete = transactionDone(transaction);
+        const folders = transaction.objectStore('folders');
+        const documents = transaction.objectStore('documents');
+        const trash = transaction.objectStore('trash');
+        for (const folder of plan.folderWrites) folders.add(folder);
+        for (const document of plan.documentWrites) documents.add(document);
+        for (const document of plan.trashWrites) trash.add(document);
+        await complete;
     }
 
-    const orderedFolders = [...folders].sort(
-        (a, b) => depthOf(a, folders) - depthOf(b, folders)
-    );
+    return plan;
+}
 
-    let createdFolders = 0;
-    for (const imported of orderedFolders) {
-        if (!imported || typeof imported.id !== 'string' || typeof imported.name !== 'string') continue;
-        const localParentId = imported.parentId ? (idMap.get(imported.parentId) || null) : null;
-        const existingLocal = (await getAllFolders()).find(f =>
-            f.name === imported.name && (f.parentId || null) === localParentId
+async function mergeVersions(versions, documentIdMap) {
+    const db = await openVersionHistoryDatabase();
+    try {
+        const existing = await readStores(db, [VERSION_HISTORY_STORE_NAME]);
+        const plan = buildVersionRestorePlan(
+            versions,
+            documentIdMap,
+            existing[VERSION_HISTORY_STORE_NAME]
         );
-        if (existingLocal) {
-            idMap.set(imported.id, existingLocal.id);
-            continue;
+        if (plan.writes.length > 0) {
+            const transaction = db.transaction(VERSION_HISTORY_STORE_NAME, 'readwrite');
+            const complete = transactionDone(transaction);
+            const store = transaction.objectStore(VERSION_HISTORY_STORE_NAME);
+            for (const version of plan.writes) store.add(version);
+            await complete;
         }
+        return plan;
+    } finally {
+        db.close();
+    }
+}
+
+function restoreSettings(settings, storage) {
+    const previous = new Map();
+    const applied = [];
+    try {
+        for (const key of SETTINGS_KEYS) {
+            if (typeof settings[key] !== 'string') continue;
+            previous.set(key, storage?.getItem(key) ?? null);
+            storage?.setItem(key, settings[key]);
+            applied.push(key);
+        }
+    } catch (error) {
+        for (const key of applied.reverse()) {
+            try {
+                const oldValue = previous.get(key);
+                if (oldValue === null) storage?.removeItem(key);
+                else storage?.setItem(key, oldValue);
+            } catch { /* best-effort rollback */ }
+        }
+        throw error;
+    }
+}
+
+export class LibraryRestorePartialError extends Error {
+    constructor(result, cause) {
+        super('partial-restore');
+        this.name = 'LibraryRestorePartialError';
+        this.code = 'partial-restore';
+        this.result = result;
+        this.cause = cause;
+        this.canRetry = true;
+        this.phases = result.phases;
+    }
+}
+
+function publicDocumentResult(plan) {
+    return {
+        imported: plan.imported,
+        skipped: plan.skipped,
+        conflicts: plan.conflicts,
+        foldersImported: plan.foldersImported,
+        foldersSkipped: plan.foldersSkipped,
+        folderConflicts: plan.folderConflicts,
+    };
+}
+
+export function initLibraryBackup(options = {}) {
+    let destroyed = false;
+    const storage = options.storage ?? globalThis.localStorage;
+    const collectData = options.collectLibraryData || collectLibraryData;
+    const mergeDocuments = options.mergeDocumentData || mergeDocumentData;
+    const mergeVersionData = options.mergeVersions || mergeVersions;
+    const applySettings = options.restoreSettings || restoreSettings;
+
+    async function createBackupBlob() {
+        if (destroyed) throw new Error('backup-destroyed');
+        // A version-history read failure must fail the entire export. Returning
+        // a superficially successful backup without its snapshots is unsafe.
+        const data = await collectData(storage);
+        return new Blob([serializeLibraryBackup(data)], { type: 'application/json;charset=utf-8' });
+    }
+
+    async function downloadBackup() {
+        const blob = await createBackupBlob();
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        const date = new Date().toISOString().slice(0, 10);
         try {
-            const created = await createFolder(imported.name, localParentId);
-            idMap.set(imported.id, created.id);
-            createdFolders++;
-        } catch (_) {
-            // Depth limit or race — the documents just land without this folder.
+            anchor.href = url;
+            anchor.download = `papertek-skriv-${date}.skriv`;
+            document.body.appendChild(anchor);
+            anchor.click();
+        } finally {
+            try {
+                anchor.remove();
+            } finally {
+                // Safari may not start consuming the object URL until after
+                // the synthetic click task has completed.
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
         }
     }
 
-    // --- Documents: merge-only ---
-    let importedDocs = 0;
-    let skippedDocs = 0;
-    for (const imported of documents) {
-        const existing = await getDocument(imported.id);
-        if (existing && existing.updatedAt === imported.updatedAt) {
-            skippedDocs++;
-            continue;
+    async function restoreFromText(text) {
+        if (destroyed) throw new Error('backup-destroyed');
+        const backup = parseLibraryBackup(text);
+        const phases = { documents: 'pending', versions: 'pending', settings: 'pending' };
+
+        const documentPlan = await mergeDocuments(backup.data);
+        phases.documents = 'complete';
+        const result = {
+            status: 'partial',
+            canRetry: true,
+            phases,
+            ...publicDocumentResult(documentPlan),
+            versions: 0,
+            versionsSkipped: 0,
+            versionOrphans: 0,
+        };
+
+        try {
+            const versionPlan = await mergeVersionData(backup.data.versions, documentPlan.documentIdMap);
+            phases.versions = 'complete';
+            result.versions = versionPlan.imported;
+            result.versionsSkipped = versionPlan.skipped;
+            result.versionOrphans = versionPlan.orphaned;
+        } catch (error) {
+            phases.versions = 'failed';
+            throw new LibraryRestorePartialError(result, error);
         }
-        const created = await createDocument(imported.title || '');
-        await saveDocument(created.id, {
-            title: imported.title || '',
-            html: imported.html,
-            plainText: typeof imported.plainText === 'string' ? imported.plainText : '',
-            wordCount: Number.isFinite(imported.wordCount) ? imported.wordCount : 0,
-            subject: typeof imported.subject === 'string' ? imported.subject : null,
-            schoolYear: typeof imported.schoolYear === 'string' ? imported.schoolYear : created.schoolYear,
-            folderIds: Array.isArray(imported.folderIds)
-                ? imported.folderIds.map(id => idMap.get(id)).filter(Boolean)
-                : [],
-        });
-        importedDocs++;
+
+        try {
+            await applySettings(backup.data.settings, storage);
+            phases.settings = 'complete';
+        } catch (error) {
+            phases.settings = 'failed';
+            throw new LibraryRestorePartialError(result, error);
+        }
+
+        result.status = 'complete';
+        result.canRetry = false;
+        return result;
     }
 
-    return { importedDocs, skippedDocs, createdFolders };
+    async function requestPersistentStorage() {
+        if (!navigator.storage?.persist) return false;
+        return navigator.storage.persist();
+    }
+
+    async function getStorageEstimate() {
+        if (!navigator.storage?.estimate) return null;
+        return navigator.storage.estimate();
+    }
+
+    return {
+        createBackupBlob,
+        downloadBackup,
+        restoreFromText,
+        requestPersistentStorage,
+        getStorageEstimate,
+        destroy() { destroyed = true; },
+    };
 }

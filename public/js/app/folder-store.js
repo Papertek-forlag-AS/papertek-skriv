@@ -3,194 +3,23 @@
  * Replaces subject-store.js with proper folder objects in IndexedDB.
  * Folders support 3-level nesting and multi-folder document assignment.
  *
- * Opens the same 'skriv-documents' DB at version 4.
- * Contains identical migration logic to document-store.js and trash-store.js
- * since any of the three modules may open the DB first.
+ * Uses the shared database opener so every caller gets the same migration and
+ * repair behavior.
  *
  * Dependencies: school-level.js
  */
 
 import { getSchoolLevel, getSubjectsForLevel } from './school-level.js';
+import { normalizeFolderName, openSkrivDatabase } from './db.js';
 
-const DB_NAME = 'skriv-documents';
-const DB_VERSION = 4;
 const FOLDERS_STORE = 'folders';
 const DOCS_STORE = 'documents';
-const TRASH_STORE = 'trash';
 
 export const PERSONAL_FOLDER_NAME = '__personal__';
 export const PERSONAL_SUBJECT = PERSONAL_FOLDER_NAME; // backward-compat alias
 export const MAX_FOLDER_DEPTH = 3;
 
 const LS_SCHOOL_YEAR = 'skriv_school_year';
-const LS_CUSTOM_SUBJECTS = 'skriv_custom_subjects';
-
-/**
- * Complete list of system subjects (superset across all school levels).
- * Used during DB v4 migration to seed system folders.
- */
-const ALL_SYSTEM_SUBJECTS = [
-    'Engelsk', 'Fremmedspråk', 'Geografi', 'Historie', 'IT', 'KRLE',
-    'Kroppsøving', 'Kunst og håndverk', 'Matematikk', 'Musikk',
-    'Naturfag', 'Norsk', 'Religion og etikk', 'Samfunnsfag', 'Samfunnskunnskap',
-];
-
-let _db = null;
-
-// ─── Deterministic folder ID generation ─────────────────────────────────
-
-function normalizeName(name) {
-    return name.toLowerCase()
-        .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
-        .replace(/[^a-z0-9]/g, '_')
-        .replace(/_+/g, '_')
-        .replace(/^_|_$/g, '');
-}
-
-// ─── DB v4 migration (shared with document-store.js / trash-store.js) ───
-
-function runV4Migration(db, tx) {
-    const now = new Date().toISOString();
-    const nameToId = new Map();
-
-    // 1. Create folders store
-    if (!db.objectStoreNames.contains(FOLDERS_STORE)) {
-        const fs = db.createObjectStore(FOLDERS_STORE, { keyPath: 'id' });
-        fs.createIndex('parentId', 'parentId', { unique: false });
-        fs.createIndex('schoolYear', 'schoolYear', { unique: false });
-    }
-
-    // 2. folderIds multiEntry index on documents
-    const docStore = tx.objectStore(DOCS_STORE);
-    if (!docStore.indexNames.contains('folderIds')) {
-        docStore.createIndex('folderIds', 'folderIds', { unique: false, multiEntry: true });
-    }
-
-    // 3. Seed folders
-    const foldersStore = tx.objectStore(FOLDERS_STORE);
-
-    function addFolder(id, name, isSystem, sortOrder) {
-        nameToId.set(name, id);
-        const req = foldersStore.add({
-            id, name, parentId: null, isSystem,
-            schoolYear: null, sortOrder, createdAt: now,
-        });
-        req.onerror = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
-    }
-
-    // Personal folder
-    addFolder('sys___personal__', PERSONAL_FOLDER_NAME, true, 0);
-
-    // System subject folders
-    ALL_SYSTEM_SUBJECTS.forEach((name, i) => {
-        addFolder('sys_' + normalizeName(name), name, true, i + 1);
-    });
-
-    // Custom subjects from localStorage
-    try {
-        const raw = localStorage.getItem(LS_CUSTOM_SUBJECTS);
-        const customs = raw ? JSON.parse(raw) : [];
-        customs.forEach((name, i) => {
-            if (!nameToId.has(name)) {
-                addFolder('cust_' + normalizeName(name), name, false, 100 + i);
-            }
-        });
-    } catch (_) { /* ignore parse errors */ }
-
-    // 4. Walk documents → set folderIds
-    docStore.openCursor().onsuccess = (ev) => {
-        const cursor = ev.target.result;
-        if (!cursor) return;
-        try {
-            const doc = cursor.value;
-            if (doc.folderIds !== undefined) { cursor.continue(); return; }
-            const fid = doc.subject ? nameToId.get(doc.subject) : null;
-            doc.folderIds = fid ? [fid] : [];
-            cursor.update(doc);
-        } catch (_) { /* skip failed doc */ }
-        cursor.continue();
-    };
-
-    // 5. Walk trash → set folderIds on trashed documents
-    if (db.objectStoreNames.contains(TRASH_STORE)) {
-        const trashStore = tx.objectStore(TRASH_STORE);
-        trashStore.openCursor().onsuccess = (ev) => {
-            const cursor = ev.target.result;
-            if (!cursor) return;
-            try {
-                const doc = cursor.value;
-                if (doc.folderIds !== undefined) { cursor.continue(); return; }
-                const fid = doc.subject ? nameToId.get(doc.subject) : null;
-                doc.folderIds = fid ? [fid] : [];
-                cursor.update(doc);
-            } catch (_) { /* skip */ }
-            cursor.continue();
-        };
-    }
-}
-
-// ─── Open DB ────────────────────────────────────────────────────────────
-
-function openDB() {
-    if (_db) return Promise.resolve(_db);
-
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-        let blockedTimer = null;
-        request.onblocked = () => {
-            console.warn('[folder-store] DB upgrade blocked — closing stale connections');
-            if (_db) { _db.close(); _db = null; }
-            blockedTimer = setTimeout(() => {
-                console.warn('[folder-store] DB still blocked after 3s — reloading');
-                window.location.reload();
-            }, 3000);
-        };
-
-        request.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            const tx = e.target.transaction;
-
-            // v1: documents store
-            if (!db.objectStoreNames.contains(DOCS_STORE)) {
-                const store = db.createObjectStore(DOCS_STORE, { keyPath: 'id' });
-                store.createIndex('updatedAt', 'updatedAt', { unique: false });
-            }
-            // v2: trash store
-            if (!db.objectStoreNames.contains(TRASH_STORE)) {
-                const trashStore = db.createObjectStore(TRASH_STORE, { keyPath: 'id' });
-                trashStore.createIndex('trashedAt', 'trashedAt', { unique: false });
-            }
-            // v3: subject + schoolYear indexes
-            if (e.oldVersion < 3) {
-                const store = tx.objectStore(DOCS_STORE);
-                if (!store.indexNames.contains('subject')) {
-                    store.createIndex('subject', 'subject', { unique: false });
-                }
-                if (!store.indexNames.contains('schoolYear')) {
-                    store.createIndex('schoolYear', 'schoolYear', { unique: false });
-                }
-            }
-            // v4: folders + folderIds
-            if (e.oldVersion < 4) {
-                runV4Migration(db, tx);
-            }
-        };
-
-        request.onsuccess = (e) => {
-            if (blockedTimer) clearTimeout(blockedTimer);
-            _db = e.target.result;
-            _db.onversionchange = () => { _db.close(); _db = null; };
-            resolve(_db);
-        };
-
-        request.onerror = (e) => {
-            if (blockedTimer) clearTimeout(blockedTimer);
-            console.error('IndexedDB open failed:', e.target.error);
-            reject(e.target.error);
-        };
-    });
-}
 
 // ─── School year helpers (ported from subject-store.js) ─────────────────
 
@@ -274,8 +103,8 @@ export async function createFolder(name, parentId = null) {
         throw new Error('A folder with this name already exists');
     }
 
-    const db = await openDB();
-    const id = 'cust_' + normalizeName(trimmed) + '_' + Date.now().toString(36);
+    const db = await openSkrivDatabase();
+    const id = 'cust_' + normalizeFolderName(trimmed) + '_' + Date.now().toString(36);
     const folder = {
         id,
         name: trimmed,
@@ -303,7 +132,7 @@ export async function renameFolder(folderId, newName) {
     const trimmed = newName.trim().slice(0, 30);
     if (!trimmed) throw new Error('Folder name cannot be empty');
 
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     const folder = await getFolderById(folderId);
     if (!folder) throw new Error('Folder not found');
     if (folder.isSystem) throw new Error('Cannot rename system folders');
@@ -324,7 +153,7 @@ export async function renameFolder(folderId, newName) {
  * @param {string} folderId
  */
 export async function deleteFolder(folderId) {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     const folder = await getFolderById(folderId);
     if (!folder) throw new Error('Folder not found');
     if (folder.isSystem) throw new Error('Cannot delete system folders');
@@ -388,7 +217,7 @@ export async function moveFolder(folderId, newParentId) {
         }
     }
 
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     folder.parentId = newParentId || null;
 
     return new Promise((resolve, reject) => {
@@ -406,7 +235,7 @@ export async function moveFolder(folderId, newParentId) {
  * @returns {Promise<Array>}
  */
 export async function getAllFolders() {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     return new Promise((resolve, reject) => {
         const tx = db.transaction(FOLDERS_STORE, 'readonly');
         const req = tx.objectStore(FOLDERS_STORE).getAll();
@@ -434,7 +263,7 @@ export async function getRootFolders() {
  * @returns {Promise<Array>}
  */
 export async function getChildren(parentId) {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     return new Promise((resolve, reject) => {
         const tx = db.transaction(FOLDERS_STORE, 'readonly');
         const idx = tx.objectStore(FOLDERS_STORE).index('parentId');
@@ -454,7 +283,7 @@ export async function getChildren(parentId) {
  * @returns {Promise<Object|null>}
  */
 export async function getFolderById(id) {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     return new Promise((resolve, reject) => {
         const tx = db.transaction(FOLDERS_STORE, 'readonly');
         const req = tx.objectStore(FOLDERS_STORE).get(id);
@@ -567,7 +396,7 @@ export function flattenTree(tree) {
  * @param {string} folderId
  */
 export async function addDocToFolder(docId, folderId) {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     return new Promise((resolve, reject) => {
         const tx = db.transaction(DOCS_STORE, 'readwrite');
         const store = tx.objectStore(DOCS_STORE);
@@ -593,7 +422,7 @@ export async function addDocToFolder(docId, folderId) {
  * @param {string} folderId
  */
 export async function removeDocFromFolder(docId, folderId) {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     return new Promise((resolve, reject) => {
         const tx = db.transaction(DOCS_STORE, 'readwrite');
         const store = tx.objectStore(DOCS_STORE);
@@ -616,7 +445,7 @@ export async function removeDocFromFolder(docId, folderId) {
  * @param {string[]} folderIds
  */
 export async function setDocFolders(docId, folderIds) {
-    const db = await openDB();
+    const db = await openSkrivDatabase();
     return new Promise((resolve, reject) => {
         const tx = db.transaction(DOCS_STORE, 'readwrite');
         const store = tx.objectStore(DOCS_STORE);

@@ -223,7 +223,30 @@
           // for 0 < Zipf < 4.0. (Diacritic variants are filtered separately.)
           if (currentZipf >= 4.0) continue;
 
-          for (const cand of validWords) {
+          // Ytelse (27.08.2026): denne løkken gikk gjennom HELE validWords —
+          // 639 352 ord for nb — per kvalifiserende ord, og var alene 225 ms
+          // av en 414 ms check() på 200 ord.
+          //
+          // Den trengte aldri å gjøre det. Se `weight` under: en kandidat
+          // kan bare vinne hvis `currentPairs[cand] >= minWeight`, og
+          // minWeight er 2 eller 5. Er ikke kandidaten en nøkkel i
+          // `currentPairs`, er weight `undefined`, og `undefined >= 2` er
+          // usann — den kunne aldri blitt valgt. Kandidatuniverset ER altså
+          // bigram-etterfølgerne til forrige ord: titalls ord, ikke 639 352.
+          // Alle vaktene under står i samme rekkefølge som før, så
+          // resultatmengden er per definisjon uendret.
+          //
+          // Det ene som IKKE følger av mengdelikhet er uavgjort: `weight >
+          // bestScore` er streng, så det FØRSTE maksimumet vant, og «først»
+          // betydde først i validWords-rekkefølge. Bigram-nøkkelrekkefølgen
+          // er en annen. Vi samler derfor alle med maksvekt og faller
+          // tilbake til en skanning bare når to eller flere står likt —
+          // sjelden, og da koster det det løkken kostet før.
+          const candKeys = Object.keys(currentPairs);
+          const tiedBest = [];
+          for (let ci = 0; ci < candKeys.length; ci++) {
+            const cand = candKeys[ci];
+            if (!validWords.has(cand)) continue;
             if (cand === currentWord) continue;
             if (Math.abs(cand.length - currentWord.length) > 1) continue;
             // For short words, only allow edits that preserve the first letter (unless it's a transposition)
@@ -271,8 +294,22 @@
                 if (weight > bestScore) {
                   bestScore = weight;
                   bestNeighbor = cand;
+                  tiedBest.length = 0;
+                  tiedBest.push(cand);
+                } else if (weight === bestScore) {
+                  tiedBest.push(cand);
                 }
               }
+            }
+          }
+
+          // Uavgjort på maksvekt: gjenskap den gamle rekkefølgen ved å
+          // finne den av dem som kom først i validWords. Early-exit, og
+          // bare på denne grenen.
+          if (tiedBest.length > 1) {
+            const tied = new Set(tiedBest);
+            for (const w of validWords) {
+              if (tied.has(w)) { bestNeighbor = w; break; }
             }
           }
 

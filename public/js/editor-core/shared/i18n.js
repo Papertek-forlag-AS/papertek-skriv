@@ -86,7 +86,8 @@ function interpolate(str, params) {
 
 /**
  * Initialize i18n. Must be called once before t() is used.
- * Auto-detects language from: localStorage > browser language > default (nb).
+ * Norwegian Bokmål is the predictable first-run language; an explicit choice
+ * in the visible language selector is persisted for later visits.
  */
 export async function initI18n() {
     if (_initialized) return;
@@ -94,11 +95,6 @@ export async function initI18n() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && SUPPORTED_LANGUAGES.includes(stored)) {
         _currentLanguage = stored;
-    } else {
-        const browserLang = navigator.language?.split('-')[0];
-        if (browserLang && SUPPORTED_LANGUAGES.includes(browserLang)) {
-            _currentLanguage = browserLang;
-        }
     }
 
     await loadLanguage(_currentLanguage);
@@ -223,18 +219,19 @@ export function onLanguageChange(callback) {
 /**
  * Render a language selector <select> element inside the given container.
  */
-export function renderLanguageSelector(container) {
+export function renderLanguageSelector(container, options = {}) {
     const languages = getSupportedLanguages();
     const current = _currentLanguage;
 
     const select = document.createElement('select');
-    select.className = 'text-xs border border-stone-300 rounded px-2 py-1 bg-white text-stone-600 cursor-pointer';
+    select.className = 'text-xs border border-stone-200 dark:border-stone-600 rounded-lg px-2 py-1.5 bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 cursor-pointer';
     select.setAttribute('aria-label', t('language.label'));
+    select.title = t('language.label');
 
     languages.forEach(lang => {
         const option = document.createElement('option');
         option.value = lang.code;
-        option.textContent = lang.name;
+        option.textContent = options.compact ? lang.code.toUpperCase() : lang.name;
         option.selected = lang.code === current;
         select.appendChild(option);
     });

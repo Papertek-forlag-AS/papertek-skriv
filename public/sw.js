@@ -3,24 +3,36 @@
  * Caches static assets for offline use.
  */
 
-const CACHE_NAME = 'skriv-v93';
+const CACHE_PREFIX = 'skriv-v';
+const CACHE_NAME = 'skriv-v96';
+// MSAL 5's redirect bridge handles raw authorization responses. Microsoft
+// requires both the bridge page and its script to bypass all app caches.
+const MICROSOFT_AUTH_NO_STORE_PATHS = new Set([
+    '/microsoft-auth-redirect.html',
+    '/vendor/msal-redirect-bridge-5.17.3.min.js',
+]);
 const ASSETS = [
     '/',
     '/index.html',
     '/whitepaper.html',
-    '/stabekk.html',
     '/school.html',
+    '/stabekk.html',
     '/manifest.json',
+    '/css/main.css',
+    '/vendor/tailwindcss-3.4.17.js',
+    '/vendor/jspdf-2.5.1.umd.min.js',
+    '/vendor/msal-browser-5.17.3.min.js',
     '/icons/icon-192.svg',
     '/js/app/main.js',
+    '/js/app/db.js',
     '/js/app/standalone-writer.js',
     '/js/app/document-store.js',
     '/js/app/document-list.js',
+    '/js/app/cleanup-desk.js',
     '/js/app/document-search.js',
     '/js/app/trash-store.js',
     '/js/app/word-count-stats.js',
     '/js/app/folder-store.js',
-    '/js/app/library-backup.js',
     '/js/app/sidebar.js',
     '/js/app/folder-picker.js',
     '/js/app/sw-manager.js',
@@ -32,7 +44,19 @@ const ASSETS = [
     '/js/app/leksihjelp-bridge.js',
     '/js/app/leksihjelp-settings.js',
     '/js/app/leksihjelp-dictionary.js',
+    '/js/app/leksihjelp-view-host.js',
+    '/js/app/library-backup.js',
+    '/js/app/microsoft-config.js',
+    '/js/app/microsoft-auth.js',
+    '/js/app/microsoft-graph.js',
+    '/js/app/microsoft-document-codec.js',
+    '/js/app/microsoft-storage.js',
+    '/js/app/microsoft-storage-dialog.js',
     '/js/editor-core/config.js',
+    '/js/editor-core/vendor/floating-ui-utils.js',
+    '/js/editor-core/vendor/floating-ui-core.js',
+    '/js/editor-core/vendor/floating-ui-utils-dom.js',
+    '/js/editor-core/vendor/floating-ui-dom.js',
     '/js/editor-core/shared/i18n.js',
     '/js/editor-core/shared/in-page-modal.js',
     '/js/editor-core/shared/toast-notification.js',
@@ -45,7 +69,6 @@ const ASSETS = [
     '/js/editor-core/shared/aria-live.js',
     '/js/editor-core/student/editor-toolbar.js',
     '/js/editor-core/student/text-export.js',
-    '/js/editor-core/student/docx-export.js',
     '/js/editor-core/student/find-replace.js',
     '/js/editor-core/student/toc-manager.js',
     '/js/editor-core/student/reference-manager.js',
@@ -63,7 +86,6 @@ const ASSETS = [
     '/js/editor-core/student/word-frequency.js',
     '/js/editor-core/student/spinner-data-nb.js',
     '/js/editor-core/student/spinner-data-nn.js',
-    '/js/editor-core/student/spinner-data-en.js',
     '/js/editor-core/student/sentence-length.js',
     '/js/editor-core/student/paragraph-map.js',
     '/js/editor-core/student/image-manager.js',
@@ -72,15 +94,19 @@ const ASSETS = [
     '/js/editor-core/student/submission-checklist.js',
     '/js/editor-core/student/table-manager.js',
     '/js/editor-core/student/version-history.js',
+    '/js/editor-core/student/german-exam-data.js',
     '/js/editor-core/student/paragraph-trainer.js',
     '/js/editor-core/student/paragraph-trainer-data.js',
-    '/js/editor-core/student/german-exam-data.js',
-    '/js/editor-core/student/german-exam-spinner.js',
-    '/js/editor-core/student/german-hint-drawer.js',
-    '/js/editor-core/student/insights-drawer.js',
     '/js/editor-core/student/editor-lang.js',
     '/js/editor-core/student/read-aloud.js',
     '/js/editor-core/student/reading-settings.js',
+    '/js/editor-core/student/docx-export.js',
+    '/js/editor-core/student/spinner-data-en.js',
+    '/js/editor-core/student/german-exam-spinner.js',
+    '/js/editor-core/student/german-hint-drawer.js',
+    '/js/editor-core/student/insights-drawer.js',
+    '/js/editor-core/student/slash-menu.js',
+    '/js/editor-core/student/drag-handle.js',
     '/js/editor-core/student/german-exam-svg/birthday.js',
     '/js/editor-core/student/german-exam-svg/city.js',
     '/js/editor-core/student/german-exam-svg/berlin.js',
@@ -113,11 +139,6 @@ const ASSETS = [
     '/frames/nb/kreativ-tekst.md',
     '/frames/nb/reflekterende-tekst.md',
     '/frames/nb/sammenligning.md',
-    '/frames/nb/fortelling.md',
-    '/frames/nb/faktatekst.md',
-    '/frames/nb/bokmelding.md',
-    '/frames/nb/soeknad.md',
-    '/frames/nb/formelt-brev.md',
     // Nynorsk frames
     '/frames/nn/droefting.md',
     '/frames/nn/analyse.md',
@@ -131,37 +152,38 @@ const ASSETS = [
     '/frames/nn/kreativ-tekst.md',
     '/frames/nn/reflekterende-tekst.md',
     '/frames/nn/sammenligning.md',
+    '/frames/nb/fortelling.md',
+    '/frames/nb/faktatekst.md',
+    '/frames/nb/bokmelding.md',
+    '/frames/nb/soeknad.md',
+    '/frames/nb/formelt-brev.md',
     '/frames/nn/fortelling.md',
     '/frames/nn/faktatekst.md',
     '/frames/nn/bokmelding.md',
     '/frames/nn/soeknad.md',
     '/frames/nn/formelt-brev.md',
-    // English frames (the English subject exists at every school level)
-    '/frames/en/droefting.md',
     '/frames/en/analyse.md',
-    '/frames/en/kronikk.md',
-    '/frames/en/kaaseri.md',
+    '/frames/en/bokmelding.md',
+    '/frames/en/droefting.md',
     '/frames/en/fagartikkel.md',
-    '/frames/en/leserinnlegg.md',
-    '/frames/en/novelle.md',
-    '/frames/en/retorisk-analyse.md',
+    '/frames/en/faktatekst.md',
+    '/frames/en/formelt-brev.md',
+    '/frames/en/fortelling.md',
+    '/frames/en/kaaseri.md',
     '/frames/en/kortsvar.md',
     '/frames/en/kreativ-tekst.md',
+    '/frames/en/kronikk.md',
+    '/frames/en/leserinnlegg.md',
+    '/frames/en/novelle.md',
     '/frames/en/reflekterende-tekst.md',
+    '/frames/en/retorisk-analyse.md',
     '/frames/en/sammenligning.md',
-    '/frames/en/fortelling.md',
-    '/frames/en/faktatekst.md',
-    '/frames/en/bokmelding.md',
     '/frames/en/soeknad.md',
-    '/frames/en/formelt-brev.md',
-    // Leksihjelp loader (chrome.* shim — must precache so it survives offline)
+    // Skriv's leksihjelp host config (installs the shared embed runtime —
+    // must precache so it survives offline)
     '/js/leksihjelp-loader.js',
 ];
 
-// Vendored leksihjelp bundle. Precached best-effort (see install handler).
-// Generated via scripts/sync-leksihjelp.js — keep in sync with the file
-// listing in public/js/leksihjelp/. Failures here do NOT block install:
-// the fetch handler will lazy-cache any path missed at install time.
 // Large optional assets, precached best-effort like the leksihjelp bundle:
 // a miss never blocks install, and the fetch handler lazy-caches on first
 // use. The docx bundle (~800 kB) is only needed when a pupil exports Word.
@@ -169,21 +191,37 @@ const OPTIONAL_ASSETS = [
     '/vendor/docx.iife.js',
 ];
 
+// Vendored Leksihjelp code, scoped CSS, version metadata, and the small
+// Bokmål fallback baseline. These are precached best-effort (see install
+// handler). Full language data stays out of the eager install payload and is
+// cached on first use by the same-origin fetch handler below.
+// Generated via scripts/sync-leksihjelp.js. Failures here do NOT block install.
 const LEKSIHJELP_ASSETS = [
+    // BEGIN GENERATED LEKSIHJELP ASSETS
     '/js/leksihjelp/.version',
+    '/js/leksihjelp/load-order.json',
+    '/js/leksihjelp/embed/host-runtime.js',
+    '/js/leksihjelp/styles/content.css',
+    '/js/leksihjelp/styles/popup-views.css',
     '/js/leksihjelp/i18n/strings.js',
+    '/js/leksihjelp/host-capabilities.js',
     '/js/leksihjelp/exam-registry.js',
-    '/js/leksihjelp/styles/leksihjelp.css',
+    '/js/leksihjelp/content/vocab-store.js',
     '/js/leksihjelp/content/vocab-seam-core.js',
     '/js/leksihjelp/content/vocab-seam.js',
     '/js/leksihjelp/content/lang-detect.js',
     '/js/leksihjelp/content/pause-domain.js',
+    '/js/leksihjelp/content/word-boundary.js',
+    '/js/leksihjelp/content/tts-segmentation-engine.js',
+    '/js/leksihjelp/content/tts-timing-engine.js',
+    '/js/leksihjelp/content/rsvp-engine.js',
+    '/js/leksihjelp/content/rsvp-source-dom.js',
+    '/js/leksihjelp/content/rsvp-reader.js',
+    '/js/leksihjelp/content/floating-widget.js',
+    '/js/leksihjelp/content/prediction-engine.js',
+    '/js/leksihjelp/content/prediction-renderer.js',
     '/js/leksihjelp/content/rule-features.js',
     '/js/leksihjelp/content/spell-check-core.js',
-    '/js/leksihjelp/content/spell-check-engine.js',
-    '/js/leksihjelp/content/pedagogy-render.js',
-    '/js/leksihjelp/content/personalization-store.js',
-    '/js/leksihjelp/content/spell-check-renderer.js',
     '/js/leksihjelp/content/spell-rules/grammar-tables.js',
     '/js/leksihjelp/content/spell-rules/quotation-suppression.js',
     '/js/leksihjelp/content/spell-rules/de-capitalization.js',
@@ -365,36 +403,19 @@ const LEKSIHJELP_ASSETS = [
     '/js/leksihjelp/content/spell-rules/nb-impersonal-det.js',
     '/js/leksihjelp/content/spell-rules/nb-noun-plural-quantifier.js',
     '/js/leksihjelp/content/spell-rules/nb-bare-infinitive-present.js',
+    '/js/leksihjelp/content/spell-check-engine.js',
+    '/js/leksihjelp/content/pedagogy-render.js',
+    '/js/leksihjelp/content/personalization-store.js',
+    '/js/leksihjelp/content/spell-check-renderer.js',
     '/js/leksihjelp/popup/dict-state-builder.js',
-    '/js/leksihjelp/popup/grammar-features-section.js',
-    '/js/leksihjelp/data/de.json',
-    '/js/leksihjelp/data/en.json',
-    '/js/leksihjelp/data/es.json',
-    '/js/leksihjelp/data/fr.json',
-    '/js/leksihjelp/data/nb.json',
-    '/js/leksihjelp/data/nn.json',
+    '/js/leksihjelp/popup/views/lang-consolidation.js',
+    '/js/leksihjelp/popup/views/dictionary-view.js',
+    '/js/leksihjelp/popup/views/library-view.js',
+    '/js/leksihjelp/popup/views/language-picker.js',
+    '/js/leksihjelp/popup/views/settings-view.js',
+    '/js/leksihjelp/content/lesson-render.js',
     '/js/leksihjelp/data/nb-baseline.json',
-    '/js/leksihjelp/data/grammarfeatures-de.json',
-    '/js/leksihjelp/data/grammarfeatures-en.json',
-    '/js/leksihjelp/data/grammarfeatures-es.json',
-    '/js/leksihjelp/data/grammarfeatures-fr.json',
-    '/js/leksihjelp/data/grammarfeatures-nb.json',
-    '/js/leksihjelp/data/grammarfeatures-nn.json',
-    '/js/leksihjelp/data/pitfalls-en.json',
-    // Norwegian spell-check support data — precached (best-effort) so
-    // nb/nn checking works offline. Foreign-language equivalents are
-    // lazy-cached on first use instead (they are ~10 MB each).
-    '/js/leksihjelp/data/validwords-nb.json',
-    '/js/leksihjelp/data/validwords-nn.json',
-    '/js/leksihjelp/data/bigrams-nb.json',
-    '/js/leksihjelp/data/bigrams-nn.json',
-    '/js/leksihjelp/data/freq-nb.json',
-    '/js/leksihjelp/data/freq-nn.json',
-    '/js/leksihjelp/data/ordbank-bloom-nb.bin',
-    '/js/leksihjelp/data/ordbank-bloom-nn.bin',
-    '/js/leksihjelp/data/cross-standard-nb-nn.json',
-    '/js/leksihjelp/data/non-compound-pairs.json',
-    '/js/leksihjelp/data/rettskrivingsvedtak-2023.json',
+    // END GENERATED LEKSIHJELP ASSETS
 ];
 
 // Listen for SKIP_WAITING message from sw-manager.js
@@ -409,11 +430,10 @@ self.addEventListener('message', (event) => {
 // Two-stage install:
 //   1. Atomic precache of the critical Skriv ASSETS — if any of these fail,
 //      the SW does not activate and the previous cache stays live (safe).
-//   2. Best-effort precache of the vendored leksihjelp bundle. We allow
-//      individual fetches to fail (a 404 from a sync-script bug shouldn't
-//      brick Skriv); whatever fails gets lazy-cached on first hit by the
-//      fetch handler below. This keeps Skriv resilient to leksihjelp
-//      vendoring drift without giving up offline-first for the bundle.
+//   2. Best-effort precache of Leksihjelp code, scoped CSS, metadata, and the
+//      small Bokmål fallback. Full language datasets are deliberately lazy
+//      and enter this cache when first requested. An individual eager miss
+//      must not brick Skriv; the fetch handler can cache it on first use.
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
@@ -421,55 +441,62 @@ self.addEventListener('install', (event) => {
             // Settle each leksihjelp asset independently — Promise.all on
             // .catch'd inner promises is the standard "wait, don't fail" idiom.
             await Promise.all(
-                [...LEKSIHJELP_ASSETS, ...OPTIONAL_ASSETS].map((path) =>
+                LEKSIHJELP_ASSETS.map((path) =>
                     cache.add(path).catch((err) => {
-                        console.warn('[sw] best-effort precache miss:', path, err && err.message);
+                        console.warn('[sw] leksihjelp precache miss:', path, err && err.message);
+                    })
+                )
+            );
+            await Promise.all(
+                OPTIONAL_ASSETS.map((path) =>
+                    cache.add(path).catch((err) => {
+                        console.warn('[sw] optional precache miss:', path, err && err.message);
                     })
                 )
             );
         })
     );
-    self.skipWaiting();
 });
 
-// Activate: clean up old caches
+// Activate only after the open page explicitly accepts the waiting update.
+// Clean up Skriv's old caches without touching unrelated origin caches.
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((names) => {
-            return Promise.all(
+        caches.keys().then(async (names) => {
+            await Promise.all(
                 names
-                    .filter((name) => name !== CACHE_NAME)
+                    .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
                     .map((name) => caches.delete(name))
             );
+            await self.clients.claim();
         })
     );
-    self.clients.claim();
 });
 
-// Fetch: network first, fall back to cache
+// Fetch: serve this release's pinned local assets from its versioned cache.
+// A newly deployed release becomes visible only after its service worker has
+// installed completely and the student accepts the waiting update. This avoids
+// mixing a new HTML shell with old modules while a document is open.
 self.addEventListener('fetch', (event) => {
-    // Skip non-GET requests
     if (event.request.method !== 'GET') return;
 
-    // Skip CDN requests (Tailwind, jsPDF, Floating UI) — let browser handle
     const url = new URL(event.request.url);
     if (url.origin !== self.location.origin) return;
+    if (MICROSOFT_AUTH_NO_STORE_PATHS.has(url.pathname)) return;
 
     event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                // Cache successful responses
+        caches.match(event.request).then((cached) => {
+            if (cached) return cached;
+
+            return fetch(event.request).then((response) => {
                 if (response.ok) {
                     const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, clone);
-                    });
+                    event.waitUntil(
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+                    );
                 }
                 return response;
-            })
-            .catch(() => {
-                // Network failed — try cache
-                return caches.match(event.request);
-            })
+            });
+        })
     );
 });

@@ -1,8 +1,9 @@
 /**
  * Writing Progress / Goals Module
  *
- * Tracks session writing stats and shows motivational progress.
- * Features: session word count, active timer, daily goal, WPM, streak.
+ * Tracks session writing stats and shows optional progress.
+ * The quiet default shows session words/time and an optional daily goal.
+ * Pace and streak metrics are opt-in because they can distract from writing quality.
  *
  * i18n keys needed:
  *   progress.sessionWords = '{{count}} ord denne økten'
@@ -28,21 +29,26 @@ const STYLES = `
     position: fixed;
     bottom: 16px;
     right: 16px;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
+    background: #fafaf9;
+    border: 1px solid #d6d3d1;
     border-radius: 20px;
     padding: 6px 14px;
     font-size: 13px;
-    color: #166534;
+    color: #57534e;
     cursor: pointer;
     z-index: 900;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    transition: border-color 0.15s ease, color 0.15s ease;
     user-select: none;
 }
 .skriv-progress-trigger:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    border-color: #a8a29e;
+    color: #292524;
+}
+.skriv-progress-trigger:focus-visible,
+.skriv-progress-goal-btn:focus-visible {
+    outline: 2px solid #059669;
+    outline-offset: 2px;
 }
 .skriv-progress-panel {
     position: fixed;
@@ -126,14 +132,22 @@ const STYLES = `
 .skriv-progress-streak.inactive .fire {
     filter: grayscale(1);
 }
+@media (prefers-reduced-motion: reduce) {
+    .skriv-progress-trigger,
+    .skriv-progress-panel,
+    .skriv-progress-bar-fill {
+        transition: none;
+    }
+}
 `;
 
 export function initWritingProgress(editor, options = {}) {
+    const showPace = options.showPace === true;
+    const showStreak = options.showStreak === true;
     let sessionStartWords = 0;
     let sessionWords = 0;
     let sessionStartTime = Date.now();
     let activeTime = 0;
-    let lastActivityTime = Date.now();
     let idleStart = null;
     let totalIdleTime = 0;
     let isIdle = false;
@@ -151,15 +165,22 @@ export function initWritingProgress(editor, options = {}) {
 
     // Create trigger button
     const trigger = document.createElement('button');
+    trigger.type = 'button';
     trigger.className = 'skriv-progress-trigger';
-    trigger.setAttribute('aria-label', t('progress.sessionWords')?.replace('{{count}}', '0') || 'Skrivefremdrift');
-    trigger.textContent = '↗ 0 ord';
+    trigger.setAttribute('aria-label', t('progress.openLabel', { count: 0 }));
+    trigger.setAttribute('aria-controls', 'skriv-progress-panel');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.textContent = t('progress.triggerText', { count: 0 });
     trigger.addEventListener('click', toggle);
     document.body.appendChild(trigger);
 
     // Create panel
     const panel = document.createElement('div');
+    panel.id = 'skriv-progress-panel';
     panel.className = 'skriv-progress-panel';
+    panel.setAttribute('role', 'region');
+    panel.setAttribute('aria-label', t('progress.title'));
+    panel.hidden = true;
     panel.innerHTML = buildPanelHTML();
     document.body.appendChild(panel);
 
@@ -178,40 +199,47 @@ export function initWritingProgress(editor, options = {}) {
 
     function buildPanelHTML() {
         const goal = getDailyGoal();
-        const streak = getStreak();
-        const streakActive = streak > 0;
+        const streak = showStreak ? getStreak() : 0;
+        const streakActive = showStreak && streak > 0;
 
-        let html = `<h4>${t('progress.dailyGoal') || 'Skrivefremdrift'}</h4>`;
-        html += `<div class="skriv-progress-row"><span class="label">Denne økten</span><span class="value" data-field="session-words">0 ord / 0 min</span></div>`;
-        html += `<div class="skriv-progress-row"><span class="label">Fart</span><span class="value" data-field="wpm">0 ord/min</span></div>`;
-
-        if (goal > 0) {
-            html += `<div class="skriv-progress-row"><span class="label">${t('progress.dailyGoal') || 'Daglig mål'}</span><span class="value" data-field="goal-text">0/${goal}</span></div>`;
-            html += `<div class="skriv-progress-bar-wrap"><div class="skriv-progress-bar-fill" data-field="goal-bar" style="width:0%"></div></div>`;
-        } else {
-            html += `<button class="skriv-progress-goal-btn" data-action="set-goal">${t('progress.noGoal') || 'Sett et mål'}</button>`;
+        let html = `<h4>${t('progress.title')}</h4>`;
+        html += `<div class="skriv-progress-row"><span class="label">${t('progress.thisSession')}</span><span class="value" data-field="session-words">${t('progress.sessionSummary', { count: 0, minutes: 0 })}</span></div>`;
+        if (showPace) {
+            html += `<div class="skriv-progress-row"><span class="label">${t('progress.paceLabel')}</span><span class="value" data-field="wpm">${t('progress.wordsPerMin', { count: 0 })}</span></div>`;
         }
 
-        html += `<div class="skriv-progress-streak ${streakActive ? '' : 'inactive'}"><span class="fire">🔥</span> <span data-field="streak">${streak} ${t('progress.streak')?.replace('{{count}}', '') || 'dager på rad'}</span></div>`;
+        if (goal > 0) {
+            html += `<div class="skriv-progress-row"><span class="label">${t('progress.dailyGoal')}</span><span class="value" data-field="goal-text">0/${goal}</span></div>`;
+            html += `<div class="skriv-progress-bar-wrap" role="progressbar" aria-label="${t('progress.dailyGoal')}" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="0"><div class="skriv-progress-bar-fill" data-field="goal-bar" style="width:0%"></div></div>`;
+        } else {
+            html += `<button type="button" class="skriv-progress-goal-btn" data-action="set-goal">${t('progress.noGoal')}</button>`;
+        }
+
+        if (showStreak) {
+            html += `<div class="skriv-progress-streak ${streakActive ? '' : 'inactive'}"><span class="fire" aria-hidden="true">🔥</span> <span data-field="streak">${t('progress.streak', { count: streak })}</span></div>`;
+        }
 
         return html;
     }
 
     function updateDisplay() {
         const minutes = Math.floor(getActiveMinutes());
-        const wpm = minutes > 0 ? Math.round(sessionWords / minutes) : 0;
+        const wpm = showPace && minutes > 0 ? Math.round(sessionWords / minutes) : 0;
         const goal = getDailyGoal();
-        const streak = getStreak();
+        const streak = showStreak ? getStreak() : 0;
 
         // Update trigger
-        trigger.textContent = `↗ ${sessionWords} ord`;
+        trigger.textContent = t('progress.triggerText', { count: sessionWords });
+        trigger.setAttribute('aria-label', t('progress.openLabel', { count: sessionWords }));
 
         // Update panel fields
         const sessionField = panel.querySelector('[data-field="session-words"]');
-        if (sessionField) sessionField.textContent = `${sessionWords} ord / ${minutes} min`;
+        if (sessionField) {
+            sessionField.textContent = t('progress.sessionSummary', { count: sessionWords, minutes });
+        }
 
         const wpmField = panel.querySelector('[data-field="wpm"]');
-        if (wpmField) wpmField.textContent = `${wpm} ord/min`;
+        if (wpmField) wpmField.textContent = t('progress.wordsPerMin', { count: wpm });
 
         if (goal > 0) {
             const goalText = panel.querySelector('[data-field="goal-text"]');
@@ -225,11 +253,12 @@ export function initWritingProgress(editor, options = {}) {
             if (goalBar) {
                 const pct = Math.min(100, Math.round((sessionWords / goal) * 100));
                 goalBar.style.width = pct + '%';
+                goalBar.parentElement?.setAttribute('aria-valuenow', String(Math.min(sessionWords, goal)));
             }
         }
 
         const streakField = panel.querySelector('[data-field="streak"]');
-        if (streakField) streakField.textContent = `${streak} ${t('progress.streak')?.replace('{{count}}', '') || 'dager på rad'}`;
+        if (streakField) streakField.textContent = t('progress.streak', { count: streak });
     }
 
     function getActiveMinutes() {
@@ -262,7 +291,6 @@ export function initWritingProgress(editor, options = {}) {
             idleStart = null;
         }
 
-        lastActivityTime = now;
         resetIdleTimer();
         updateSessionWords();
     }
@@ -271,7 +299,7 @@ export function initWritingProgress(editor, options = {}) {
         const currentWords = countWords(editor.textContent);
         sessionWords = Math.max(0, currentWords - sessionStartWords);
         updateDisplay();
-        checkStreak();
+        if (showStreak) checkStreak();
     }
 
     function checkStreak() {
@@ -298,7 +326,7 @@ export function initWritingProgress(editor, options = {}) {
 
     function setDailyGoal() {
         const current = localStorage.getItem(LS_DAILY_GOAL) || '300';
-        const goal = prompt(t('progress.setGoalPrompt') || 'Sett daglig ordmål:', current);
+        const goal = prompt(t('progress.setGoalPrompt'), current);
         if (goal && !isNaN(goal) && parseInt(goal) > 0) {
             localStorage.setItem(LS_DAILY_GOAL, goal);
             // Rebuild panel to show progress bar
@@ -330,13 +358,24 @@ export function initWritingProgress(editor, options = {}) {
 
     function toggle() {
         panelVisible = !panelVisible;
+        trigger.setAttribute('aria-expanded', String(panelVisible));
         if (panelVisible) {
+            panel.hidden = false;
             panel.classList.add('visible');
             updateDisplay();
         } else {
             panel.classList.remove('visible');
+            panel.hidden = true;
         }
     }
+
+    function handlePanelKeydown(e) {
+        if (e.key !== 'Escape') return;
+        e.preventDefault();
+        if (panelVisible) toggle();
+        trigger.focus();
+    }
+    panel.addEventListener('keydown', handlePanelKeydown);
 
     // Attach listener
     editor.addEventListener('input', handleInput);
@@ -349,6 +388,7 @@ export function initWritingProgress(editor, options = {}) {
         if (idleTimerId) clearTimeout(idleTimerId);
         if (updateTimerId) clearInterval(updateTimerId);
         trigger.removeEventListener('click', toggle);
+        panel.removeEventListener('keydown', handlePanelKeydown);
         trigger.remove();
         panel.remove();
         styleEl.remove();

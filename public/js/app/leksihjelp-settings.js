@@ -2,7 +2,7 @@
  * Leksihjelp settings drawer (Skriv-side).
  *
  * Slide-in right panel with the four leksihjelp controls:
- *   - Eksamensmodus (toggle)
+ *   - Limited assistance (toggle)
  *   - Skrivespråk (drives spell-check + special-chars)
  *   - Oppslagsspråk (drives dictionary)
  *   - Grammatikknivå — placeholder until vendored grammar-features-section.js arrives
@@ -18,19 +18,13 @@
 
 import { t } from '../editor-core/shared/i18n.js';
 import { escapeHtml } from '../editor-core/shared/html-escape.js';
+import { mountLeksihjelpDictionary } from './leksihjelp-view-host.js';
 
-const LANGS = [
-    { id: 'nb', label: 'Bokmål' },
-    { id: 'nn', label: 'Nynorsk' },
-    { id: 'en', label: 'Engelsk' },
-    { id: 'de', label: 'Tysk' },
-    { id: 'es', label: 'Spansk' },
-    { id: 'fr', label: 'Fransk' },
-];
+const LANGS = ['nb', 'nn', 'en', 'de', 'es', 'fr'];
 
 function langOptions(activeId) {
-    return LANGS.map(l =>
-        `<option value="${l.id}" ${l.id === activeId ? 'selected' : ''}>${escapeHtml(l.label)}</option>`
+    return LANGS.map(id =>
+        `<option value="${id}" ${id === activeId ? 'selected' : ''}>${escapeHtml(t(`language.${id}`))}</option>`
     ).join('');
 }
 
@@ -77,140 +71,6 @@ function ensureGrammarFeaturesStyles() {
             accent-color: #059669;
             cursor: pointer;
         }
-
-        /* Dictionary result enrichment (conjugation / case / comparative tables) */
-        .dict-result-card[data-expandable] [data-toggle] { user-select: none; }
-        .dict-result-card .dict-arrow {
-            display: inline-block;
-            margin-left: 0.25rem;
-            font-size: 0.6rem;
-            color: #a8a29e;
-        }
-        .dict-result-card .dict-enrichment-host { margin-top: 0.5rem; }
-        .dict-enrichment {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            padding-top: 0.5rem;
-            border-top: 1px dashed #e7e5e4;
-        }
-        html.dark .dict-enrichment { border-top-color: #44403c; }
-        .dict-tense-block { font-size: 0.75rem; }
-        .dict-tense-name {
-            font-size: 0.65rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #78716c;
-            margin-bottom: 0.25rem;
-        }
-        html.dark .dict-tense-name { color: #a8a29e; }
-        .dict-conj-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-variant-numeric: tabular-nums;
-        }
-        .dict-conj-table td {
-            padding: 0.125rem 0;
-            line-height: 1.4;
-        }
-        .dict-conj-pronoun {
-            color: #78716c;
-            width: 5.5rem;
-            white-space: nowrap;
-        }
-        html.dark .dict-conj-pronoun { color: #a8a29e; }
-        .dict-conj-form { color: #1c1917; font-weight: 500; }
-        html.dark .dict-conj-form { color: #fafaf9; }
-
-        /* 2D case grid: Bestemt/Ubestemt × ent/fl */
-        .dict-case-grid {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.7rem;
-            font-variant-numeric: tabular-nums;
-        }
-        .dict-case-grid th, .dict-case-grid td {
-            padding: 0.25rem 0.4rem;
-            text-align: left;
-            vertical-align: top;
-        }
-        .dict-case-grid thead th {
-            font-size: 0.6rem;
-            font-weight: 600;
-            color: #78716c;
-            border-bottom: 1px solid #e7e5e4;
-        }
-        html.dark .dict-case-grid thead th { color: #a8a29e; border-bottom-color: #44403c; }
-        .dict-case-grid tbody th.dict-case-label {
-            font-weight: 600;
-            color: #44403c;
-            white-space: nowrap;
-        }
-        html.dark .dict-case-grid tbody th.dict-case-label { color: #d6d3d1; }
-        .dict-case-grid tbody td {
-            color: #1c1917;
-        }
-        html.dark .dict-case-grid tbody td { color: #fafaf9; }
-        .dict-case-grid tbody tr + tr th,
-        .dict-case-grid tbody tr + tr td {
-            border-top: 1px dashed #e7e5e4;
-        }
-        html.dark .dict-case-grid tbody tr + tr th,
-        html.dark .dict-case-grid tbody tr + tr td {
-            border-top-color: #44403c;
-        }
-
-        /* CEFR level badge */
-        .dict-cefr-badge {
-            display: inline-block;
-            font-size: 0.6rem;
-            font-weight: 700;
-            padding: 0.1rem 0.4rem;
-            border-radius: 0.25rem;
-            background: #fef3c7;
-            color: #92400e;
-            letter-spacing: 0.05em;
-        }
-        html.dark .dict-cefr-badge { background: #422006; color: #fbbf24; }
-
-        /* Grammatikk paragraph */
-        .dict-grammar-text {
-            font-size: 0.75rem;
-            line-height: 1.5;
-            color: #44403c;
-            margin: 0;
-        }
-        html.dark .dict-grammar-text { color: #d6d3d1; }
-
-        /* Examples list */
-        .dict-examples-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .dict-examples-list li {
-            display: flex;
-            flex-direction: column;
-            gap: 0.125rem;
-            padding-left: 0.625rem;
-            border-left: 2px solid #d6d3d1;
-        }
-        html.dark .dict-examples-list li { border-left-color: #57534e; }
-        .dict-example-target {
-            font-size: 0.75rem;
-            color: #1c1917;
-            font-style: italic;
-        }
-        html.dark .dict-example-target { color: #fafaf9; }
-        .dict-example-translation {
-            font-size: 0.7rem;
-            color: #78716c;
-        }
-        html.dark .dict-example-translation { color: #a8a29e; }
     `;
     document.head.appendChild(style);
 }
@@ -268,16 +128,10 @@ export function initLeksihjelpSettings(host, bridge) {
 
         <div class="flex-1 overflow-y-auto text-sm text-stone-700 dark:text-stone-200">
 
-            <!-- Dictionary tab panel -->
-            <div role="tabpanel" data-panel="dictionary"
-                class="px-4 py-4 space-y-3">
-                <p class="text-xs text-stone-500 dark:text-stone-400" data-search-hint></p>
-                <input type="search" data-search-input
-                    autocomplete="off" autocapitalize="none" spellcheck="false"
-                    class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-600 bg-white dark:bg-stone-700 text-stone-700 dark:text-stone-200 outline-none focus:border-emerald-400"
-                    placeholder="${escapeHtml(t('leksihjelp.searchPlaceholder'))}">
-                <div class="space-y-1.5" data-search-results></div>
-            </div>
+            <!-- Dictionary tab panel. The content is Leksihjelp's own shared
+                 view, mounted by app/leksihjelp-view-host.js, so the dictionary
+                 is the same surface in Skriv, Lockdown and the extension. -->
+            <div role="tabpanel" data-panel="dictionary" data-dictionary-mount></div>
 
             <!-- Settings tab panel -->
             <div role="tabpanel" data-panel="settings"
@@ -285,7 +139,7 @@ export function initLeksihjelpSettings(host, bridge) {
 
                 <p class="text-xs text-stone-500 dark:text-stone-400" data-status-hint></p>
 
-                <!-- Eksamensmodus -->
+                <!-- Limited assistance -->
                 <section>
                     <label class="flex items-start gap-3 cursor-pointer">
                         <input type="checkbox" data-exam-mode
@@ -340,12 +194,17 @@ export function initLeksihjelpSettings(host, bridge) {
     const writingLangSelect = drawer.querySelector('[data-writing-lang]');
     const lookupLangSelect = drawer.querySelector('[data-lookup-lang]');
     const statusHintEl = drawer.querySelector('[data-status-hint]');
-    const searchInputEl = drawer.querySelector('[data-search-input]');
-    const searchResultsEl = drawer.querySelector('[data-search-results]');
-    const searchHintEl = drawer.querySelector('[data-search-hint]');
+    const dictionaryMount = drawer.querySelector('[data-dictionary-mount]');
     const tabBtns = drawer.querySelectorAll('[role="tab"][data-tab]');
     const panelDictionary = drawer.querySelector('[data-panel="dictionary"]');
     const panelSettings = drawer.querySelector('[data-panel="settings"]');
+
+    // ── Dictionary: Leksihjelp's own shared view ───────────────────
+    // Skriv used to render its own search results from dict-state-builder's
+    // view-model. It now mounts the upstream view instead, so the dictionary
+    // is identical across Skriv, Lockdown and the extension — and a change to
+    // the view-model's shape can no longer break Skriv's renderer silently.
+    const dictionaryView = mountLeksihjelpDictionary(dictionaryMount, { bridge });
 
     // ── Tab switching ──────────────────────────────────────────────
     function setActiveTab(tab) {
@@ -361,11 +220,11 @@ export function initLeksihjelpSettings(host, bridge) {
         });
         panelDictionary.classList.toggle('hidden', which !== 'dictionary');
         panelSettings.classList.toggle('hidden', which !== 'settings');
-        // Auto-focus the search input when switching to the dictionary tab
-        // so the student can start typing immediately.
-        if (which === 'dictionary' && searchInputEl) {
+        // Auto-focus the shared view's search input when switching to the
+        // dictionary tab so the student can start typing immediately.
+        if (which === 'dictionary') {
             // microtask delay so the panel is visible first
-            queueMicrotask(() => searchInputEl.focus());
+            queueMicrotask(() => dictionaryMount?.querySelector('#search-input')?.focus());
         }
     }
     tabBtns.forEach(btn => {
@@ -374,475 +233,6 @@ export function initLeksihjelpSettings(host, bridge) {
     setActiveTab(initialTab);
 
     examModeCheckbox.checked = bridge.getExamMode();
-
-    // ── Dictionary search ──
-    // Bidirectional: a query matches against either the loaded language's
-    // word list (entry.word) OR the translation field, so typing "hund"
-    // surfaces the German "Hund" entry when Oppslagsspråk = de, and typing
-    // "Hund" surfaces it equally. Lookup target follows bridge.lookupLang.
-    function refreshSearchHint() {
-        if (!searchHintEl) return;
-        const lang = bridge.getLookupLang();
-        const langName = (LANGS.find(l => l.id === lang) || {}).label || lang;
-        searchHintEl.textContent = t('leksihjelp.searchHint', { lang: langName });
-    }
-    refreshSearchHint();
-
-    function searchEntries(query) {
-        const vocab = window.__lexiVocab;
-        if (!vocab || typeof vocab.getWordList !== 'function') return [];
-        const list = vocab.getWordList();
-        if (!Array.isArray(list)) return [];
-        const lower = query.toLowerCase().trim();
-        if (lower.length < 2) return [];
-
-        // Within each match category, base/accepted entries float to the
-        // top so typing "kommen" surfaces the base verb (with its full
-        // conjugation table available) rather than a 'wir kommen'
-        // conjugation row first.
-        function typeRank(e) {
-            const t = e && e.type;
-            if (t === 'base' || t === 'accepted') return 0;
-            return 1;
-        }
-
-        const exactWord = [];
-        const exactTrans = [];
-        const startsWord = [];
-        const startsTrans = [];
-        for (const e of list) {
-            if (!e) continue;
-            // Skip typo entries entirely from dictionary search. Their
-            // role is to feed the spell-checker (so it knows "schwiimen"
-            // → "schwimmen"); in a search list they show up as duplicate
-            // rows of the canonical word with a confusing TYPO badge.
-            // Misspelled queries can still get help from the inline
-            // spell-check dots in the editor.
-            if (e.type === 'typo') continue;
-            const w = (e.display || e.word || '').toLowerCase();
-            const tr = (e.translation || '').toLowerCase();
-            if (w === lower) { exactWord.push(e); continue; }
-            if (tr && tr === lower) { exactTrans.push(e); continue; }
-            if (w.startsWith(lower)) { startsWord.push(e); continue; }
-            if (tr.startsWith(lower)) { startsTrans.push(e); continue; }
-        }
-        const sortByType = (arr) => arr
-            .map((e, i) => ({ e, i, r: typeRank(e) }))
-            .sort((a, b) => a.r - b.r || a.i - b.i)
-            .map(x => x.e);
-
-        // Dedupe by canonical key so we don't render multiple rows for
-        // the same lemma (e.g. a base entry plus a translation entry
-        // pointing back to the same word).
-        const seen = new Set();
-        const out = [];
-        const buckets = [
-            ...sortByType(exactWord),
-            ...sortByType(exactTrans),
-            ...sortByType(startsWord),
-            ...sortByType(startsTrans),
-        ];
-        for (const e of buckets) {
-            const key = e.baseWord || e.display || e.word;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            out.push(e);
-            if (out.length >= 8) break;
-        }
-        return out;
-    }
-
-    // ── Result enrichment ──
-    // For each *base* entry in the wordList, we can find related forms
-    // (conjugations, case variants, comparative/superlative) by matching
-    // `baseWord`. Show them inline under the row when expanded.
-    const TENSE_LABELS_NB = {
-        present:    'Presens',
-        past:       'Preteritum',
-        perfect:    'Perfektum',
-        pluperfect: 'Pluskvamperfekt',
-        future:     'Futurum',
-        imperfect:  'Imperfektum',
-        preterito:  'Pretérito',
-        imperfecto: 'Imperfecto',
-        subjunctive: 'Konjunktiv',
-        imperative: 'Imperativ',
-    };
-
-    // Map a wordList tense / case to the canonical leksihjelp feature id.
-    // After upstream fixes (leksihjelp v3.0.9, commits c4ac7d3 + 62719ec),
-    // generic ids like `grammar_accusative_nouns` resolve through
-    // genericToLangMap to the per-language entry, AND the
-    // __lexiVocab.isFeatureEnabled wrapper delegates to the same
-    // predicate. So we can pass either form and get the right answer.
-    // Generic ids are preferred where available because they match the
-    // names the wordList builder + spell-rules use.
-    const TENSE_TO_FEATURE = {
-        present:    'grammar_present',
-        past:       'grammar_preteritum',
-        perfect:    'grammar_perfektum',
-        imperative: 'grammar_imperativ',
-        // The remaining tenses (futurum, konjunktiv, passiv,
-        // pluperfect…) are language-specific and don't have a generic
-        // alias. The wordList filter already drops them when the
-        // matching grammar_{lang}_{x} feature is off, so we don't need
-        // a second check here.
-    };
-    const CASE_TO_FEATURE = {
-        // nominativ: null  → always shown (it's the lemma)
-        akkusativ: 'grammar_accusative_nouns',
-        dativ:     'grammar_dative',
-        genitiv:   'grammar_genitiv',
-    };
-
-    function isFeatureOn(featureId) {
-        if (!featureId) return true;
-        const v = window.__lexiVocab;
-        if (!v || typeof v.isFeatureEnabled !== 'function') return true;
-        return v.isFeatureEnabled(featureId);
-    }
-
-    function findRelatedForms(entry) {
-        const vocab = window.__lexiVocab;
-        if (!vocab || !vocab.getWordList) return [];
-        const base = entry.display || entry.word;
-        if (!base) return [];
-        const list = vocab.getWordList();
-        return list.filter(e => e && e.baseWord === base && e !== entry);
-    }
-
-    // ── Rich entry details (examples + grammar paragraph + CEFR) ──────
-    // The lightweight wordList strips entry.explanation, entry.examples,
-    // and entry.cefr to keep the index small. We can recover them by
-    // re-fetching the raw bundle JSON (already SW-cached after first
-    // load) and matching on bank + word. Cached per language.
-    const _rawDictCache = new Map(); // lang → Promise<dict>
-    function loadRawDict(lang) {
-        if (!_rawDictCache.has(lang)) {
-            _rawDictCache.set(lang, fetch(`/js/leksihjelp/data/${lang}.json`)
-                .then(r => r.ok ? r.json() : null)
-                .catch(() => null));
-        }
-        return _rawDictCache.get(lang);
-    }
-
-    async function findRawEntry(baseEntry, lang) {
-        if (!baseEntry || baseEntry.type !== 'base') return null;
-        const dict = await loadRawDict(lang);
-        if (!dict) return null;
-        const bankName = baseEntry.bank;
-        if (!bankName) return null;
-        const bank = dict[bankName];
-        if (!bank || typeof bank !== 'object') return null;
-        const targetWord = String(baseEntry.display || baseEntry.word || '').toLowerCase();
-        for (const id in bank) {
-            if (!Object.prototype.hasOwnProperty.call(bank, id)) continue;
-            if (id.startsWith('_')) continue;
-            const e = bank[id];
-            if (!e || typeof e !== 'object') continue;
-            if (String(e.word || '').toLowerCase() === targetWord) return { id, entry: e };
-        }
-        return null;
-    }
-
-    function renderRichDetailsHTML(rich) {
-        if (!rich || !rich.entry) return '';
-        const e = rich.entry;
-        const out = [];
-        if (e.cefr) {
-            out.push(`<div class="dict-cefr-badge">${escapeHtml(e.cefr)}</div>`);
-        }
-        const description = e.explanation && e.explanation._description;
-        if (description) {
-            out.push(`<div class="dict-tense-block">
-                <div class="dict-tense-name">Grammatikk</div>
-                <p class="dict-grammar-text">${escapeHtml(description)}</p>
-            </div>`);
-        }
-        if (Array.isArray(e.examples) && e.examples.length > 0) {
-            const items = e.examples.slice(0, 4).map(ex => `
-                <li>
-                    <span class="dict-example-target">${escapeHtml(ex.sentence || '')}</span>
-                    ${ex.translation ? `<span class="dict-example-translation">${escapeHtml(ex.translation)}</span>` : ''}
-                </li>
-            `).join('');
-            out.push(`<div class="dict-tense-block">
-                <div class="dict-tense-name">Eksempler</div>
-                <ul class="dict-examples-list">${items}</ul>
-            </div>`);
-        }
-        return out.join('');
-    }
-
-    async function injectRichDetails(card, baseEntry) {
-        const lang = bridge.getLookupLang();
-        const rich = await findRawEntry(baseEntry, lang);
-        const richHTML = renderRichDetailsHTML(rich);
-        if (!richHTML) return;
-        // Re-check that the card still exists (search might have changed
-        // while we were awaiting the fetch).
-        if (!card.isConnected) return;
-        const enrichment = card.querySelector('.dict-enrichment');
-        if (!enrichment) return;
-        // Append after the case/conjugation/comparative tables (which are
-        // built synchronously from the wordList; case rows are now
-        // complete since leksihjelp v3.0.9 fixed the genericToLangMap
-        // gap that used to strip non-nominativ entries).
-        enrichment.insertAdjacentHTML('beforeend', richHTML);
-    }
-
-    function renderConjugationsHTML(forms) {
-        const conj = forms.filter(f => f.type === 'conjugation');
-        if (conj.length === 0) return '';
-        const byTense = new Map();
-        for (const c of conj) {
-            const tense = c.tenseKey || 'other';
-            if (!byTense.has(tense)) byTense.set(tense, []);
-            byTense.get(tense).push(c);
-        }
-        let html = '';
-        for (const [tense, rows] of byTense) {
-            // Belt-and-braces: even though the seam's wordList filter
-            // drops disabled tenses, double-check so a stale entry can't
-            // sneak through.
-            if (!isFeatureOn(TENSE_TO_FEATURE[tense])) continue;
-            const tenseName = TENSE_LABELS_NB[tense] || tense;
-            html += `<div class="dict-tense-block">
-                <div class="dict-tense-name">${escapeHtml(tenseName)}</div>
-                <table class="dict-conj-table"><tbody>`;
-            for (const r of rows) {
-                html += `<tr>
-                    <td class="dict-conj-pronoun">${escapeHtml(r.pronoun || '')}</td>
-                    <td class="dict-conj-form">${escapeHtml(r.display || r.word || '')}</td>
-                </tr>`;
-            }
-            html += `</tbody></table></div>`;
-        }
-        return html;
-    }
-
-    // Definite + indefinite articles across DE / ES / FR. Used to bucket
-    // case-form entries into the 4-column "Bestemt ent. / Ubestemt ent. /
-    // Bestemt fl. / Ubestemt fl." grid. Norwegian noun forms aren't keyed
-    // by case (suffix-based), so the grid falls back to a simple list for
-    // entries it can't classify.
-    const DEFINITE_ARTICLES = new Set([
-        // de
-        'der', 'die', 'das', 'des', 'dem', 'den',
-        // es
-        'el', 'la', 'los', 'las',
-        // fr
-        'le', 'l', 'les',
-    ]);
-    const INDEFINITE_ARTICLES = new Set([
-        // de
-        'ein', 'eine', 'einen', 'einem', 'eines', 'einer',
-        // es
-        'un', 'una', 'unos', 'unas',
-        // fr
-        'un', 'une', 'des',
-    ]);
-    const CASE_ROW_ORDER = ['nominativ', 'akkusativ', 'dativ', 'genitiv'];
-    const CASE_LABEL_NB = {
-        nominativ: 'Nominativ',
-        akkusativ: 'Akkusativ',
-        dativ: 'Dativ',
-        genitiv: 'Genitiv',
-    };
-
-    function classifyCaseEntry(e) {
-        const display = (e.display || '').trim();
-        const parts = display.split(/\s+/);
-        const article = parts.length > 1 ? parts[0].toLowerCase() : null;
-        const isPlural = /plural|fleirtal|flertall|pluriel|plural/i.test(e.translation || '');
-        if (article && DEFINITE_ARTICLES.has(article))   return isPlural ? 'def_pl'   : 'def_sg';
-        if (article && INDEFINITE_ARTICLES.has(article)) return isPlural ? 'indef_pl' : 'indef_sg';
-        if (!article && isPlural) return 'indef_pl';
-        return 'unknown';
-    }
-
-    function renderCaseTableHTML(forms) {
-        const cases = forms.filter(f => f.type === 'case');
-        if (cases.length === 0) return '';
-
-        // Bucket per case + variant. If at least one case has all four cells
-        // populated, render the 2D grid; otherwise fall back to the linear list.
-        const grid = new Map();
-        for (const cs of CASE_ROW_ORDER) grid.set(cs, { def_sg: null, indef_sg: null, def_pl: null, indef_pl: null });
-        let hasAny = false;
-        for (const e of cases) {
-            const cs = (e.caseName || '').toLowerCase();
-            if (!grid.has(cs)) continue;
-            const cell = classifyCaseEntry(e);
-            if (cell === 'unknown') continue;
-            const row = grid.get(cs);
-            // First match wins (preserves the wordList's source order).
-            if (!row[cell]) {
-                row[cell] = e.display || e.word || '';
-                hasAny = true;
-            }
-        }
-
-        if (!hasAny) {
-            // Linear fallback for languages without article-based grids.
-            let html = `<div class="dict-tense-block"><div class="dict-tense-name">Kasus</div><table class="dict-conj-table"><tbody>`;
-            for (const r of cases) {
-                html += `<tr>
-                    <td class="dict-conj-pronoun">${escapeHtml(r.caseName || '')}</td>
-                    <td class="dict-conj-form">${escapeHtml(r.display || r.word || '')}</td>
-                </tr>`;
-            }
-            html += `</tbody></table></div>`;
-            return html;
-        }
-
-        // Filter case rows by Grammatikknivå. Nominativ is always shown
-        // (it's the dictionary lemma); the others gate on
-        // grammar_{lang}_{caseName}.
-        const visibleRows = CASE_ROW_ORDER.filter(cs => {
-            const row = grid.get(cs);
-            const hasContent = row.def_sg || row.indef_sg || row.def_pl || row.indef_pl;
-            if (!hasContent) return false;
-            return isFeatureOn(CASE_TO_FEATURE[cs]);
-        });
-        if (visibleRows.length === 0) return '';
-
-        let html = `<div class="dict-tense-block dict-case-grid-block"><div class="dict-tense-name">Bøyning (kasus)</div>
-            <table class="dict-case-grid"><thead><tr>
-                <th></th>
-                <th>Bestemt ent.</th>
-                <th>Ubestemt ent.</th>
-                <th>Bestemt fl.</th>
-                <th>Ubestemt fl.</th>
-            </tr></thead><tbody>`;
-        for (const cs of visibleRows) {
-            const row = grid.get(cs);
-            html += `<tr>
-                <th class="dict-case-label">${escapeHtml(CASE_LABEL_NB[cs] || cs)}</th>
-                <td>${escapeHtml(row.def_sg || '—')}</td>
-                <td>${escapeHtml(row.indef_sg || '—')}</td>
-                <td>${escapeHtml(row.def_pl || '—')}</td>
-                <td>${escapeHtml(row.indef_pl || '—')}</td>
-            </tr>`;
-        }
-        html += `</tbody></table></div>`;
-        return html;
-    }
-
-    function renderComparativesHTML(forms) {
-        const comp = isFeatureOn('grammar_comparative') ? forms.find(f => f.type === 'comparative') : null;
-        const sup  = isFeatureOn('grammar_superlative') ? forms.find(f => f.type === 'superlative') : null;
-        if (!comp && !sup) return '';
-        let html = `<div class="dict-tense-block"><div class="dict-tense-name">Sammenligning</div><table class="dict-conj-table"><tbody>`;
-        if (comp) html += `<tr><td class="dict-conj-pronoun">komparativ</td><td class="dict-conj-form">${escapeHtml(comp.display || comp.word)}</td></tr>`;
-        if (sup) html += `<tr><td class="dict-conj-pronoun">superlativ</td><td class="dict-conj-form">${escapeHtml(sup.display || sup.word)}</td></tr>`;
-        html += `</tbody></table></div>`;
-        return html;
-    }
-
-    function renderEnrichmentHTML(entry) {
-        if (entry.type !== 'base') return '';
-        const forms = findRelatedForms(entry);
-        if (forms.length === 0) return '';
-        return `<div class="dict-enrichment">
-            ${renderConjugationsHTML(forms)}
-            ${renderCaseTableHTML(forms)}
-            ${renderComparativesHTML(forms)}
-        </div>`;
-    }
-
-    function renderResultRow(entry, idx) {
-        const display = escapeHtml(entry.display || entry.word || '');
-        const translation = escapeHtml(entry.translation || '');
-        const pos = escapeHtml(entry.partOfSpeech || entry.type || '');
-        const genus = entry.genus ? escapeHtml(entry.genus) : '';
-        const enrichment = renderEnrichmentHTML(entry);
-        const expandable = !!enrichment;
-        return `
-            <div class="dict-result-card rounded-md border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/40 px-3 py-2"
-                data-result-idx="${idx}" ${expandable ? 'data-expandable="1"' : ''}>
-                <div class="flex items-baseline justify-between gap-2 ${expandable ? 'cursor-pointer' : ''}" data-toggle>
-                    <span class="font-semibold text-stone-800 dark:text-stone-100">${display}</span>
-                    <span class="text-[10px] uppercase tracking-wider text-stone-500 dark:text-stone-400">
-                        ${pos}${genus ? ' · ' + genus : ''}${expandable ? ' <span data-arrow class="dict-arrow">▸</span>' : ''}
-                    </span>
-                </div>
-                ${translation ? `<div class="text-xs text-stone-600 dark:text-stone-300 mt-0.5">${translation}</div>` : ''}
-                ${expandable ? `<div class="dict-enrichment-host hidden">${enrichment}</div>` : ''}
-            </div>
-        `;
-    }
-
-    // Track which result cards already have rich details rendered so
-    // expanding/collapsing doesn't re-fetch.
-    const _resultEntriesByIdx = [];
-
-    function loadRichForCard(card) {
-        if (!card || card.dataset.richLoaded === '1') return;
-        const idx = parseInt(card.dataset.resultIdx || '-1', 10);
-        const entry = _resultEntriesByIdx[idx];
-        if (!entry) return;
-        card.dataset.richLoaded = '1';
-        injectRichDetails(card, entry).catch(err => {
-            console.warn('[leksihjelp-settings] rich detail load failed:', err);
-            card.dataset.richLoaded = '';
-        });
-    }
-
-    let searchDebounceTimer = null;
-    function runSearch() {
-        if (!searchResultsEl) return;
-        const query = (searchInputEl.value || '').trim();
-        if (query.length < 2) {
-            searchResultsEl.innerHTML = '';
-            _resultEntriesByIdx.length = 0;
-            return;
-        }
-        const results = searchEntries(query);
-        if (results.length === 0) {
-            searchResultsEl.innerHTML = `<div class="text-xs italic text-stone-500 dark:text-stone-400">${escapeHtml(t('leksihjelp.searchNoResults'))}</div>`;
-            _resultEntriesByIdx.length = 0;
-            return;
-        }
-        _resultEntriesByIdx.length = 0;
-        results.forEach((e, i) => { _resultEntriesByIdx[i] = e; });
-        searchResultsEl.innerHTML = results.map((e, i) => renderResultRow(e, i)).join('');
-        // Expand the first base-type result by default so the most likely
-        // hit shows its conjugation/case table without an extra click.
-        const firstExpandable = searchResultsEl.querySelector('[data-expandable]');
-        if (firstExpandable) {
-            firstExpandable.querySelector('.dict-enrichment-host')?.classList.remove('hidden');
-            const arrow = firstExpandable.querySelector('[data-arrow]');
-            if (arrow) arrow.textContent = '▾';
-            // Lazy-fetch the GRAMMATIKK paragraph + EKSEMPLER + CEFR badge
-            // for the auto-expanded card.
-            loadRichForCard(firstExpandable);
-        }
-    }
-
-    if (searchInputEl) {
-        searchInputEl.addEventListener('input', () => {
-            clearTimeout(searchDebounceTimer);
-            searchDebounceTimer = setTimeout(runSearch, 120);
-        });
-    }
-
-    // Click anywhere in a result card with `data-expandable` to toggle
-    // its enrichment table. Delegated so we don't re-bind per render.
-    if (searchResultsEl) {
-        searchResultsEl.addEventListener('click', (e) => {
-            const card = e.target.closest('[data-expandable]');
-            if (!card) return;
-            const host = card.querySelector('.dict-enrichment-host');
-            const arrow = card.querySelector('[data-arrow]');
-            if (!host) return;
-            const willOpen = host.classList.contains('hidden');
-            host.classList.toggle('hidden', !willOpen);
-            if (arrow) arrow.textContent = willOpen ? '▾' : '▸';
-            // Lazy-load rich details on first open of any card.
-            if (willOpen) loadRichForCard(card);
-        });
-    }
 
     // ── Grammatikknivå (vendored grammar-features-section.js + presets) ─
     // The vendored module renders a checkbox per grammar feature
@@ -991,26 +381,28 @@ export function initLeksihjelpSettings(host, bridge) {
     // source (preset click, checkbox toggle, vendored module persistence).
     //
     // Subtlety: the seam's enabledFeatures Set is updated *async* in
-    // hydrateTarget — chrome.storage write fires synchronously, but
-    // re-reading the JSON + rebuilding indexes takes a tick. If we
-    // re-run search immediately on storage.onChanged, isFeatureOn() is
-    // still using the OLD enabledFeatures (case grid still shows the
-    // toggled-off rows). The fix: also listen on the seam's
-    // `lexi:hydration` event with state='ready' and re-run search then.
+    // hydrateTarget — the chrome.storage write fires synchronously, but
+    // re-reading the JSON and rebuilding the indexes takes a tick. Refreshing
+    // the dictionary straight from storage.onChanged would still read the OLD
+    // enabledFeatures and show rows the pupil just turned off. The fix: also
+    // listen for the seam's `lexi:hydration` event with state='ready', and
+    // refresh then.
     const onStorageChangedForPills = (changes) => {
         if (!changes || !changes.enabledGrammarFeatures) return;
         renderPresetPills();
     };
     window.chrome.storage.onChanged.addListener(onStorageChangedForPills);
 
-    // Hydration listener: fires after the seam has rebuilt its indexes
-    // with the new enabledFeatures, so isFeatureOn() / wordList both
-    // reflect the latest grammar-features state.
+    // Hydration listener: fires after the seam has rebuilt its indexes with
+    // the new enabledFeatures. Re-run the dictionary's active search then, so
+    // a grammar-feature toggle is reflected in the results rather than
+    // waiting for the next keystroke.
+    let hydrationRefreshTimer = null;
     const onHydrationMessage = (msg) => {
         if (!msg || msg.type !== 'lexi:hydration') return;
         if (msg.state !== 'ready') return;
-        clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(runSearch, 30);
+        clearTimeout(hydrationRefreshTimer);
+        hydrationRefreshTimer = setTimeout(() => dictionaryView?.refresh(), 30);
     };
     window.chrome.runtime.onMessage.addListener(onHydrationMessage);
 
@@ -1092,9 +484,8 @@ export function initLeksihjelpSettings(host, bridge) {
     });
     const offLookup = bridge.onLookupLangChange((lang) => {
         if (lookupLangSelect.value !== lang) lookupLangSelect.value = lang;
-        refreshSearchHint();
-        // Re-run the active search against the new vocab so results stay coherent.
-        if (searchInputEl && searchInputEl.value) runSearch();
+        // The dictionary view reloads itself from this same bridge event
+        // (see leksihjelp-view-host.js) — no need to drive it from here.
         // Re-mount grammar features against the new language's feature definitions.
         if (grammarSectionApi && grammarSectionApi.refresh) grammarSectionApi.refresh(lang);
         // Pull fresh presets for the new language and re-render the pills.
@@ -1126,6 +517,8 @@ export function initLeksihjelpSettings(host, bridge) {
             if (grammarSectionApi && grammarSectionApi.destroy) {
                 try { grammarSectionApi.destroy(); } catch (_) {}
             }
+            try { dictionaryView.destroy(); } catch (_) {}
+            clearTimeout(hydrationRefreshTimer);
             try { window.chrome.storage.onChanged.removeListener(onStorageChangedForPills); } catch (_) {}
             try { window.chrome.runtime.onMessage.removeListener(onHydrationMessage); } catch (_) {}
             drawer.remove();

@@ -3,9 +3,10 @@
  * Simple hash-based router: #/ = document list, #/doc/{id} = editor.
  */
 
-import { initI18n } from '../editor-core/shared/i18n.js';
+import { getCurrentLanguage, initI18n, t } from '../editor-core/shared/i18n.js';
 import { initTheme } from '../editor-core/shared/theme.js';
-import { renderDocumentList } from './document-list.js';
+import { showToast } from '../editor-core/shared/toast-notification.js';
+import { renderDocumentList, renderTrashView } from './document-list.js';
 import { launchEditor } from './standalone-writer.js';
 import { purgeExpired } from './trash-store.js';
 import { initServiceWorker } from './sw-manager.js';
@@ -28,6 +29,16 @@ async function init() {
     initServiceWorker();
     await initI18n();
 
+    // Keep the static Bokmål fallback usable before JavaScript starts, then
+    // localize the document and its first keyboard-navigation affordance.
+    document.documentElement.lang = getCurrentLanguage();
+    const skipLink = document.getElementById('skip-to-content');
+    if (skipLink) skipLink.textContent = t('a11y.skipToContent');
+
+    document.addEventListener('skriv:database-blocked', () => {
+        showToast(t('skriv.databaseBlocked'), { duration: 10000 });
+    });
+
     // Purge expired trash documents on startup (silent, non-blocking)
     purgeExpired().catch(() => {});
 
@@ -38,7 +49,9 @@ async function init() {
     }
 
     let currentScreen = null;
+    let renderedHash = window.location.hash || '#/';
     let routeCounter = 0;
+    let routeQueue = Promise.resolve();
 
     // First-time onboarding: ask student for school level. Gated per route
     // instead of at init so pure practice surfaces reached by deep link
@@ -58,17 +71,31 @@ async function init() {
         }
     }
 
-    async function route() {
-        const localRouteCounter = ++routeCounter;
+    async function performRoute(localRouteCounter) {
+        // Coalesce hash changes that arrived before this queued route began.
+        if (localRouteCounter !== routeCounter) return;
 
         if (currentScreen && typeof currentScreen.destroy === 'function') {
+            const previousScreen = currentScreen;
+            currentScreen = null;
             try {
-                currentScreen.destroy();
+                await previousScreen.destroy();
             } catch (err) {
                 console.error('Screen destroy failed:', err);
+                // A writer teardown only rejects when its final save failed.
+                // Keep that screen mounted and restore its URL so a transient
+                // storage error cannot turn navigation into data loss.
+                currentScreen = previousScreen;
+                if (window.location.hash !== renderedHash) {
+                    window.history.replaceState(null, '', renderedHash);
+                }
+                return;
             }
-            currentScreen = null;
         }
+
+        // A newer hash was queued while an async teardown was flushing. Let
+        // that queued route render the latest destination exactly once.
+        if (localRouteCounter !== routeCounter) return;
 
         const hash = window.location.hash || '#/';
 
@@ -78,39 +105,43 @@ async function init() {
         }
 
         if (hash.startsWith('#/doc/')) {
-            const docId = hash.slice(6);
+            const [docId, queryString = ''] = hash.slice(6).split('?');
+            const routeParams = new URLSearchParams(queryString);
             const screen = await launchEditor(app, docId, () => {
                 window.location.hash = '#/';
-            });
-            if (localRouteCounter === routeCounter) {
-                currentScreen = screen;
-            } else if (screen && typeof screen.destroy === 'function') {
-                screen.destroy();
-            }
+            }, { initialFocus: routeParams.get('focus') === 'title' ? 'title' : 'editor' });
+            currentScreen = screen;
+            renderedHash = hash;
         } else if (hash === '#/tysk') {
             const screen = await renderGermanExamScreen(app);
-            if (localRouteCounter === routeCounter) {
-                currentScreen = screen;
-            } else if (screen && typeof screen.destroy === 'function') {
-                screen.destroy();
-            }
+            currentScreen = screen;
+            renderedHash = hash;
         } else if (hash === '#/avsnitt') {
             const screen = await renderParagraphTrainerScreen(app);
-            if (localRouteCounter === routeCounter) {
-                currentScreen = screen;
-            } else if (screen && typeof screen.destroy === 'function') {
-                screen.destroy();
-            }
-        } else {
-            const screen = await renderDocumentList(app, (docId) => {
-                window.location.hash = `#/doc/${docId}`;
+            currentScreen = screen;
+            renderedHash = hash;
+        } else if (hash === '#/trash') {
+            const screen = await renderTrashView(app, () => {
+                window.location.hash = '#/';
             });
-            if (localRouteCounter === routeCounter) {
-                currentScreen = screen;
-            } else if (screen && typeof screen.destroy === 'function') {
-                screen.destroy();
-            }
+            currentScreen = screen;
+            renderedHash = hash;
+        } else {
+            const screen = await renderDocumentList(app, (docId, options = {}) => {
+                const focus = options.focusTitle ? '?focus=title' : '';
+                window.location.hash = `#/doc/${docId}${focus}`;
+            });
+            currentScreen = screen;
+            renderedHash = hash;
         }
+    }
+
+    function route() {
+        const localRouteCounter = ++routeCounter;
+        routeQueue = routeQueue
+            .then(() => performRoute(localRouteCounter))
+            .catch((err) => console.error('Route failed:', err));
+        return routeQueue;
     }
 
     window.addEventListener('hashchange', route);

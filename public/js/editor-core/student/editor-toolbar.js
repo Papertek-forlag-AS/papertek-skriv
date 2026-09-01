@@ -2,20 +2,16 @@
  * Floating formatting toolbar for the writing editor.
  * Appears above text selection as a dark pill (Medium/Notion style).
  *
- * Default buttons: B, I, U
- * Advanced mode adds: bullet list, numbered list, H1, H2
+ * Buttons: bold, italic, underline, lists, H1, and H2.
  *
  * Special characters are handled by the separate special-chars-panel.js module.
  *
  * Usage:
  *   const toolbar = initEditorToolbar(editor);
  *   toolbar.destroy();                  // cleanup
- *   toolbar.isAdvancedMode();           // check state
- *   toolbar.onAdvancedChange(fn);       // listen to toggle
- *   toolbar.setAdvancedMode(bool);      // set programmatically
  */
 
-import { computePosition, flip, shift, offset } from 'https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.5/+esm';
+import { computePosition, flip, shift, offset } from '../vendor/floating-ui-dom.js';
 import { t } from '../shared/i18n.js';
 import { showInPageConfirm } from '../shared/in-page-modal.js';
 import { isInsideNonEditableBlock, FRAME_SELECTORS } from '../shared/frame-elements.js';
@@ -23,15 +19,9 @@ import { isInsideNonEditableBlock, FRAME_SELECTORS } from '../shared/frame-eleme
 /**
  * Initialize the floating editor toolbar.
  * @param {HTMLElement} editor - The contenteditable editor element
- * @param {Object} [options]
- * @param {boolean} [options.skipAutoDetectAdvanced=false] - When true, the
- *   toolbar will NOT auto-enable advanced mode based on existing headings
- *   or lists in the seeded document. Used for German exam docs where the
- *   prompt's bullet list would otherwise pull the student into advanced
- *   mode on first open.
- * @returns {Object} toolbar API with destroy(), isAdvancedMode(), onAdvancedChange(), setAdvancedMode()
+ * @returns {{ destroy: Function, toolbarEl: HTMLElement, getBlockElement: Function }}
  */
-export function initEditorToolbar(editor, options = {}) {
+export function initEditorToolbar(editor) {
     document.execCommand('defaultParagraphSeparator', false, 'p');
 
     const container = editor.closest('#writing-env') || editor.parentElement;
@@ -40,7 +30,9 @@ export function initEditorToolbar(editor, options = {}) {
     const toolbar = document.createElement('div');
     toolbar.id = 'editor-floating-toolbar';
     toolbar.setAttribute('role', 'toolbar');
-    toolbar.setAttribute('aria-label', 'Formatting');
+    toolbar.setAttribute('aria-label', t('editorToolbar.label'));
+    toolbar.setAttribute('aria-orientation', 'horizontal');
+    toolbar.setAttribute('aria-hidden', 'true');
     toolbar.className = [
         'fixed', 'z-[300]',
         'flex', 'items-center', 'gap-0.5',
@@ -53,11 +45,13 @@ export function initEditorToolbar(editor, options = {}) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.textContent = label;
+        // A toolbar is one tab stop; arrow keys move among its buttons.
         btn.tabIndex = -1;
         btn.className = [
             'text-white', 'hover:bg-stone-600', 'rounded-full',
             'w-8', 'h-8', 'flex', 'items-center', 'justify-center',
             'text-sm', 'font-medium', 'select-none', 'transition-colors',
+            'focus-visible:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-emerald-400',
             ...extraClasses
         ].join(' ');
         btn.addEventListener('mousedown', (e) => e.preventDefault());
@@ -67,34 +61,43 @@ export function initEditorToolbar(editor, options = {}) {
     function createSeparator() {
         const sep = document.createElement('div');
         sep.className = 'w-px h-5 bg-stone-600 flex-shrink-0';
+        sep.setAttribute('role', 'separator');
+        sep.setAttribute('aria-orientation', 'vertical');
         return sep;
     }
 
     // Always-visible buttons
     const btnBold      = createBtn('B', ['font-bold']);
-    btnBold.setAttribute('aria-label', 'Bold');
+    btnBold.setAttribute('aria-label', t('editorToolbar.bold'));
+    btnBold.title = t('editorToolbar.bold');
     btnBold.setAttribute('aria-pressed', 'false');
     const btnItalic    = createBtn('I', ['italic']);
-    btnItalic.setAttribute('aria-label', 'Italic');
+    btnItalic.setAttribute('aria-label', t('editorToolbar.italic'));
+    btnItalic.title = t('editorToolbar.italic');
     btnItalic.setAttribute('aria-pressed', 'false');
     const btnUnderline = createBtn('U', ['underline']);
-    btnUnderline.setAttribute('aria-label', 'Underline');
+    btnUnderline.setAttribute('aria-label', t('editorToolbar.underline'));
+    btnUnderline.title = t('editorToolbar.underline');
     btnUnderline.setAttribute('aria-pressed', 'false');
 
-    // Advanced mode buttons (hidden by default)
+    // Block formatting buttons
     const sepLists      = createSeparator();
     const btnBulletList = createBtn('•', ['text-lg']);
-    btnBulletList.setAttribute('aria-label', 'Bullet list');
+    btnBulletList.setAttribute('aria-label', t('editorToolbar.bulletList'));
+    btnBulletList.title = t('editorToolbar.bulletList');
     btnBulletList.setAttribute('aria-pressed', 'false');
     const btnOrderedList = createBtn('1.', ['text-xs', 'font-bold']);
-    btnOrderedList.setAttribute('aria-label', 'Numbered list');
+    btnOrderedList.setAttribute('aria-label', t('editorToolbar.numberedList'));
+    btnOrderedList.title = t('editorToolbar.numberedList');
     btnOrderedList.setAttribute('aria-pressed', 'false');
     const sepHeadings   = createSeparator();
     const btnH1         = createBtn('H1', ['text-xs', 'font-bold']);
-    btnH1.setAttribute('aria-label', 'Heading 1');
+    btnH1.setAttribute('aria-label', t('editorToolbar.heading1'));
+    btnH1.title = t('editorToolbar.heading1');
     btnH1.setAttribute('aria-pressed', 'false');
     const btnH2         = createBtn('H2', ['text-xs', 'font-bold']);
-    btnH2.setAttribute('aria-label', 'Heading 2');
+    btnH2.setAttribute('aria-label', t('editorToolbar.heading2'));
+    btnH2.title = t('editorToolbar.heading2');
     btnH2.setAttribute('aria-pressed', 'false');
 
     // Always-visible part
@@ -102,18 +105,15 @@ export function initEditorToolbar(editor, options = {}) {
     toolbar.appendChild(btnItalic);
     toolbar.appendChild(btnUnderline);
 
-    // Advanced mode: lists
+    // Lists
     toolbar.appendChild(sepLists);
     toolbar.appendChild(btnBulletList);
     toolbar.appendChild(btnOrderedList);
 
-    // Advanced mode: headings
+    // Headings
     toolbar.appendChild(sepHeadings);
     toolbar.appendChild(btnH1);
     toolbar.appendChild(btnH2);
-
-    // All buttons visible by default now
-    // Advanced mode has been removed; progressive disclosure uses slash-menu
 
     const toolbarWrapper = document.createElement('div');
     toolbarWrapper.className = 'fixed z-[300]';
@@ -122,14 +122,53 @@ export function initEditorToolbar(editor, options = {}) {
     toolbarWrapper.appendChild(toolbar);
 
     let toolbarMousedown = false;
+    let lastSelectionRange = null;
     toolbarWrapper.addEventListener('mousedown', () => { toolbarMousedown = true; });
     toolbarWrapper.addEventListener('mouseup',   () => { toolbarMousedown = false; });
 
     const onDocumentMouseup = () => { toolbarMousedown = false; };
     document.addEventListener('mouseup', onDocumentMouseup);
 
-    // --- Advanced toggle (Removed) ---
-    // All buttons are now always visible
+    function getToolbarButtons() {
+        return Array.from(toolbar.querySelectorAll('button')).filter(btn => !btn.hidden && !btn.disabled);
+    }
+
+    function setToolbarTabStop(button) {
+        getToolbarButtons().forEach(btn => { btn.tabIndex = btn === button ? 0 : -1; });
+    }
+
+    function onToolbarFocusIn(e) {
+        const button = e.target.closest('button');
+        if (button && toolbar.contains(button)) setToolbarTabStop(button);
+    }
+
+    function onToolbarKeydown(e) {
+        const buttons = getToolbarButtons();
+        const current = e.target.closest('button');
+        const index = buttons.indexOf(current);
+
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            restoreEditorSelection();
+            hideToolbar();
+            return;
+        }
+
+        if (index === -1) return;
+        let nextIndex = null;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextIndex = (index + 1) % buttons.length;
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') nextIndex = (index - 1 + buttons.length) % buttons.length;
+        if (e.key === 'Home') nextIndex = 0;
+        if (e.key === 'End') nextIndex = buttons.length - 1;
+        if (nextIndex === null) return;
+
+        e.preventDefault();
+        setToolbarTabStop(buttons[nextIndex]);
+        buttons[nextIndex].focus();
+    }
+
+    toolbar.addEventListener('focusin', onToolbarFocusIn);
+    toolbar.addEventListener('keydown', onToolbarKeydown);
 
     // --- Helper: find closest LI ancestor within editor ---
     function getClosestLI() {
@@ -227,6 +266,11 @@ export function initEditorToolbar(editor, options = {}) {
 
     function showToolbar(range) {
         isVisible = true;
+        lastSelectionRange = range.cloneRange();
+        if (!getToolbarButtons().some(btn => btn.tabIndex === 0)) {
+            setToolbarTabStop(btnBold);
+        }
+        toolbar.setAttribute('aria-hidden', 'false');
         toolbar.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
         toolbar.classList.add('opacity-100', 'scale-100');
 
@@ -254,12 +298,15 @@ export function initEditorToolbar(editor, options = {}) {
     function hideToolbar() {
         if (!isVisible) return;
         isVisible = false;
+        toolbar.setAttribute('aria-hidden', 'true');
         toolbar.classList.remove('opacity-100', 'scale-100');
         toolbar.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+        getToolbarButtons().forEach(btn => { btn.tabIndex = -1; });
     }
 
     function onSelectionChange() {
         if (toolbarMousedown) return;
+        if (toolbar.contains(document.activeElement)) return;
 
         const sel = window.getSelection();
         if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
@@ -279,19 +326,37 @@ export function initEditorToolbar(editor, options = {}) {
     document.addEventListener('selectionchange', onSelectionChange);
 
     // --- Format actions ---
-    function applyInlineFormat(command) {
+    function restoreEditorSelection() {
         editor.focus();
+        if (!lastSelectionRange || !editor.contains(lastSelectionRange.commonAncestorContainer)) return;
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(lastSelectionRange.cloneRange());
+    }
+
+    function rememberEditorSelection() {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+        const range = selection.getRangeAt(0);
+        if (editor.contains(range.commonAncestorContainer)) lastSelectionRange = range.cloneRange();
+    }
+
+    function applyInlineFormat(command) {
+        restoreEditorSelection();
         document.execCommand(command);
+        rememberEditorSelection();
         updateActiveStates();
     }
 
     function applyList(type) {
-        editor.focus();
+        restoreEditorSelection();
         document.execCommand(type);
+        rememberEditorSelection();
         updateActiveStates();
     }
 
     function applyHeading(tag) {
+        restoreEditorSelection();
         const sel = window.getSelection();
         if (!sel || !sel.rangeCount) return;
 
@@ -303,8 +368,6 @@ export function initEditorToolbar(editor, options = {}) {
 
         const currentTag = blockEl.tagName?.toUpperCase() || '';
 
-        editor.focus();
-
         const targetTag = (currentTag === tag.toUpperCase()) ? 'p' : tag.toLowerCase();
 
         const newEl = document.createElement(targetTag);
@@ -315,6 +378,7 @@ export function initEditorToolbar(editor, options = {}) {
         range.collapse(false);
         sel.removeAllRanges();
         sel.addRange(range);
+        rememberEditorSelection();
         updateActiveStates();
     }
 
@@ -515,6 +579,8 @@ export function initEditorToolbar(editor, options = {}) {
         document.removeEventListener('selectionchange', onSelectionChange);
         editor.removeEventListener('keydown', onEditorKeydown);
         document.removeEventListener('mouseup', onDocumentMouseup);
+        toolbar.removeEventListener('focusin', onToolbarFocusIn);
+        toolbar.removeEventListener('keydown', onToolbarKeydown);
         if (toolbarWrapper.parentNode) {
             toolbarWrapper.parentNode.removeChild(toolbarWrapper);
         }

@@ -21,6 +21,7 @@ const MAX_VISIBLE_STARTERS = 2;
 
 const SCRAMBLE_CHARS = 'abcdefghijklmnoprstuvwxyzæøå';
 const SCRAMBLE_DURATION = 500;
+let frameGuideInstanceCount = 0;
 
 const CSS = `
 /* Frame Guide Panel */
@@ -30,6 +31,7 @@ const CSS = `
     left: 0;
     width: 300px;
     height: 100vh;
+    height: 100dvh;
     background: rgba(250, 250, 249, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -41,6 +43,7 @@ const CSS = `
     flex-direction: column;
     transition: transform 0.3s ease;
     font-size: 0.85rem;
+    overscroll-behavior: contain;
 }
 .skriv-frame-guide.hidden {
     transform: translateX(-100%);
@@ -124,12 +127,24 @@ const CSS = `
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    width: 100%;
     padding: 0.75rem 1rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
     cursor: pointer;
     transition: background 0.1s;
 }
 .frame-guide-section-header:hover {
     background: #f5f5f4;
+}
+.frame-guide-section-header:focus-visible,
+.frame-guide-subsection-header:focus-visible,
+.frame-guide-close:focus-visible {
+    outline: 2px solid #059669;
+    outline-offset: -2px;
 }
 .frame-guide-section-arrow {
     font-size: 0.6rem;
@@ -165,8 +180,14 @@ const CSS = `
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    width: 100%;
     cursor: pointer;
     padding: 0.2rem 0.1rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
     border-radius: 4px;
     transition: background 0.1s;
 }
@@ -411,6 +432,32 @@ const CSS = `
     .skriv-frame-guide {
         width: 85vw;
         max-width: 320px;
+        box-shadow: 6px 0 24px rgba(0,0,0,0.16);
+    }
+    .frame-guide-close,
+    .frame-guide-section-header,
+    .frame-guide-subsection-header,
+    .frame-guide-starter,
+    .frame-guide-spinner-btn,
+    .frame-guide-done-btn,
+    .frame-guide-add-paragraph-btn {
+        min-height: 44px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skriv-frame-guide,
+    .frame-guide-progress-fill,
+    .frame-guide-section-header,
+    .frame-guide-subsection-header,
+    .frame-guide-starter,
+    .frame-guide-spinner-btn,
+    .frame-guide-done-btn,
+    .frame-guide-add-paragraph-btn {
+        transition: none;
+    }
+    .frame-guide-starter:hover {
+        transform: none;
     }
 }
 `;
@@ -445,6 +492,14 @@ function escapeHtml(s) {
 
 // --- Scramble animation for spinner-generated starters ---
 function scrambleReveal(el, finalText, onDone) {
+    if (typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        el.textContent = finalText;
+        if (onDone) onDone();
+        return;
+    }
+
     const len = finalText.length;
     const startTime = Date.now();
 
@@ -481,6 +536,12 @@ export function initFrameGuide(editor, container, options = {}) {
     let lastRange = null;
     let starterDataPromise = null;
     let activeSectionIndex = -1;
+    const guideId = `skriv-frame-guide-${++frameGuideInstanceCount}`;
+    const initialEditorMarginLeft = editor.style.marginLeft;
+    const initialContainerPaddingLeft = container.style.paddingLeft;
+    const desktopLayoutQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(min-width: 769px)')
+        : null;
     // Per-scope (section[/subsection]) history of recently shown spinner starters
     // so consecutive "More suggestions" clicks return different results until the
     // bucket is exhausted, then the history resets.
@@ -551,15 +612,19 @@ export function initFrameGuide(editor, container, options = {}) {
     }
 
     // --- Panel structure ---
-    panel = document.createElement('div');
+    panel = document.createElement('aside');
+    panel.id = guideId;
     panel.className = 'skriv-frame-guide hidden';
+    panel.setAttribute('aria-label', t('skriv.frameGuideLabel'));
+    panel.setAttribute('aria-hidden', 'true');
+    panel.setAttribute('inert', '');
     panel.innerHTML = `
         <div class="frame-guide-header">
             <span class="frame-guide-title"></span>
-            <button class="frame-guide-close" title="Lukk">&times;</button>
+            <button type="button" class="frame-guide-close" title="${escapeHtml(t('skriv.frameGuideClose'))}" aria-label="${escapeHtml(t('skriv.frameGuideClose'))}">&times;</button>
         </div>
         <div class="frame-guide-progress">
-            <div class="frame-guide-progress-bar"><div class="frame-guide-progress-fill"></div></div>
+            <div class="frame-guide-progress-bar" role="progressbar" aria-label="${escapeHtml(t('skriv.frameGuideProgressLabel'))}" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><div class="frame-guide-progress-fill"></div></div>
             <span class="frame-guide-progress-text"></span>
         </div>
         <div class="frame-guide-sections"></div>
@@ -702,14 +767,19 @@ export function initFrameGuide(editor, container, options = {}) {
                 (state.expanded ? ' expanded' : '') +
                 (state.onHold && !state.completed ? ' on-hold' : '');
 
-            // Header (click to expand/collapse)
-            const header = document.createElement('div');
+            // Native button keeps the accordion operable with keyboard and assistive tech.
+            const contentId = `${guideId}-section-${i}`;
+            const header = document.createElement('button');
+            header.type = 'button';
             header.className = 'frame-guide-section-header';
+            header.dataset.sectionToggle = String(i);
+            header.setAttribute('aria-expanded', String(state.expanded));
+            header.setAttribute('aria-controls', contentId);
             const indicator = state.completed
-                ? '<span class="frame-guide-check">✓</span>'
-                : (state.onHold ? '<span class="frame-guide-on-hold-icon">⏸</span>' : '');
+                ? '<span class="frame-guide-check" aria-hidden="true">✓</span>'
+                : (state.onHold ? '<span class="frame-guide-on-hold-icon" aria-hidden="true">⏸</span>' : '');
             header.innerHTML = `
-                <span class="frame-guide-section-arrow">${state.expanded ? '▼' : '▶'}</span>
+                <span class="frame-guide-section-arrow" aria-hidden="true">${state.expanded ? '▼' : '▶'}</span>
                 <span class="frame-guide-section-title">${escapeHtml(section.title)}</span>
                 ${indicator}
             `;
@@ -724,12 +794,14 @@ export function initFrameGuide(editor, container, options = {}) {
                 state.expanded = willExpand;
                 renderSections();
                 scrollToSectionMarker(i);
+                panel.querySelector(`[data-section-toggle="${i}"]`)?.focus();
             });
 
             // Content (instruction + subsections + prompts + buttons)
             const content = document.createElement('div');
+            content.id = contentId;
             content.className = 'frame-guide-section-content';
-            if (!state.expanded) content.style.display = 'none';
+            content.hidden = !state.expanded;
 
             // Section instruction
             if (section.instruction) {
@@ -746,11 +818,16 @@ export function initFrameGuide(editor, container, options = {}) {
                     const subEl = document.createElement('div');
                     subEl.className = 'frame-guide-subsection' + (subExpanded ? ' expanded' : '');
 
-                    // Clickable title row
-                    const subHeader = document.createElement('div');
+                    // Native button provides Enter/Space activation and accordion state.
+                    const subContentId = `${contentId}-subsection-${subIdx}`;
+                    const subHeader = document.createElement('button');
+                    subHeader.type = 'button';
                     subHeader.className = 'frame-guide-subsection-header';
+                    subHeader.dataset.subsectionToggle = `${i}:${subIdx}`;
+                    subHeader.setAttribute('aria-expanded', String(subExpanded));
+                    subHeader.setAttribute('aria-controls', subContentId);
                     subHeader.innerHTML = `
-                        <span class="frame-guide-subsection-arrow">${subExpanded ? '▼' : '▶'}</span>
+                        <span class="frame-guide-subsection-arrow" aria-hidden="true">${subExpanded ? '▼' : '▶'}</span>
                         <strong>${escapeHtml(sub.title)}</strong>
                     `;
                     subHeader.addEventListener('click', () => {
@@ -761,13 +838,18 @@ export function initFrameGuide(editor, container, options = {}) {
                         }
                         state.subsectionExpanded[subIdx] = willExpand;
                         renderSections();
+                        panel.querySelector(`[data-subsection-toggle="${i}:${subIdx}"]`)?.focus();
                     });
                     subEl.appendChild(subHeader);
 
-                    // Body (instruction + starters + spinner) — only when expanded
+                    // The controlled body always exists so aria-controls stays valid.
+                    const subBody = document.createElement('div');
+                    subBody.id = subContentId;
+                    subBody.className = 'frame-guide-subsection-body';
+                    subBody.hidden = !subExpanded;
+
+                    // Body (instruction + starters + spinner) — populated when expanded
                     if (subExpanded) {
-                        const subBody = document.createElement('div');
-                        subBody.className = 'frame-guide-subsection-body';
                         if (sub.instruction) {
                             const subInstr = document.createElement('p');
                             subInstr.className = 'frame-guide-sub-instruction';
@@ -784,8 +866,8 @@ export function initFrameGuide(editor, container, options = {}) {
                                 bucket: sub.spinnerBucket,
                             }));
                         }
-                        subEl.appendChild(subBody);
                     }
+                    subEl.appendChild(subBody);
 
                     content.appendChild(subEl);
                 });
@@ -807,6 +889,7 @@ export function initFrameGuide(editor, container, options = {}) {
 
             // Done button
             const doneBtn = document.createElement('button');
+            doneBtn.type = 'button';
             doneBtn.className = 'frame-guide-done-btn' + (state.completed ? ' active' : '');
             doneBtn.textContent = state.completed
                 ? t('skriv.frameGuideMarkDoneActive')
@@ -836,6 +919,7 @@ export function initFrameGuide(editor, container, options = {}) {
             // + Nytt avsnitt button (only for non-completed sections)
             if (!state.completed) {
                 const addBtn = document.createElement('button');
+                addBtn.type = 'button';
                 addBtn.className = 'frame-guide-add-paragraph-btn';
                 addBtn.textContent = t('skriv.frameGuideAddParagraph');
                 addBtn.addEventListener('click', (e) => {
@@ -853,15 +937,17 @@ export function initFrameGuide(editor, container, options = {}) {
 
     function makeStarterButton(text, sourceSectionIndex, sourceSubsectionIndex) {
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.className = 'frame-guide-starter';
         btn.textContent = text;
-        btn.title = 'Klikk for å sette inn';
+        btn.title = t('skriv.frameGuideInsertStarter');
         btn.addEventListener('click', () => insertStarter(text, sourceSectionIndex, sourceSubsectionIndex));
         return btn;
     }
 
     function makeSpinnerButton({ sectionIndex, subsectionIndex, bucket }) {
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.className = 'frame-guide-spinner-btn';
         btn.textContent = t('skriv.frameGuideMoreSuggestions');
         btn.addEventListener('click', async (e) => {
@@ -961,7 +1047,15 @@ export function initFrameGuide(editor, container, options = {}) {
         const total = sectionStates.length;
         const pct = total > 0 ? (completed / total) * 100 : 0;
         panel.querySelector('.frame-guide-progress-fill').style.width = `${pct}%`;
-        panel.querySelector('.frame-guide-progress-text').textContent = `${completed}/${total} avsnitt`;
+        const progressBar = panel.querySelector('.frame-guide-progress-bar');
+        progressBar.setAttribute('aria-valuemax', String(total));
+        progressBar.setAttribute('aria-valuenow', String(completed));
+        const progressText = t('skriv.frameGuideProgressText', {
+            completed,
+            total,
+        });
+        progressBar.setAttribute('aria-valuetext', progressText);
+        panel.querySelector('.frame-guide-progress-text').textContent = progressText;
     }
 
     // --- Section navigation in editor ---
@@ -1027,7 +1121,11 @@ export function initFrameGuide(editor, container, options = {}) {
         const marker = editor.querySelector(
             `.${SECTION_MARKER_CLASS}[data-section-index="${sectionIndex}"]`
         );
-        if (marker) marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (marker) {
+            const reduceMotion = typeof window.matchMedia === 'function' &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            marker.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+        }
     }
 
     // --- Insert sentence starter ---
@@ -1168,17 +1266,45 @@ export function initFrameGuide(editor, container, options = {}) {
     editor.addEventListener('input', handleInput);
 
     // --- Show/hide panel ---
+    function syncEditorOffset() {
+        const useSideBySideLayout = desktopLayoutQuery
+            ? desktopLayoutQuery.matches
+            : (typeof window === 'undefined' || window.innerWidth > 768);
+        // Reserve space for the guide around the complete writing surface.
+        // Moving only the contenteditable clipped the title and back button.
+        container.style.paddingLeft = panelVisible && useSideBySideLayout
+            ? '300px'
+            : initialContainerPaddingLeft;
+        editor.style.marginLeft = initialEditorMarginLeft;
+    }
+
+    function handleLayoutChange() {
+        syncEditorOffset();
+    }
+
+    if (desktopLayoutQuery) {
+        if (typeof desktopLayoutQuery.addEventListener === 'function') {
+            desktopLayoutQuery.addEventListener('change', handleLayoutChange);
+        } else if (typeof desktopLayoutQuery.addListener === 'function') {
+            desktopLayoutQuery.addListener(handleLayoutChange);
+        }
+    }
+
     function show() {
         panel.classList.remove('hidden');
+        panel.removeAttribute('inert');
+        panel.setAttribute('aria-hidden', 'false');
         panelVisible = true;
-        editor.style.marginLeft = '310px';
+        syncEditorOffset();
         editor.classList.remove('skriv-frame-guide-collapsed');
     }
 
     function hide() {
         panel.classList.add('hidden');
+        panel.setAttribute('inert', '');
+        panel.setAttribute('aria-hidden', 'true');
         panelVisible = false;
-        editor.style.marginLeft = '';
+        syncEditorOffset();
         editor.classList.add('skriv-frame-guide-collapsed');
     }
 
@@ -1293,9 +1419,17 @@ export function initFrameGuide(editor, container, options = {}) {
         document.removeEventListener('selectionchange', handleSelectionChange);
         editor.removeEventListener('click', handleEditorClick);
         editor.removeEventListener('input', handleInput);
+        if (desktopLayoutQuery) {
+            if (typeof desktopLayoutQuery.removeEventListener === 'function') {
+                desktopLayoutQuery.removeEventListener('change', handleLayoutChange);
+            } else if (typeof desktopLayoutQuery.removeListener === 'function') {
+                desktopLayoutQuery.removeListener(handleLayoutChange);
+            }
+        }
         if (panel) panel.remove();
         if (styleEl) styleEl.remove();
-        editor.style.marginLeft = '';
+        container.style.paddingLeft = initialContainerPaddingLeft;
+        editor.style.marginLeft = initialEditorMarginLeft;
         editor.classList.remove('skriv-frame-guide-collapsed');
     }
 

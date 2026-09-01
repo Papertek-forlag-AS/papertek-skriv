@@ -16,7 +16,7 @@ import {
 } from './folder-store.js';
 import { getSchoolLevel, setSchoolLevel, SCHOOL_LEVELS, getSubjectsForLevel } from './school-level.js';
 import { showOnboardingModal } from './onboarding-modal.js';
-import { downloadLibraryBackup, parseLibraryBackup, restoreLibraryBackup } from './library-backup.js';
+import { initLibraryBackup, LibraryRestorePartialError } from './library-backup.js';
 
 const FOLDER_ICON = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>';
 const CHEVRON_SVG = '<svg class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
@@ -30,6 +30,7 @@ const CHEVRON_SVG = '<svg class="w-3 h-3 transition-transform" fill="none" strok
  * @param {string} options.schoolYear - Active school year label
  * @param {Function} options.onFilterChange - Called with new filter value
  * @param {Function} options.onSchoolYearChange - Called with new school year label
+ * @param {Function} [options.onLibraryChanged] - Called after a folder mutation changes document membership
  * @returns {{ destroy: Function, update: Function }}
  */
 export function createSidebar(container, options) {
@@ -42,6 +43,7 @@ export function createSidebar(container, options) {
     let cachedFolders = [];
     const expandedSet = new Set();
     let isDragActive = false;
+    const backupApi = initLibraryBackup();
 
     // --- Counts ---
 
@@ -263,13 +265,6 @@ export function createSidebar(container, options) {
             '#/tysk',
             t('germanExam.sidebar'),
             `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>`
-        ));
-
-        // Paragraph trainer (three-step model) — navigates to #/avsnitt route
-        list.appendChild(createNavItem(
-            '#/avsnitt',
-            t('paragraphTrainer.sidebar'),
-            `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>`
         ));
 
         nav.appendChild(list);
@@ -505,6 +500,7 @@ export function createSidebar(container, options) {
                     state.activeFilter = 'all';
                     state.onFilterChange('all');
                 }
+                await state.onLibraryChanged?.({ type: 'folder-deleted', folderId: folder.id });
                 render();
             }
         }, true);
@@ -694,70 +690,97 @@ export function createSidebar(container, options) {
 
         levelSection.appendChild(changeLevelBtn);
 
-        // --- Backup: download the whole library / restore from a file ---
-        const smallBtnClass = 'flex items-center gap-2 w-full px-3 py-2 mt-1 text-xs text-stone-500 dark:text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-stone-100 dark:hover:bg-stone-700/50 rounded-lg transition-colors';
+        const dataDivider = document.createElement('div');
+        dataDivider.className = 'my-2 border-t border-stone-200 dark:border-stone-700';
+        levelSection.appendChild(dataDivider);
 
         const backupBtn = document.createElement('button');
-        backupBtn.className = smallBtnClass;
+        backupBtn.type = 'button';
+        backupBtn.className = 'flex items-center gap-2 w-full px-3 py-2 text-xs text-stone-500 dark:text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-stone-100 dark:hover:bg-stone-700/50 rounded-lg transition-colors';
         backupBtn.innerHTML = `
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-            <span class="flex flex-col text-left">
-                <span class="font-medium">${escapeHtml(t('backup.download'))}</span>
-                <span class="text-[10px] text-stone-400 dark:text-stone-500">${escapeHtml(t('backup.downloadHint'))}</span>
-            </span>
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16V4m0 0L8 8m4-4 4 4M5 13v6h14v-6"/></svg>
+            <span class="font-medium">${escapeHtml(t('backup.download'))}</span>
         `;
         backupBtn.addEventListener('click', async () => {
+            backupBtn.disabled = true;
             try {
-                const count = await downloadLibraryBackup();
-                showToast(t('backup.downloaded', { count }), { duration: 3000 });
-            } catch (err) {
-                console.error('Backup export failed:', err);
-                showToast(t('backup.failed'), { duration: 4000 });
+                await backupApi.requestPersistentStorage();
+                await backupApi.downloadBackup();
+                showToast(t('backup.downloaded'));
+            } catch (error) {
+                console.error('[sidebar] Backup failed:', error);
+                showToast(t('backup.error'));
+            } finally {
+                backupBtn.disabled = false;
             }
         });
         levelSection.appendChild(backupBtn);
 
+        const restoreInput = document.createElement('input');
+        restoreInput.type = 'file';
+        restoreInput.accept = '.skriv,application/json';
+        restoreInput.className = 'hidden';
+        levelSection.appendChild(restoreInput);
+
         const restoreBtn = document.createElement('button');
-        restoreBtn.className = smallBtnClass;
+        restoreBtn.type = 'button';
+        restoreBtn.className = 'flex items-center gap-2 w-full px-3 py-2 text-xs text-stone-500 dark:text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-stone-100 dark:hover:bg-stone-700/50 rounded-lg transition-colors';
         restoreBtn.innerHTML = `
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-            <span class="flex flex-col text-left">
-                <span class="font-medium">${escapeHtml(t('backup.restore'))}</span>
-                <span class="text-[10px] text-stone-400 dark:text-stone-500">${escapeHtml(t('backup.restoreHint'))}</span>
-            </span>
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v12m0 0-4-4m4 4 4-4M5 11V5h14v6"/></svg>
+            <span class="font-medium">${escapeHtml(t('backup.restore'))}</span>
         `;
-        restoreBtn.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.skriv,application/json';
-            input.addEventListener('change', async () => {
-                const file = input.files && input.files[0];
-                if (!file) return;
-                try {
-                    const parsed = parseLibraryBackup(await file.text());
-                    const result = await restoreLibraryBackup(parsed);
-                    showToast(t('backup.restored', {
-                        docs: result.importedDocs,
-                        skipped: result.skippedDocs,
-                    }), { duration: 4000 });
-                    // Re-run the current route so the list shows the imports.
-                    window.dispatchEvent(new HashChangeEvent('hashchange'));
-                } catch (err) {
-                    console.error('Backup restore failed:', err);
-                    showToast(
-                        err && err.message === 'invalid' ? t('backup.invalidFile') : t('backup.failed'),
-                        { duration: 4000 }
-                    );
+        restoreBtn.addEventListener('click', () => restoreInput.click());
+        restoreInput.addEventListener('change', async () => {
+            const file = restoreInput.files?.[0];
+            restoreInput.value = '';
+            if (!file) return;
+            if (file.size > 100 * 1024 * 1024) {
+                showToast(t('backup.tooLarge'));
+                return;
+            }
+            const confirmed = await showInPageConfirm(
+                t('backup.restoreConfirmTitle'),
+                t('backup.restoreConfirmMessage'),
+                t('backup.restore'),
+                t('common.cancel')
+            );
+            if (!confirmed) return;
+
+            restoreBtn.disabled = true;
+            try {
+                const result = await backupApi.restoreFromText(await file.text());
+                showToast(t('backup.restored', { count: result.imported }));
+                setTimeout(() => window.location.reload(), 700);
+            } catch (error) {
+                console.error('[sidebar] Restore failed:', error);
+                if (error instanceof LibraryRestorePartialError) {
+                    showToast(t('backup.partial'));
+                    setTimeout(() => window.location.reload(), 2500);
+                } else if (
+                    error?.message === 'invalid-json'
+                    || error?.message === 'unsupported-backup'
+                    || error?.message?.startsWith('invalid-backup:')
+                ) {
+                    showToast(t('backup.invalid'));
+                } else {
+                    showToast(t('backup.restoreError'));
                 }
-            });
-            input.click();
+            } finally {
+                restoreBtn.disabled = false;
+            }
         });
         levelSection.appendChild(restoreBtn);
+
+        const localHint = document.createElement('p');
+        localHint.className = 'px-3 pt-1 text-[10px] leading-snug text-stone-400 dark:text-stone-500';
+        localHint.textContent = t('backup.localHint');
+        levelSection.appendChild(localHint);
 
         // "Force refresh" — unregister SW + clear caches, then reload.
         // Useful when the dev / hosted version drifts and a hard reload
         // isn't easily reachable in the current viewer.
         const refreshBtn = document.createElement('button');
+        refreshBtn.type = 'button';
         refreshBtn.className = 'flex items-center gap-2 w-full px-3 py-2 mt-1 text-xs text-stone-500 dark:text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-stone-100 dark:hover:bg-stone-700/50 rounded-lg transition-colors';
         refreshBtn.title = t('sw.forceRefreshHint');
         refreshBtn.innerHTML = `
@@ -782,11 +805,6 @@ export function createSidebar(container, options) {
         });
         levelSection.appendChild(refreshBtn);
 
-        const versionDiv = document.createElement('div');
-        versionDiv.className = 'mt-4 text-center text-[10px] text-stone-400 dark:text-stone-500 font-mono';
-        versionDiv.textContent = 'Papertek Skriv v73';
-        levelSection.appendChild(versionDiv);
-
         nav.appendChild(levelSection);
     }
 
@@ -808,7 +826,10 @@ export function createSidebar(container, options) {
     container.appendChild(nav);
 
     return {
-        destroy: () => nav.remove(),
+        destroy: () => {
+            backupApi.destroy();
+            nav.remove();
+        },
         update(newOptions) {
             Object.assign(state, newOptions);
             render();

@@ -1,6 +1,7 @@
 /**
  * Onboarding Tour — guided tooltip tour for first-time students
- * Shows spotlight + tooltip on key UI elements, once per device.
+ * Shows spotlight + tooltip on key UI elements when explicitly requested.
+ * The default editor no longer interrupts first-time writing with an automatic tour.
  */
 
 const LS_KEY = 'skriv_tour_completed';
@@ -15,8 +16,33 @@ const DEFAULT_STEPS = [
     { selector: null, text: 'Tips: Trykk Ctrl+/ for a se alle tastatursnarveier. Lykke til!', position: 'center' },
 ];
 
+function createInactiveTourApi(options) {
+    let activeTour = null;
+    return {
+        destroy() {
+            activeTour?.destroy();
+            activeTour = null;
+        },
+        skip() {
+            localStorage.setItem(LS_KEY, 'true');
+            activeTour?.destroy();
+            activeTour = null;
+        },
+        restart() {
+            activeTour?.destroy();
+            localStorage.removeItem(LS_KEY);
+            activeTour = initOnboardingTour({ ...options, autoStart: true, force: true });
+            return activeTour;
+        },
+    };
+}
+
 export function initOnboardingTour(options = {}) {
-    if (localStorage.getItem(LS_KEY)) return { destroy: () => {} };
+    // Tours are opt-in. Call with { autoStart: true } or use restart() from a
+    // deliberate Help action; simply initializing the editor stays interruption-free.
+    if (options.autoStart !== true || (!options.force && localStorage.getItem(LS_KEY))) {
+        return createInactiveTourApi(options);
+    }
 
     const steps = options.steps || DEFAULT_STEPS;
     let currentStep = 0;
@@ -25,6 +51,7 @@ export function initOnboardingTour(options = {}) {
     let tooltip = null;
     let styleEl = null;
     let resizeHandler = null;
+    let startTimerId = null;
 
     // --- Inject styles ---
     styleEl = document.createElement('style');
@@ -139,6 +166,16 @@ export function initOnboardingTour(options = {}) {
             transition: background 0.15s;
         }
         .skriv-tour-next:hover { background: #047857; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .skriv-tour-backdrop,
+            .skriv-tour-spotlight,
+            .skriv-tour-tooltip,
+            .skriv-tour-dot,
+            .skriv-tour-next {
+                transition: none;
+            }
+        }
     `;
     document.head.appendChild(styleEl);
 
@@ -296,6 +333,10 @@ export function initOnboardingTour(options = {}) {
     }
 
     function cleanup() {
+        if (startTimerId) {
+            clearTimeout(startTimerId);
+            startTimerId = null;
+        }
         if (backdrop) { backdrop.remove(); backdrop = null; }
         if (spotlight) { spotlight.remove(); spotlight = null; }
         if (tooltip) { tooltip.remove(); tooltip = null; }
@@ -314,7 +355,10 @@ export function initOnboardingTour(options = {}) {
 
     // Start tour after editor has rendered
     const delay = options.delay != null ? options.delay : 600;
-    setTimeout(() => showStep(0), delay);
+    startTimerId = setTimeout(() => {
+        startTimerId = null;
+        showStep(0);
+    }, delay);
 
     // Public API
     return {
