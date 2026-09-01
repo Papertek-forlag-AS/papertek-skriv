@@ -1589,14 +1589,18 @@ function _setUiLanguage(lang) {
 }
 
 /**
- * Initialize from chrome.storage.local (async).
+ * Initialize the UI language (async). Fase 3 (trelagsarkitekturen): the
+ * storage read lives in the host-reader global __lexiUiLangReader (default
+ * installed by vocab-seam.js, chrome-based) so this file stays layer-1
+ * pure. Callers (renderers, popup) all run after vocab-seam has loaded.
+ * No reader (Node tests) → 'nb', same fallback as before.
  */
 async function _initI18n() {
   try {
-    const result = await new Promise(resolve => {
-      chrome.storage.local.get('uiLanguage', resolve);
-    });
-    _uiLang = result.uiLanguage && _STRINGS[result.uiLanguage] ? result.uiLanguage : 'nb';
+    const host = typeof self !== 'undefined' ? self : globalThis;
+    const reader = host.__lexiUiLangReader;
+    const lang = typeof reader === 'function' ? await reader() : null;
+    _uiLang = lang && _STRINGS[lang] ? lang : 'nb';
   } catch {
     _uiLang = 'nb';
   }

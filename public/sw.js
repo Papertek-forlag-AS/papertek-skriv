@@ -4,7 +4,7 @@
  */
 
 const CACHE_PREFIX = 'skriv-v';
-const CACHE_NAME = 'skriv-v94';
+const CACHE_NAME = 'skriv-v95';
 // MSAL 5's redirect bridge handles raw authorization responses. Microsoft
 // requires both the bridge page and its script to bypass all app caches.
 const MICROSOFT_AUTH_NO_STORE_PATHS = new Set([
@@ -178,7 +178,8 @@ const ASSETS = [
     '/frames/en/retorisk-analyse.md',
     '/frames/en/sammenligning.md',
     '/frames/en/soeknad.md',
-    // Leksihjelp loader (chrome.* shim — must precache so it survives offline)
+    // Skriv's leksihjelp host config (installs the shared embed runtime —
+    // must precache so it survives offline)
     '/js/leksihjelp-loader.js',
 ];
 
@@ -197,19 +198,29 @@ const OPTIONAL_ASSETS = [
 const LEKSIHJELP_ASSETS = [
     // BEGIN GENERATED LEKSIHJELP ASSETS
     '/js/leksihjelp/.version',
+    '/js/leksihjelp/load-order.json',
+    '/js/leksihjelp/embed/host-runtime.js',
+    '/js/leksihjelp/styles/content.css',
+    '/js/leksihjelp/styles/popup-views.css',
     '/js/leksihjelp/i18n/strings.js',
+    '/js/leksihjelp/host-capabilities.js',
     '/js/leksihjelp/exam-registry.js',
-    '/js/leksihjelp/styles/leksihjelp.css',
+    '/js/leksihjelp/content/vocab-store.js',
     '/js/leksihjelp/content/vocab-seam-core.js',
     '/js/leksihjelp/content/vocab-seam.js',
     '/js/leksihjelp/content/lang-detect.js',
     '/js/leksihjelp/content/pause-domain.js',
+    '/js/leksihjelp/content/word-boundary.js',
+    '/js/leksihjelp/content/tts-segmentation-engine.js',
+    '/js/leksihjelp/content/tts-timing-engine.js',
+    '/js/leksihjelp/content/rsvp-engine.js',
+    '/js/leksihjelp/content/rsvp-source-dom.js',
+    '/js/leksihjelp/content/rsvp-reader.js',
+    '/js/leksihjelp/content/floating-widget.js',
+    '/js/leksihjelp/content/prediction-engine.js',
+    '/js/leksihjelp/content/prediction-renderer.js',
     '/js/leksihjelp/content/rule-features.js',
     '/js/leksihjelp/content/spell-check-core.js',
-    '/js/leksihjelp/content/spell-check-engine.js',
-    '/js/leksihjelp/content/pedagogy-render.js',
-    '/js/leksihjelp/content/personalization-store.js',
-    '/js/leksihjelp/content/spell-check-renderer.js',
     '/js/leksihjelp/content/spell-rules/grammar-tables.js',
     '/js/leksihjelp/content/spell-rules/quotation-suppression.js',
     '/js/leksihjelp/content/spell-rules/de-capitalization.js',
@@ -391,33 +402,18 @@ const LEKSIHJELP_ASSETS = [
     '/js/leksihjelp/content/spell-rules/nb-impersonal-det.js',
     '/js/leksihjelp/content/spell-rules/nb-noun-plural-quantifier.js',
     '/js/leksihjelp/content/spell-rules/nb-bare-infinitive-present.js',
+    '/js/leksihjelp/content/spell-check-engine.js',
+    '/js/leksihjelp/content/pedagogy-render.js',
+    '/js/leksihjelp/content/personalization-store.js',
+    '/js/leksihjelp/content/spell-check-renderer.js',
     '/js/leksihjelp/popup/dict-state-builder.js',
-    '/js/leksihjelp/popup/grammar-features-section.js',
-    '/js/leksihjelp/data/de.json',
-    '/js/leksihjelp/data/en.json',
-    '/js/leksihjelp/data/es.json',
-    '/js/leksihjelp/data/fr.json',
-    '/js/leksihjelp/data/nb.json',
-    '/js/leksihjelp/data/nn.json',
+    '/js/leksihjelp/popup/views/lang-consolidation.js',
+    '/js/leksihjelp/popup/views/dictionary-view.js',
+    '/js/leksihjelp/popup/views/library-view.js',
+    '/js/leksihjelp/popup/views/language-picker.js',
+    '/js/leksihjelp/popup/views/settings-view.js',
+    '/js/leksihjelp/content/lesson-render.js',
     '/js/leksihjelp/data/nb-baseline.json',
-    '/js/leksihjelp/data/grammarfeatures-de.json',
-    '/js/leksihjelp/data/grammarfeatures-en.json',
-    '/js/leksihjelp/data/grammarfeatures-es.json',
-    '/js/leksihjelp/data/grammarfeatures-fr.json',
-    '/js/leksihjelp/data/grammarfeatures-nb.json',
-    '/js/leksihjelp/data/grammarfeatures-nn.json',
-    '/js/leksihjelp/data/pitfalls-en.json',
-    '/js/leksihjelp/data/validwords-nb.json',
-    '/js/leksihjelp/data/validwords-nn.json',
-    '/js/leksihjelp/data/bigrams-nb.json',
-    '/js/leksihjelp/data/bigrams-nn.json',
-    '/js/leksihjelp/data/freq-nb.json',
-    '/js/leksihjelp/data/freq-nn.json',
-    '/js/leksihjelp/data/ordbank-bloom-nb.bin',
-    '/js/leksihjelp/data/ordbank-bloom-nn.bin',
-    '/js/leksihjelp/data/cross-standard-nb-nn.json',
-    '/js/leksihjelp/data/non-compound-pairs.json',
-    '/js/leksihjelp/data/rettskrivingsvedtak-2023.json',
     // END GENERATED LEKSIHJELP ASSETS
 ];
 

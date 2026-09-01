@@ -418,6 +418,88 @@
     return dp[la][lb];
   }
 
+  // ── Kandidatindeks (ytelse, 27.08.2026) ─────────────────────────────
+  //
+  // Fuzzy-reglene skannet HELE validWords per ord. For nb er det settet
+  // 639 352 ord (lexikonet er 71 296 — resten er Norsk ordbank via
+  // validwords-nb.json), så én check() på 200 ord kostet 546 631
+  // editDistance-kall og frøs hovedtråden i ~0,4 s her, 1–1,6 s på en
+  // skole-PC. Innmeldt av en elev i lockdown 27.08.2026: «Programmet
+  // jobber ekstremt tregt når jeg nærmer meg 150-200 ord.»
+  //
+  // Filtrene lå INNE i løkken: samme forbokstav, og lengde innenfor ±k.
+  // De er nøkkelen i denne indeksen i stedet, så resultatmengden er per
+  // definisjon uendret — vi hopper bare over kandidater løkken uansett
+  // ville forkastet på første linje.
+  //
+  // ORDENEN ER BEVART, og det er ikke pynt. Kallerne bryter uavgjort
+  // implisitt på iterasjonsrekkefølgen til validWords: context-typo tar
+  // `weight > bestScore` (første maksimum vinner), og typo-fuzzy bruker
+  // en STABIL sort, så like scorer beholder innsettingsrekkefølgen. En
+  // indeks som grupperer etter lengde bytter den rekkefølgen. Derfor
+  // bærer hver bøtte ordinalen ordet hadde i validWords, og kallerne
+  // sorterer på (score, ordinal). Uten det ville funnene være «nesten»
+  // like — og nesten er ikke det oppdraget ba om.
+  //
+  // Bygges lazily og caches på en WeakMap nøklet av selve Set-et. Det er
+  // med vilje: renderer-en lager et NYTT validWords-Set når eleven har
+  // egne ord (`new Set(base)` + personlige ord), og en indeks hengt på
+  // vokabular-objektet ville da vært stale. WeakMap gjør at gamle
+  // indekser forsvinner av seg selv ved språkbytte.
+  //
+  // Minne: ~639k ordreferanser + én Int32Array på 639k = ~8 MB for nb.
+  const _candIndexCache = typeof WeakMap === 'function' ? new WeakMap() : null;
+
+  function buildCandidateIndex(validWords) {
+    // byFirst: forbokstav → (lengde → { words: string[], ords: Int32Array })
+    const byFirst = new Map();
+    const counts = new Map();
+    let n = 0;
+    for (const w of validWords) {
+      if (!w) continue;                 // tomme strenger kan aldri matche
+      const key = w[0];
+      let lens = counts.get(key);
+      if (!lens) { lens = new Map(); counts.set(key, lens); }
+      lens.set(w.length, (lens.get(w.length) || 0) + 1);
+      n++;
+    }
+    for (const [first, lens] of counts) {
+      const m = new Map();
+      for (const [len, c] of lens) m.set(len, { words: new Array(c), ords: new Int32Array(c), _i: 0 });
+      byFirst.set(first, m);
+    }
+    let ord = 0;
+    for (const w of validWords) {
+      if (!w) continue;
+      const b = byFirst.get(w[0]).get(w.length);
+      b.words[b._i] = w;
+      b.ords[b._i] = ord++;
+      b._i++;
+    }
+    return {
+      size: n,
+      /**
+       * Alle validWords med denne forbokstaven og nøyaktig denne lengden,
+       * i validWords-rekkefølge. `ords[i]` er posisjonen `words[i]` hadde
+       * i validWords. Returnerer null når bøtten er tom.
+       */
+      bucket(first, len) {
+        const lens = byFirst.get(first);
+        if (!lens) return null;
+        return lens.get(len) || null;
+      },
+    };
+  }
+
+  /** WeakMap-cachet kandidatindeks for et validWords-Set. */
+  function candidateIndex(validWords) {
+    if (!validWords || typeof validWords[Symbol.iterator] !== 'function') return null;
+    if (!_candIndexCache) return buildCandidateIndex(validWords);
+    let idx = _candIndexCache.get(validWords);
+    if (!idx) { idx = buildCandidateIndex(validWords); _candIndexCache.set(validWords, idx); }
+    return idx;
+  }
+
   function findFuzzyNeighbor(word, validWords) {
     const len = word.length;
     // Tighter threshold for short words — 1 edit out of 4 chars is already
@@ -570,6 +652,7 @@
     check,
     tokenize,
     editDistance,
+    candidateIndex,
     matchCase,
     escapeHtml,
     getString,
@@ -623,24 +706,21 @@
       return rule.explain.exam.safe === true;
     },
     /**
-     * Read chrome.storage.local.examMode (default false). Promise resolves
-     * to a boolean. Degrades gracefully when chrome.storage is unavailable
-     * (Node tests, some lockdown shim contexts) — defaults to false (off).
+     * Read exam mode (default false). Promise resolves to a boolean.
+     * Fase 3 (trelagsarkitekturen): the storage read itself lives in the
+     * host-reader global __lexiExamModeReader (default installed by
+     * vocab-seam.js, chrome-based) so this file stays layer-1 pure.
+     * Degrades gracefully when no reader is installed (Node tests,
+     * partial shim contexts) — defaults to false (off), same as before.
      */
     getExamMode() {
-      return new Promise(resolve => {
-        try {
-          if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
-            resolve(false);
-            return;
-          }
-          chrome.storage.local.get(['examMode'], (res) => {
-            resolve(!!(res && res.examMode));
-          });
-        } catch (_) {
-          resolve(false);
-        }
-      });
+      try {
+        const reader = host.__lexiExamModeReader;
+        if (typeof reader !== 'function') return Promise.resolve(false);
+        return Promise.resolve(reader()).then(v => !!v).catch(() => false);
+      } catch (_) {
+        return Promise.resolve(false);
+      }
     },
   };
 })();

@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "comment": "Maskinlesbar lagklassifisering for embed-rammeverket (sjå .planning/2026-08-26-tre-lag-arkitektur.md). Grunnregel: annotér, ikkje flytt — fila klassifiserer dagens stiar, ho flyttar ingenting. Kvar fil i package.json files[]-scopet skal vere dekt av nøyaktig éin entry (eksakt sti eller katalog-prefiks med '/'). check-embed-inventory handhevar dette.",
+  "loadOrderSource": "extension/manifest.json#content_scripts[0].js",
+  "layers": {
+    "1": "Motor — rein logikk/data/i18n, identisk i alle appar. Skal bestå layer1-purity (fase 2); purityPending-flagget unntek filer som ventar på hale-splitt (fase 3).",
+    "1-adapter": "Motor-adapter — kreves overalt, men chrome-/lagrings-rørande av design (hydrering, storage). Ikkje purity-skanna.",
+    "2": "Delt Leksihjelp-UI — DOM-eigande flater og views alle embed-vertar skal dele.",
+    "2.5": "Embed-substratet — host-runtime + dette inventaret. Synces til konsumentar; den ekte extensionen lastar det ALDRI (gate-handheva fråvær frå manifest.json).",
+    "meta": "Metadata-filer (manifest.json — kanonisk lasterekkjefølgje)."
+  },
+  "profiles": {
+    "full": "Alt i sync-scopet.",
+    "no-audio": "Som full, men audio-felta strippast frå data/*.json ved sync (~17 MB; for vertar utan MP3-avspeling)."
+  },
+  "subsets": {
+    "dictionary-spellcheck": {
+      "comment": "Minste embed: ordbok + stavekontroll utan TTS-widget/prediksjon/RSVP. Speglar skrivs historiske FILE_INVENTORY; embed-sync --subset konsumerer lista. Merk: skriv skal ETTER migreringa OGSÅ ta view-modulane (full lag 2-deling, Geirs avgjerd) — då er profile full/no-audio utan subset det rette.",
+      "members": [
+        "extension/embed/",
+        "extension/i18n/strings.js",
+        "extension/exam-registry.js",
+        "extension/content/vocab-seam-core.js",
+        "extension/content/vocab-seam.js",
+        "extension/content/lang-detect.js",
+        "extension/content/pause-domain.js",
+        "extension/content/rule-features.js",
+        "extension/content/spell-check-core.js",
+        "extension/content/spell-check-engine.js",
+        "extension/content/pedagogy-render.js",
+        "extension/content/personalization-store.js",
+        "extension/content/spell-check-renderer.js",
+        "extension/content/spell-rules/",
+        "extension/content/word-boundary.js",
+        "extension/content/ordbank-bloom.js",
+        "extension/content/vocab-store.js",
+        "extension/popup/dict-state-builder.js",
+        "extension/popup/grammar-features-section.js",
+        "extension/styles/content.css",
+        "extension/data/"
+      ]
+    }
+  },
+  "exclude": [
+    "**/*.test.js",
+    "extension/content/spell-rules/README.md"
+  ],
+  "files": {
+    "extension/manifest.json": {
+      "layer": "meta"
+    },
+    "extension/i18n/strings.js": {
+      "layer": "1"
+    },
+    "extension/data/": {
+      "layer": "1"
+    },
+    "extension/host-capabilities.js": {
+      "layer": "1"
+    },
+    "extension/exam-registry.js": {
+      "layer": "1"
+    },
+    "extension/content/spell-rules/": {
+      "layer": "1"
+    },
+    "extension/content/vocab-seam-core.js": {
+      "layer": "1"
+    },
+    "extension/content/spell-check-engine.js": {
+      "layer": "1"
+    },
+    "extension/content/prediction-engine.js": {
+      "layer": "1"
+    },
+    "extension/content/tts-segmentation-engine.js": {
+      "layer": "1"
+    },
+    "extension/content/tts-timing-engine.js": {
+      "layer": "1"
+    },
+    "extension/content/rsvp-engine.js": {
+      "layer": "1"
+    },
+    "extension/content/rsvp-source-dom.js": {
+      "layer": "1"
+    },
+    "extension/content/rule-features.js": {
+      "layer": "1"
+    },
+    "extension/content/word-boundary.js": {
+      "layer": "1"
+    },
+    "extension/content/ordbank-bloom.js": {
+      "layer": "1"
+    },
+    "extension/content/spell-check-core.js": {
+      "layer": "1"
+    },
+    "extension/content/lang-detect.js": {
+      "layer": "1"
+    },
+    "extension/content/pause-domain.js": {
+      "layer": "1-adapter"
+    },
+    "extension/content/vocab-seam.js": {
+      "layer": "1-adapter"
+    },
+    "extension/content/vocab-store.js": {
+      "layer": "1-adapter"
+    },
+    "extension/content/personalization-store.js": {
+      "layer": "1-adapter"
+    },
+    "extension/content/spell-check-renderer.js": {
+      "layer": "2"
+    },
+    "extension/content/floating-widget.js": {
+      "layer": "2"
+    },
+    "extension/content/prediction-renderer.js": {
+      "layer": "2"
+    },
+    "extension/content/pedagogy-render.js": {
+      "layer": "2"
+    },
+    "extension/content/rsvp-reader.js": {
+      "layer": "2"
+    },
+    "extension/content/lesson-render.js": {
+      "layer": "2"
+    },
+    "extension/popup/views/": {
+      "layer": "2"
+    },
+    "extension/popup/dict-state-builder.js": {
+      "layer": "1"
+    },
+    "extension/popup/grammar-features-section.js": {
+      "layer": "2"
+    },
+    "extension/styles/content.css": {
+      "layer": "2"
+    },
+    "extension/styles/popup-views.css": {
+      "layer": "2",
+      "generatedFrom": "extension/styles/popup.css"
+    },
+    "extension/styles/popup.css": {
+      "layer": "2",
+      "role": "generation-source"
+    },
+    "extension/embed/": {
+      "layer": "2.5"
+    }
+  },
+  "groups": {
+    "webapp-views": {
+      "comment": "Dei åtte view-modulane web-appen appenderer for hand etter manifest-lista (backend/public/app/index.html ~l. 604). Embed-sync (fase 6) tek over denne lista så ho ikkje lenger er handhalden. account-panel-model.js ligg UTANFOR files[]-sync-scopet i dag (web-appen er in-repo og les direkte) — merkt eksplisitt.",
+      "members": [
+        "extension/popup/dict-state-builder.js",
+        "extension/popup/views/lang-consolidation.js",
+        "extension/popup/views/dictionary-view.js",
+        "extension/popup/views/library-view.js",
+        "extension/popup/views/language-picker.js",
+        "extension/popup/views/settings-view.js",
+        "extension/content/lesson-render.js",
+        "extension/popup/account-panel-model.js"
+      ],
+      "outsideSyncScope": [
+        "extension/popup/account-panel-model.js"
+      ]
+    }
+  }
+}

@@ -21,6 +21,7 @@
   const core = host.__lexiSpellCore || {};
   const {
     editDistance,
+    candidateIndex,
     sharedPrefixLen,
     sharedSuffixLen,
     isAdjacentTransposition,
@@ -117,8 +118,46 @@
   // descending. The previous single-best return is preserved at index 0 —
   // `suggestions[0] === (what fix used to be)` for every pre-Phase-5 fixture
   // case. The cap of 8 matches the UX-02 "Vis flere alternativer" reveal max.
+  // Memoisering (27.08.2026). Hele dokumentet sjekkes på nytt 800 ms etter
+  // hvert opphold i skrivingen, men nesten alltid er bare siste setning
+  // endret — og en elev som staver et ord feil, staver det gjerne feil
+  // igjen. Naboene for et gitt (forrige ord, ord) er en ren funksjon av
+  // vokabularet, så de kan huskes.
+  //
+  // Nøkkelen bærer prevWord fordi scoreCandidate gir bigram-bonus for
+  // (prevWord → kandidat); uten den ville rangeringen kunne bli feil.
+  // lang er med fordi den fonetiske fallbacken normaliserer per språk.
+  //
+  // Cachen henger på validWords-Set-et via en WeakMap. Det er det eneste
+  // stabile holdepunktet: renderer-en bygger et NYTT vokabular-objekt for
+  // hver runCheck(), så en cache nøklet på `vocab` ville aldri truffet.
+  // Bytter eleven språk, eller legger til et eget ord, blir Set-et et
+  // annet og cachen faller bort av seg selv.
+  const _neighborCache = typeof WeakMap === 'function' ? new WeakMap() : null;
+  const NEIGHBOR_CACHE_MAX = 4000;   // ~én lang skoletekst med god margin
+
   function findFuzzyNeighbors(word, vocab, prevWord, lang) {
     const validWords = vocab.validWords || new Set();
+    let memo = null;
+    let memoKey = null;
+    if (_neighborCache) {
+      memo = _neighborCache.get(validWords);
+      if (!memo) { memo = new Map(); _neighborCache.set(validWords, memo); }
+      memoKey = lang + '\u0000' + (prevWord || '') + '\u0000' + word;
+      const hit = memo.get(memoKey);
+      if (hit) return hit;
+    }
+    const result = computeFuzzyNeighbors(word, vocab, prevWord, lang, validWords);
+    if (memo) {
+      // Enkel takgrense framfor LRU: en elevtekst treffer den aldri, og en
+      // maskin som limer inn en bok skal ikke kunne vokse cachen fritt.
+      if (memo.size >= NEIGHBOR_CACHE_MAX) memo.clear();
+      memo.set(memoKey, result);
+    }
+    return result;
+  }
+
+  function computeFuzzyNeighbors(word, vocab, prevWord, lang, validWords) {
     // Words valid ONLY as tokens of multi-word forms ("quelque" via "quelque
     // chose") accept — but never SUGGEST. Without this exclusion the richer
     // accept-pool invents wrong-direction fixes for valid-but-uncovered
@@ -130,15 +169,46 @@
     const k = len <= 6 ? 1 : 2;
     const first = word[0];
     const scored = [];
-    for (const cand of validWords) {
-      if (mwTokens.has(cand)) continue; // token-of-phrase: accept, don't suggest
-      const cl = cand.length;
-      if (Math.abs(cl - len) > k) continue;
-      if (cand[0] !== first) continue; // Very common typos keep the first char
-      if (cand === word) continue;
-      const d = editDistance(word, cand, k);
-      if (d > k) continue;
-      scored.push({ cand, score: scoreCandidate(word, cand, d, vocab, prevWord) });
+    // Ytelse (27.08.2026): de to første linjene i løkken under var et filter
+    // på (forbokstav, lengde) anvendt på hele validWords — 639 352 ord for nb.
+    // Nå ER det nøkkelen i kandidatindeksen, så vi besøker bare bøttene som
+    // kan inneholde en treffer. Resultatmengden er uendret per definisjon.
+    //
+    // `ord` er posisjonen kandidaten hadde i validWords. Sorten under var
+    // stabil over en løkke som gikk i validWords-rekkefølge, så like scorer
+    // kom ut i den rekkefølgen; å gå bøtte for bøtte ville byttet om på dem.
+    // Vi sorterer derfor eksplisitt på (score synkende, ordinal stigende),
+    // som er nøyaktig det den stabile sorten gjorde før.
+    const cIdx = typeof candidateIndex === 'function' ? candidateIndex(validWords) : null;
+    if (cIdx) {
+      for (let cl = len - k; cl <= len + k; cl++) {
+        if (cl < 1) continue;
+        const b = cIdx.bucket(first, cl);
+        if (!b) continue;
+        const words = b.words, ords = b.ords;
+        for (let i = 0; i < words.length; i++) {
+          const cand = words[i];
+          if (mwTokens.has(cand)) continue; // token-of-phrase: accept, don't suggest
+          if (cand === word) continue;
+          const d = editDistance(word, cand, k);
+          if (d > k) continue;
+          scored.push({ cand, ord: ords[i], score: scoreCandidate(word, cand, d, vocab, prevWord) });
+        }
+      }
+    } else {
+      // Fallback for verter uten kandidatindeks (eldre synket kopi av core).
+      let ord = 0;
+      for (const cand of validWords) {
+        const o = ord++;
+        if (mwTokens.has(cand)) continue;
+        const cl = cand.length;
+        if (Math.abs(cl - len) > k) continue;
+        if (cand[0] !== first) continue;
+        if (cand === word) continue;
+        const d = editDistance(word, cand, k);
+        if (d > k) continue;
+        scored.push({ cand, ord: o, score: scoreCandidate(word, cand, d, vocab, prevWord) });
+      }
     }
 
     // Phonetic fallback: if Levenshtein search yielded no results, try phonetic
@@ -146,7 +216,9 @@
     const vocabCore = host.__lexiVocabCore;
     if (scored.length === 0 && vocabCore && word.length >= 3) {
       const qPhonetic = vocabCore.phoneticNormalize(word, lang);
+      let ord = 0;
       for (const cand of validWords) {
+        const o = ord++;
         if (mwTokens.has(cand)) continue; // token-of-phrase: accept, don't suggest
         if (cand === word) continue;
         // Optimization: only check candidates with similar length
@@ -155,12 +227,14 @@
         const pScore = vocabCore.phoneticMatchScore(qPhonetic, targetPhonetic);
         if (pScore >= 70) {
           // Normalize pScore to be competitive but generally lower than d=1 hits
-          scored.push({ cand, score: -150 + pScore });
+          scored.push({ cand, ord: o, score: -150 + pScore });
         }
       }
     }
 
-    scored.sort((a, b) => b.score - a.score);
+    // (score synkende, ordinal stigende) — se kommentaren over bøtteløkken:
+    // dette gjenskaper nøyaktig den stabile sorten over validWords-rekkefølge.
+    scored.sort((a, b) => (b.score - a.score) || (a.ord - b.ord));
     return scored.slice(0, 8).map(s => s.cand);
   }
 
@@ -742,7 +816,30 @@
           // Nora fuzzy-corrected to Nord), not a noun typo — a misspelled
           // real noun («Schle») stands alone between lowercase words.
           if (ctx.lang === 'de' && /^\p{Lu}/u.test(t.display)) {
-            const nextCap = tokens[i + 1] && /^\p{Lu}/u.test(tokens[i + 1].display);
+            // 2026-08-28: EIN STOR FORBOKSTAV I SETNINGSSTART ER IKKJE EIT
+            // NAMNESIGNAL. Vaktene under les ein stor forbokstav hjå naboen
+            // som «her går det eit namnelaup». På tysk er kvart ord i
+            // setningsstart stort — konjunksjonar (Aber, Und, Denn),
+            // adverb (Heute, Dann), pronomen (Ich, Wir), verb i spørsmål
+            // (Hast, Kannst) — så den kapitalen ber null informasjon.
+            //
+            // Utan desse to sjekkane var «Aber Dtusch spreche ich» tagd
+            // (Aber er stor fordi setninga startar der), og likeins var det
+            // SISTE ordet før eit punktum nesten aldri fuzzy-sjekka, fordi
+            // neste setning alltid opnar med stor bokstav. Meldt av ein
+            // brukar 28.08.2026 med nettopp «Aber Dtusch».
+            //
+            // Kommentaren under prevCapName sa premissen rett ut — «articles
+            // are the only capitalized non-nouns at clause start» — og det
+            // er det som ikkje held.
+            const isSentInitial = (idx) => {
+              if (idx <= 0) return true;
+              return /[.!?]/.test(text.slice(tokens[idx - 1].end, tokens[idx].start));
+            };
+            // Ein stor bokstav på NESTE token tel berre når han står inne i
+            // same setninga; over ei setningsgrense er han obligatorisk.
+            const nextCap = tokens[i + 1] && /^\p{Lu}/u.test(tokens[i + 1].display)
+              && !isSentInitial(i + 1);
             // Apposition guard requires the previous token to be a KNOWN
             // NOUN (nounGenus), not merely valid — a sentence-initial
             // capitalized article («Der Schle ist …») must not mask the
@@ -763,7 +860,11 @@
             // "Harry Potter"). A capitalized KNOWN word ("Der Schle …") is an
             // article/noun and must NOT mask the following typo, so require the
             // predecessor to be unknown to validWords.
-            const prevCapUnknown = prevT && /^\p{Lu}/u.test(prevT.display) && !validWords.has(prevT.word);
+            // Same sak for førre token: er HAN setningsinitial, seier kapitalen
+            // hans ingenting om at dette ordet er eit namn.
+            const prevCapMeaningful = prevT && /^\p{Lu}/u.test(prevT.display)
+              && !isSentInitial(i - 1);
+            const prevCapUnknown = prevCapMeaningful && !validWords.has(prevT.word);
             // Gazetteer follow-up (2026-07): making first names VALID words
             // removed the prev-cap-unknown signal ("Harry Potter" — harry is
             // now in validWords, so Potter lost its name-run protection).
@@ -771,7 +872,7 @@
             // article/determiner is a name in DE (articles are the only
             // capitalized non-nouns at clause start).
             const DE_CAP_FUNCTION = /^(?:der|die|das|den|dem|des|ein|eine|einen|einem|einer|eines|mein|meine|dein|deine|sein|seine|ihr|ihre|unser|unsere|euer|eure|kein|keine|welcher|welche|welches|dieser|diese|dieses|jeder|jede|jedes)$/;
-            const prevCapName = prevT && /^\p{Lu}/u.test(prevT.display)
+            const prevCapName = prevCapMeaningful
               && !nounGenus.has(prevT.word) && !DE_CAP_FUNCTION.test(prevT.word);
             // Genitive of a name ("Marias einziges Kind", "Peters Auto"):
             // capitalized, ends in -s, and the stem is itself a valid word.

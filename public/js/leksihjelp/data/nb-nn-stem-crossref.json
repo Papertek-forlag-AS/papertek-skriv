@@ -1,0 +1,1215 @@
+{
+  "_metadata": {
+    "description": "Bokmålsk stamme → nynorsk stamme. Lèt leksihjelp skilje ein bokmålisme inne i eit lengre ord (muligheit) frå ei produktiv nynorsk avleiing (stillheit), og gjev regelen eit riktig forslag i staden for berre ei melding.",
+    "source": "prompter/PROMPT-nb-nn-stammekart.md",
+    "upstream": "ordbokene.no / ord.uib.no (Språkrådet + UiB)",
+    "oracle": "vocabulary/lexicon/nn/validwords.json (Norsk ordbank, nynorsk)",
+    "curated": true,
+    "note": "Kuratert fil. build-nn-crossref-banks.js rører han ikkje. Kjør `node scripts/build-nb-nn-stem-crossref.mjs` etter endringar."
+  },
+  "nb_nn_stem_crossref": {
+    "mulig": {
+      "nn": "mogleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          50335
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "moglegheit",
+        "sprakradet": "samsvar-avleidd",
+        "korpus_nno_etter_2012": 72142
+      },
+      "sett_i": "muligheit",
+      "godkjent_av": "Geir, 2026-08-26",
+      "likestilte": [
+        "mogeleg"
+      ]
+    },
+    "barmhjertig": {
+      "nn": "miskunnsam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          50038
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 616
+      },
+      "sett_i": "barmhjertigheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "menig": {
+      "nn": "meinig",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          49004
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "meinigheit",
+        "sprakradet": "samsvar-avleidd",
+        "korpus_nno_etter_2012": 334
+      },
+      "sett_i": "menigheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "offentlig": {
+      "nn": "offentleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          53955
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "offentlegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 22451
+      },
+      "sett_i": "offentligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "tvetydig": {
+      "nn": "tvitydig",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          82967
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "tvitydigheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 894
+      },
+      "sett_i": "tvetydigheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "oppfinnsom": {
+      "nn": "oppfinnsam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          54722
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 382
+      },
+      "sett_i": "oppfinnsomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "virksom": {
+      "nn": "verksam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          89217
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "uavklart – lese for hand, ingen avvik",
+        "korpus_nno_etter_2012": 1002
+      },
+      "sett_i": "virksomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "herlig": {
+      "nn": "herleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          30318
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 5736
+      },
+      "sett_i": "herligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "veldedig": {
+      "nn": "samfunnsgagnleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          63714
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "samsvar",
+        "korpus_nno_etter_2012": 54
+      },
+      "sett_i": "veldedigheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "uenig": {
+      "nn": "usamd",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka + Språkrådets administrative ordliste",
+      "stadfesta": {
+        "nynorskordboka": [
+          85476,
+          83840
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "samsvar",
+        "korpus_nno_etter_2012": 1313
+      },
+      "sett_i": "uenigheit",
+      "godkjent_av": "Geir, 2026-08-26",
+      "likestilte": [
+        "ueinig"
+      ]
+    },
+    "virkelig": {
+      "nn": "verkeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          89197
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "verkelegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 37817
+      },
+      "sett_i": "virkeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "tydelig": {
+      "nn": "tydeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          83011
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "tydelegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 46309
+      },
+      "sett_i": "tydeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "personlig": {
+      "nn": "personleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          57148
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 18789
+      },
+      "sett_i": "personligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "vennlig": {
+      "nn": "venleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          88764
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "venlegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 3098
+      },
+      "sett_i": "vennligheit",
+      "godkjent_av": "Geir, 2026-08-26",
+      "likestilte": [
+        "vennleg"
+      ]
+    },
+    "menneskelig": {
+      "nn": "menneskeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          49252
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 6746
+      },
+      "sett_i": "menneskeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "sannsynlig": {
+      "nn": "sannsynleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          64100
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "samsvar",
+        "korpus_nno_etter_2012": 10984
+      },
+      "sett_i": "sannsynligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "uaktsom": {
+      "nn": "aktlaus",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          611
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "samsvar",
+        "korpus_nno_etter_2012": 954
+      },
+      "sett_i": "uaktsomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "ydmyk": {
+      "nn": "audmjuk",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          3084
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 1717
+      },
+      "sett_i": "ydmykheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "hjelpsom": {
+      "nn": "hjelpsam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          30862
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 1061
+      },
+      "sett_i": "hjelpsomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "holdbar": {
+      "nn": "haldbar",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          28247
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "haldbarheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 530
+      },
+      "sett_i": "holdbarheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "mangfoldig": {
+      "nn": "mangfaldig",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          48145
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 2309
+      },
+      "sett_i": "mangfoldigheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "omtrentlig": {
+      "nn": "omtrentleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          54506
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 806
+      },
+      "sett_i": "omtrentligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "bluferdig": {
+      "nn": "blyg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          7076
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 884
+      },
+      "sett_i": "bluferdigheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "festlig": {
+      "nn": "festleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          17593
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 1309
+      },
+      "sett_i": "festligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "fordragelig": {
+      "nn": "fordrageleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          20145
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "fordragelegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 25
+      },
+      "sett_i": "fordrageligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "gavmild": {
+      "nn": "gåvmild",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          28079
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 248
+      },
+      "sett_i": "gavmildheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "hengiven": {
+      "nn": "trugen",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          81614
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 578
+      },
+      "sett_i": "hengivenheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "mistenksom": {
+      "nn": "mistenksam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          50093
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 567
+      },
+      "sett_i": "mistenksomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "morsom": {
+      "nn": "morosam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          50635
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 3470
+      },
+      "sett_i": "morsomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "nummen": {
+      "nn": "nomen",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          52920,
+          52921
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 931
+      },
+      "sett_i": "nummenheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "romslig": {
+      "nn": "romsleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          62212
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "romslegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 1984
+      },
+      "sett_i": "romsligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "usedelig": {
+      "nn": "usedeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          85493
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 97
+      },
+      "sett_i": "usedeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "ensom": {
+      "nn": "einsam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          14240
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 4843
+      },
+      "sett_i": "ensomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "forfengelig": {
+      "nn": "forfengeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          20251
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "forfengelegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 302
+      },
+      "sett_i": "forfengeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "sedelig": {
+      "nn": "sedeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          64348
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "sedelegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 110
+      },
+      "sett_i": "sedeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "tilgjengelig": {
+      "nn": "tilgjengeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          78994
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "tilgjengelegheit",
+        "sprakradet": "samsvar-avleidd",
+        "korpus_nno_etter_2012": 13917
+      },
+      "sett_i": "tilgjengeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "ansvarlig": {
+      "nn": "ansvarleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          1829
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 8495
+      },
+      "sett_i": "ansvarligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "bekvemmelig": {
+      "nn": "komfortabel",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          40221
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 863
+      },
+      "sett_i": "bekvemmeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "edruelig": {
+      "nn": "edrueleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          13799
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "edruelegheit",
+        "sprakradet": "uavklart – lese for hand, ingen avvik",
+        "korpus_nno_etter_2012": 188
+      },
+      "sett_i": "edrueligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "farlig": {
+      "nn": "farleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          16691
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 16328
+      },
+      "sett_i": "farligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "kristelig": {
+      "nn": "kristeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          42076
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 4247
+      },
+      "sett_i": "kristeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "livlig": {
+      "nn": "livleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          45989
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 2144
+      },
+      "sett_i": "livligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "omstendelig": {
+      "nn": "omstendeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          54480
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 811
+      },
+      "sett_i": "omstendeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "omtenksom": {
+      "nn": "omtenksam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          54503
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 408
+      },
+      "sett_i": "omtenksomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "rimelig": {
+      "nn": "rimeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          61860
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "rimelegheit",
+        "sprakradet": "uavklart – lese for hand, ingen avvik",
+        "korpus_nno_etter_2012": 17995
+      },
+      "sett_i": "rimeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "sakkyndig": {
+      "nn": "sakkunnig",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          63312
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "samsvar",
+        "korpus_nno_etter_2012": 2077
+      },
+      "sett_i": "sakkyndigheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "severdig": {
+      "nn": "sjåverdig",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          66821
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "sjåverdigheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 54
+      },
+      "sett_i": "severdigheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "sjuklig": {
+      "nn": "sjukleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          66409
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "sjuklegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 858
+      },
+      "sett_i": "sjukligheit",
+      "godkjent_av": "Geir, 2026-08-26",
+      "likestilte": [
+        "sjukeleg"
+      ]
+    },
+    "sparsom": {
+      "nn": "sparsam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          72120
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 581
+      },
+      "sett_i": "sparsomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "takknemlig": {
+      "nn": "takksam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          77245
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 2717
+      },
+      "sett_i": "takknemligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "udugelig": {
+      "nn": "udugeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          83811
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 362
+      },
+      "sett_i": "udugeligheit",
+      "godkjent_av": "Geir, 2026-08-26",
+      "likestilte": [
+        "udugleg"
+      ]
+    },
+    "uendelig": {
+      "nn": "uendeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          83844
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 6194
+      },
+      "sett_i": "uendeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "usynlig": {
+      "nn": "usynleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          85631
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "usynlegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 4159
+      },
+      "sett_i": "usynligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "utilstrekkelig": {
+      "nn": "utilstrekkeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          86113
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 593
+      },
+      "sett_i": "utilstrekkeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "valgbar": {
+      "nn": "valbar",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          101721
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "valbarheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 49
+      },
+      "sett_i": "valgbarheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "vanskelig": {
+      "nn": "vanskeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          87346
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 76275
+      },
+      "sett_i": "vanskeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "vederstyggelig": {
+      "nn": "vederstyggjeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          88060
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 12
+      },
+      "sett_i": "vederstyggeligheit",
+      "godkjent_av": "Geir, 2026-08-26",
+      "likestilte": [
+        "vederstyggeleg"
+      ]
+    },
+    "ytterlig": {
+      "nn": "ytterleg",
+      "ordklasse": "adv",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          91828
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "ytterlegheit",
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 41
+      },
+      "sett_i": "ytterligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "enig": {
+      "nn": "samd",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka + Språkrådets administrative ordliste",
+      "stadfesta": {
+        "nynorskordboka": [
+          63660,
+          14201
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "einigheit",
+        "sprakradet": "samsvar",
+        "korpus_nno_etter_2012": 4613
+      },
+      "sett_i": "enigheit",
+      "godkjent_av": "Geir, 2026-08-26",
+      "likestilte": [
+        "einig"
+      ]
+    },
+    "oppmerksom": {
+      "nn": "merksam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka + Språkrådets administrative ordliste",
+      "stadfesta": {
+        "nynorskordboka": [
+          49370
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "samsvar",
+        "korpus_nno_etter_2012": 6567
+      },
+      "sett_i": "oppmerksomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "hemmelig": {
+      "nn": "hemmeleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka + Språkrådets administrative ordliste",
+      "stadfesta": {
+        "nynorskordboka": [
+          30139
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "hemmelegheit",
+        "sprakradet": "samsvar-avleidd",
+        "korpus_nno_etter_2012": 4742
+      },
+      "sett_i": "hemmeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "forutsigbar": {
+      "nn": "føreseieleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka + Språkrådets administrative ordliste",
+      "stadfesta": {
+        "nynorskordboka": [
+          102063,
+          59804
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "føreseielegheit",
+        "sprakradet": "samsvar",
+        "korpus_nno_etter_2012": 1098
+      },
+      "sett_i": "forutsigbarheit",
+      "godkjent_av": "Geir, 2026-08-26",
+      "likestilte": [
+        "pårekneleg"
+      ]
+    },
+    "redelig": {
+      "nn": "reieleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          60866
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 127
+      },
+      "sett_i": "redeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "alminnelig": {
+      "nn": "alminneleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka + Språkrådets administrative ordliste",
+      "stadfesta": {
+        "nynorskordboka": [
+          1004
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": "alminnelegheit",
+        "sprakradet": "samsvar-avleidd",
+        "korpus_nno_etter_2012": 2293
+      },
+      "sett_i": "alminneligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "kjedsom": {
+      "nn": "keisam",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (omsetjing av -het-substantivet) + Nynorskordboka + Norsk ordbank",
+      "stadfesta": {
+        "nynorskordboka": [
+          37630
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 538
+      },
+      "sett_i": "kjedsomheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "klosset": {
+      "nn": "klossete",
+      "ordklasse": "adj",
+      "kjelde": "regelrett bm→nn-samsvar, slått opp og stadfesta i Nynorskordboka + Norsk ordbank",
+      "stadfesta": {
+        "nynorskordboka": [
+          39184
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 793
+      },
+      "sett_i": "klossetheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "ettergiven": {
+      "nn": "ettergjevande",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (omsetjing av -het-substantivet) + Nynorskordboka + Norsk ordbank",
+      "stadfesta": {
+        "nynorskordboka": [
+          15868
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 135
+      },
+      "sett_i": "ettergivenheit",
+      "godkjent_av": "Geir, 2026-08-26",
+      "likestilte": [
+        "ettergivande"
+      ]
+    },
+    "uredelig": {
+      "nn": "ureieleg",
+      "ordklasse": "adj",
+      "kjelde": "ordbokene.no (bokmål→nynorsk) + Nynorskordboka",
+      "stadfesta": {
+        "nynorskordboka": [
+          85318
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 54
+      },
+      "sett_i": "uredeligheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "trangbudd": {
+      "nn": "trongbudd",
+      "ordklasse": "adj",
+      "kjelde": "regelrett bm→nn-samsvar, slått opp og stadfesta i Nynorskordboka + Norsk ordbank",
+      "stadfesta": {
+        "nynorskordboka": [
+          81481
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 42
+      },
+      "sett_i": "trangbuddheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "trefoldig": {
+      "nn": "trefald",
+      "ordklasse": "adj",
+      "kjelde": "regelrett bm→nn-samsvar, slått opp og stadfesta i Nynorskordboka + Norsk ordbank",
+      "stadfesta": {
+        "nynorskordboka": [
+          80707
+        ],
+        "norsk_ordbank": true,
+        "samansett_form": null,
+        "sprakradet": "ikkje-ført",
+        "korpus_nno_etter_2012": 9
+      },
+      "sett_i": "trefoldigheit",
+      "godkjent_av": "Geir, 2026-08-26"
+    }
+  },
+  "utelatne": {
+    "beliggen": {
+      "grunn": "Ikkje oppslagsord i Bokmålsordboka — det bokmålske adjektivet er `beliggende`. `beliggenhet` svarar til `plassering`, eit anna ord utan felles stamme, så det finst inga stammeform å føre. Dekt på ordnivå i _shared/cross-standard-nb-nn.json.",
+      "kjelde": "Bokmålsordboka + Språkrådets administrative ordliste (`beliggenhet plassering, stad(val)`)",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "utlendig": {
+      "grunn": "Bokmålsordboka fører adjektivet, men nynorsk har inga stammeform for det — `landflyktig` og `utanlandsk` er andre ord. Substantivet går `utlendighet → utlendingskap`, avleidd av substantivet `utlending`, ikkje av eit adjektiv. Krev ein heilordsregel.",
+      "kjelde": "ordbokene.no (inga omsetjing av adjektivet) + Språkrådets administrative ordliste (ikkje ført)",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "klassebevisst": {
+      "grunn": "Samansetjing av `klasse` + `bevisst`, og begge ledda er gyldig nynorsk (`bevisst` er artikkel 5713 i Nynorskordboka og står i Norsk ordbank). Samansetjinga er difor formbar på nynorsk, og inga kjelde seier ho er feil. Ei oppføring på `klassemedviten` ville retta gyldig nynorsk mot ei sjeldnare form (korpus etter 2012: klassebevisst 25, klassemedviten 3) — feilklassen kriterium 3 vernar mot. Generaliseringa høyrer på etterleddet, og `bevisst` er ikkje ein bokmålisme.",
+      "kjelde": "Nynorskordboka + Norsk ordbank + NB n-gram (lang=nno); Språkrådets ordliste teier",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "pengegrisk": {
+      "grunn": "Samansetjing av `penge` + `grisk`, og `grisk` er gyldig nynorsk. Samansetjinga er formbar på nynorsk, altså ingen bokmålisme. Same tilfellet som `klassebevisst`. Ikkje oppslagsord i Bokmålsordboka heller.",
+      "kjelde": "Nynorskordboka + Norsk ordbank; ordbokene.no har inga omsetjing",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "kulturbevisst": {
+      "grunn": "Samansetjing av `kultur` + `bevisst`, og `bevisst` er gyldig nynorsk (artikkel 5713). Formbar på nynorsk. Same tilfellet som `klassebevisst`. Ikkje oppslagsord i Bokmålsordboka.",
+      "kjelde": "Nynorskordboka + Norsk ordbank; ordbokene.no har inga omsetjing",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "kontrollerbar": {
+      "grunn": "Ikkje oppslagsord i Bokmålsordboka. `kontrollere` + `-bar` er ei produktiv avleiing som er like nynorsk som bokmålsk — inkje ledd er bokmålsspesifikt. At Norsk ordbank ikkje fører henne, seier berre at lista ikkje tek med alle -bar-avleiingar.",
+      "kjelde": "Bokmålsordboka + Norsk ordbank; ordbokene.no har inga omsetjing",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "grusom": {
+      "grunn": "`grusam` finst ikkje på nynorsk. ordbokene.no gjev tre urangerte synonym (`grufull`, `frykteleg`, `forferdeleg`) som alle er andre ord, og substantivet går til `råskap`. Det finst inga nynorsk STAMME å føre, og å velje eitt av synonyma ville vere eit leksikalsk val ingen kjelde støttar.",
+      "kjelde": "Nynorskordboka (`grusam` ikkje ført) + ordbokene.no (`grusomhet → råskap`)",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "anspent": {
+      "grunn": "ordbokene.no har inga omsetjing, verken av adjektivet eller av `anspenthet`, og inga nynorsk form er registrert i Nynorskordboka eller Norsk ordbank. Ingen kjelde å føre etter.",
+      "kjelde": "ordbokene.no + Nynorskordboka + Norsk ordbank — alle tause",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "beskaffen": {
+      "grunn": "`beskaffenhet` har inga nynorsk stammeform; oppslaget i Bokmålsordboka gjeld verbet `beskaffe`. Krev ein heilordsregel, ikkje ei stammeoppføring.",
+      "kjelde": "Bokmålsordboka + ordbokene.no (inga omsetjing)",
+      "godkjent_av": "Geir, 2026-08-26"
+    },
+    "utidsmessig": {
+      "grunn": "Allereie gyldig nynorsk — oppslagsord i Nynorskordboka (artikkel 138858). Ho er ei produktiv avleiing, ikkje ein bokmålisme, og ei oppføring ville laga variant A sin feilklasse (den som ryk på `stillheit`). At ho manglar i Norsk ordbank si fullformliste er eittvegs-orakelet igjen: lista fører ikkje alt, og fråværet er inkje svar.",
+      "kjelde": "Nynorskordboka (artikkel 138858) + Bokmålsordboka (65394)",
+      "godkjent_av": "Geir, 2026-08-26"
+    }
+  }
+}

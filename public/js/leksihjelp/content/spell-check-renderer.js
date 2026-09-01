@@ -24,6 +24,17 @@
 (function () {
   'use strict';
 
+  // Rapportflater (ønskjeord, compound-vote, «Rapporter feil») sender via
+  // SEND_REPORT. Ein embed-vert kan erklære `report: false` — då skal flatene
+  // ikkje RENDERAST i det heile. Å vise ein knapp som stille blir avvist er
+  // verre enn ingen knapp: brukaren trykkjer, får ingen kvittering, og trur
+  // meldinga vart send. Les ved KALLTID — i embed lastar dette skriptet før
+  // host-runtime installerer. Sjå extension/host-capabilities.js.
+  function reportChannelOpen() {
+    const h = typeof self !== 'undefined' ? self : globalThis;
+    return typeof h.lexiHostAllows === 'function' ? h.lexiHostAllows('report') : true;
+  }
+
   // ── Seam bindings ──
   const VOCAB = self.__lexiVocab;
   const CORE  = self.__lexiSpellCore;
@@ -480,6 +491,7 @@
       compoundNouns:    pick('compoundNouns',    VOCAB.getCompoundNouns),
       variantSpellings: pick('variantSpellings', VOCAB.getVariantSpellings),
       nonCompoundPairs: pick('nonCompoundPairs', VOCAB.getNonCompoundPairs),
+      nbNnStemCrossref: pick('nbNnStemCrossref', VOCAB.getNbNnStemCrossref),
       pitfalls:         pick('pitfalls',         VOCAB.getPitfalls),
       freq:             pick('freq',             VOCAB.getFreq),
       sisterValidWords: pick('sisterValidWords', VOCAB.getSisterValidWords),
@@ -579,6 +591,7 @@
       hideOverlay();
       if (pendingAdvanceIdx >= 0) {
         pendingAdvanceIdx = -1;
+        pendingAdvanceFrom = -1;
         showToast(t('spell_toast_review_done') || 'Ferdig revidert ✓');
       }
       return;
@@ -586,10 +599,14 @@
     lastFindings = findings;
     renderMarkers(findings);
     if (pendingAdvanceIdx >= 0) {
-      const idx = Math.min(pendingAdvanceIdx, findings.length - 1);
+      const from = pendingAdvanceFrom;
       pendingAdvanceIdx = -1;
-      showPopover(idx, findings[idx]);
-      scrollMarkerIntoView(idx);
+      pendingAdvanceFrom = -1;
+      const idx = ENGINE.nextFindingByOffset(findings, from);
+      if (idx >= 0) {
+        showPopover(idx, findings[idx]);
+        scrollMarkerIntoView(idx);
+      }
     }
   }
 
@@ -714,6 +731,43 @@
     return { text: el.value || '', cursor: el.selectionEnd };
   }
 
+  // ── Segmentkart-cache for ÉN synkron runde (ytelse, 27.08.2026) ──
+  //
+  // rangeForOffsets kaller buildEditableText, som går hele contenteditable-
+  // treet med en TreeWalker. Med ett kall per funn ble det én full
+  // DOM-gjennomgang per markør — 12–36 av dem per runde på en elevtekst.
+  //
+  // Cachen er med vilje IKKE tidsbasert og ikke hengt på elementet. Den er
+  // åpen bare inne i ett synkront kall, der DOM-en ikke kan endre seg
+  // (ingen await, ingen event-loop-tur), og lukkes i finally. Alt annet
+  // ville vært farlig: et stale segmentkart peker offsets på feil
+  // tekstnoder, og applyFixCE bruker samme kartet til å velge spennet den
+  // erstatter. En markør på feil sted er stygt; en execCommand over feil
+  // spenn slår sammen blokker og ødelegger eleven sitt dokument — se
+  // kommentaren over buildEditableText og rangeCrossesBlocks-vakten.
+  // Derfor: applyFixCE kjører ALDRI inne i denne cachen.
+  let _segCache = null;         // { el, result } mens en runde er åpen
+  let _segCacheOpen = false;
+
+  function withSegmentCache(el, fn) {
+    const prevOpen = _segCacheOpen, prevCache = _segCache;
+    _segCacheOpen = true;
+    _segCache = null;
+    try {
+      return fn();
+    } finally {
+      _segCacheOpen = prevOpen;
+      _segCache = prevCache;
+    }
+  }
+
+  function editableSegments(el) {
+    if (_segCacheOpen && _segCache && _segCache.el === el) return _segCache.result;
+    const result = buildEditableText(el);
+    if (_segCacheOpen) _segCache = { el, result };
+    return result;
+  }
+
   // ── Overlay + markers + popover ──
 
   let overlay = null;
@@ -748,6 +802,24 @@
   PERSONAL.load().then(() => { try { runCheck(); refreshLangBadge(); } catch (_) {} });
   PERSONAL.onChange(() => { try { runCheck(); refreshLangBadge(); } catch (_) {} });
   let pendingAdvanceIdx = -1;
+  // Offset vi kom FRÅ, ikkje indeksen vi var på. findings[] er bygd regel for
+  // regel (spell-check-core sorterer reglane på priority), så array-ordenen er
+  // pedagogisk — ikkje tekstleg. Å opne findings[i] etter at i vart fjerna gir
+  // det funnet som glei inn i slot i, som kan liggje kvar som helst i
+  // dokumentet. Meldt av ein brukar 29.08.2026: popoveren hoppa til ei anna
+  // setning lenger nede. Sjå nextFindingByOffset i spell-check-engine.js.
+  let pendingAdvanceFrom = -1;
+
+  /** Marker at neste sjekk skal opne funnet som kjem ETTER dette i teksten. */
+  function markPendingAdvance(finding) {
+    markPendingAdvance(finding);
+    // Strengt etter: eit fiks flyttar dei etterfølgjande funna, men aldri
+    // forbi startpunktet sitt, så «første start > her» held. Eit fiks som
+    // slettar heile ordet KAN la det neste funnet lande på nøyaktig same
+    // offset; det blir då teke på neste runde i staden for no. Betre enn å
+    // risikere å låse eleven fast på same ord.
+    pendingAdvanceFrom = (finding && typeof finding.start === 'number') ? finding.start : -1;
+  }
   let posRefreshRaf = null;
   // Phase 35 (F6): Tab navigation between markers calls showPopover() which
   // rebuilds the popover from scratch — that previously reset the Lær mer
@@ -776,15 +848,29 @@
 
     const lang = currentLangCode() || VOCAB.getLanguage();
     let rendered = 0, skipped = 0;
-    findings.forEach((finding, idx) => {
-      const rect = positionForRange(activeEl, finding.start, finding.end);
+
+    // LES ALT FØRST, SKRIV ETTERPÅ (ytelse, 27.08.2026).
+    //
+    // Løkken under leste en rect per funn og skrev stilene med én gang.
+    // Hver skriving ugyldiggjør layouten, så neste lesing tvinger en ny
+    // reflow — 12–36 tvungne layouts per runde på en elevtekst. Nå
+    // samles alle rect-ene i én lesefase, og alle DOM-skrivingene skjer
+    // etterpå. `withSegmentCache` holder samtidig segmentkartet i live
+    // gjennom lesefasen, så TreeWalker-en går én gang i stedet for én
+    // gang per funn. Begge fasene er synkrone; DOM-en kan ikke endre seg
+    // mellom dem.
+    const er = activeEl.getBoundingClientRect();
+    const measured = withSegmentCache(activeEl, () => findings.map((finding, idx) => ({
+      finding, idx, rect: positionForRange(activeEl, finding.start, finding.end),
+    })));
+
+    measured.forEach(({ finding, idx, rect }) => {
       if (!rect) {
         skipped++;
-        warn('skip — no rect', finding.original, { start: finding.start, end: finding.end, elRect: activeEl.getBoundingClientRect() });
+        warn('skip — no rect', finding.original, { start: finding.start, end: finding.end, elRect: er });
         return;
       }
-      const er = activeEl.getBoundingClientRect();
-      if (!isInsideElement(activeEl, rect)) {
+      if (!isInsideElement(activeEl, rect, er)) {
         skipped++;
         warn('skip — outside el', finding.original, { rect, elRect: { top: er.top, left: er.left, right: er.right, bottom: er.bottom } });
         return;
@@ -849,9 +935,15 @@
     posRefreshRaf = requestAnimationFrame(() => {
       posRefreshRaf = null;
       if (!activeEl || markers.length === 0) return;
-      for (const m of markers) {
-        const rect = positionForRange(activeEl, m.finding.start, m.finding.end);
-        if (!rect || !isInsideElement(activeEl, rect)) {
+      // Samme les-alt-først som i renderMarkers. Dette kjører på hver
+      // scroll- og resize-frame, så det er den løkken som oftest går.
+      const er = activeEl.getBoundingClientRect();
+      const rects = withSegmentCache(activeEl, () =>
+        markers.map(m => positionForRange(activeEl, m.finding.start, m.finding.end)));
+      for (let i = 0; i < markers.length; i++) {
+        const m = markers[i];
+        const rect = rects[i];
+        if (!rect || !isInsideElement(activeEl, rect, er)) {
           m.el.style.display = 'none';
           continue;
         }
@@ -866,8 +958,12 @@
     });
   }
 
-  function isInsideElement(el, rect) {
-    const er = el.getBoundingClientRect();
+  // `elRect` lar kalleren lese elementets rect ÉN gang utenfor løkken sin.
+  // Den kan ikke endre seg mens vi maler markører — overlayet ligger utenfor
+  // input-elementet — og en getBoundingClientRect() per funn er en tvungen
+  // reflow per funn.
+  function isInsideElement(el, rect, elRect) {
+    const er = elRect || el.getBoundingClientRect();
     // Keep a few-pixel tolerance so a word at the very top/bottom line still
     // shows its marker.
     return rect.bottom >= er.top - 2 && rect.top <= er.bottom + 2 &&
@@ -1028,7 +1124,7 @@
         <div class="lh-spell-suggestions">${rowsHtml}${visFlereHtml}</div>
         <div class="lh-spell-actions">
           <button type="button" class="lh-spell-btn lh-spell-decline">\u2715 Avvis</button>
-          <button type="button" class="lh-spell-btn lh-spell-report" title="Send beskjed til oss om at Leksihjelp tar feil her \u2014 vi bruker rapportene til \u00e5 forbedre stavekontrollen.">\u26a0 Rapporter feil</button>
+${!reportChannelOpen() ? '' : `<button type="button" class="lh-spell-btn lh-spell-report" title="Send beskjed til oss om at Leksihjelp tar feil her \u2014 vi bruker rapportene til \u00e5 forbedre stavekontrollen.">\u26a0 Rapporter feil</button>`}
           ${addWordButtonHtml(finding, lang)}
         </div>
         ${laerMerButtonHtml(finding, lang)}
@@ -1099,7 +1195,7 @@
         actionsHtml = `
           ${fixBtnHtml}
           <button type="button" class="lh-spell-btn lh-spell-decline">\u2715 Avvis</button>
-          <button type="button" class="lh-spell-btn lh-spell-report" title="Send beskjed til oss om at Leksihjelp tar feil her \u2014 vi bruker rapportene til \u00e5 forbedre stavekontrollen.">\u26a0 Rapporter feil</button>
+${!reportChannelOpen() ? '' : `<button type="button" class="lh-spell-btn lh-spell-report" title="Send beskjed til oss om at Leksihjelp tar feil her \u2014 vi bruker rapportene til \u00e5 forbedre stavekontrollen.">\u26a0 Rapporter feil</button>`}
           ${addWordButtonHtml(finding, lang)}
         `;
       }
@@ -1373,7 +1469,7 @@
         emitCompoundVote(finding, 'no', lang);
       }
       dismissed.add(dismissKey(finding));
-      pendingAdvanceIdx = activePopoverIdx;
+      markPendingAdvance(finding);
       hidePopover();
       runCheck();
     });
@@ -1413,7 +1509,7 @@
           // Decline = Avvis: dismiss this finding and re-run.
           popover.querySelector('.lh-spell-decline')?.addEventListener('click', () => {
             dismissed.add(dismissKey(finding));
-            pendingAdvanceIdx = activePopoverIdx;
+            markPendingAdvance(finding);
             hidePopover();
             runCheck();
           });
@@ -1445,7 +1541,7 @@
             sendBtn.textContent = ok ? '✓ Sendt — takk!' : '✗ Kunne ikke sendes';
             setTimeout(() => {
               dismissed.add(dismissKey(finding));
-              pendingAdvanceIdx = activePopoverIdx;
+              markPendingAdvance(finding);
               hidePopover();
               runCheck();
             }, 1200);
@@ -2062,6 +2158,7 @@
   const SC_BIGRAM_LANGS = new Set(['nb', 'nn', 'de', 'en', 'es', 'fr']); // v3.0.123: FL bigrams shipped but unloaded — see BIGRAM_LANGS in vocab-seam.js
   const SC_FREQ_LANGS = new Set(['nb', 'nn']);
   const SC_NON_COMPOUND_PAIRS_LANGS = new Set(['nb', 'nn']);
+  const SC_STEM_CROSSREF_LANGS = new Set(['nb', 'nn']); // keep in step with STEM_CROSSREF_LANGS in vocab-seam.js
   const SC_VALIDWORDS_LANGS = new Set(['nb', 'nn', 'de', 'es', 'en', 'fr']); // v3.0.128: keep in step with VALIDWORDS_LANGS in vocab-seam.js
   async function loadSpellCheckSidecarFile(filename) {
     try {
@@ -2098,15 +2195,16 @@
       }
       // F48-2: load the seam's full sidecar set in parallel so this
       // independent index path matches what initBaseline/buildAndApply build.
-      const [bigrams, freq, nonCompoundPairs, validwordsExtra] = await Promise.all([
+      const [bigrams, freq, nonCompoundPairs, validwordsExtra, stemCrossref] = await Promise.all([
         SC_BIGRAM_LANGS.has(lang) ? loadSpellCheckSidecarFile(`bigrams-${lang}.json`) : Promise.resolve(null),
         SC_FREQ_LANGS.has(lang) ? loadSpellCheckSidecarFile(`freq-${lang}.json`) : Promise.resolve(null),
         SC_NON_COMPOUND_PAIRS_LANGS.has(lang) ? loadSpellCheckSidecarFile(`non-compound-pairs.json`) : Promise.resolve(null),
         SC_VALIDWORDS_LANGS.has(lang) ? loadSpellCheckSidecarFile(`validwords-${lang}.json`) : Promise.resolve(null),
+        SC_STEM_CROSSREF_LANGS.has(lang) ? loadSpellCheckSidecarFile('nb-nn-stem-crossref.json') : Promise.resolve(null),
       ]);
       const indexes = core.buildIndexes({
         raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled: () => true,
-        nonCompoundPairs, validwordsExtra,
+        nonCompoundPairs, validwordsExtra, stemCrossref,
       });
       spellCheckSidecarCache.set(lang, indexes);
       return indexes;
@@ -2512,7 +2610,7 @@
     } else {
       applyFixTextarea(finding);
     }
-    pendingAdvanceIdx = activePopoverIdx;
+    markPendingAdvance(finding);
     hidePopover();
     // Short delay for DOM to settle, then re-check and auto-advance
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -2600,7 +2698,7 @@
     // was correct only while readInput returned bare textContent — the
     // moment the string gained a character the DOM does not contain, the
     // two disagreed and every marker past the first block boundary drifted.
-    const { segments } = buildEditableText(el);
+    const { segments } = editableSegments(el);
     const s = locateStart(segments, start);
     const e = locateEnd(segments, end);
     if (!s || !e) return null;

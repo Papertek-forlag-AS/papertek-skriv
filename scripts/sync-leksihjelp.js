@@ -1,53 +1,60 @@
 #!/usr/bin/env node
 /**
- * sync-leksihjelp.js — vendor the leksihjelp content scripts + vocab data
- * into Skriv's public/js/leksihjelp/ tree.
+ * sync-leksihjelp.js — Skriv's pull side of leksihjelp's canonical embed sync
+ * (three-layer architecture, phase 9; replaced the homemade copy sync).
  *
- * Skriv embeds a SUBSET of leksihjelp (dictionary + spell-check) as a built-in
- * fallback when the leksihjelp Chrome extension isn't installed on
- * skriv.papertek.app. See docs/leksihjelp-integration.md for the integration
- * model and the seam contract.
+ * The file sync itself belongs to leksihjelp now: `scripts/embed-sync.js` in
+ * that repo wipes and re-establishes public/js/leksihjelp/ from its inventory,
+ * writes load-order.json (the manifest-derived load order) and .version (the
+ * divergence guard's baseline). Audio stripping, CSS scoping and the
+ * pdf-viewer strip all happen upstream — Skriv no longer owns copies of them.
  *
- * What this script does:
- *   1. Wipes public/js/leksihjelp/ before each run so files renamed/deleted
- *      upstream don't linger as stale leftovers (Phase 43 renamed several
- *      content scripts; the lockdown sibling repo learned this lesson the
- *      hard way).
- *   2. Copies the subset listed in FILE_INVENTORY into public/js/leksihjelp/.
- *      Engine + renderer pairs (Phase 43) ship together; spell-rules/ ships
- *      whole.
- *   3. Vocab JSONs (de/es/fr/en/nb/nn) — strips the per-entry `audio` field
- *      (~17 MB across 6 langs) since Skriv has no MP3 playback path; writes
- *      minified JSON to keep the bundle compact.
- *   4. CSS scoping — wraps every selector in styles/content.css under a
- *      `.skriv-leksihjelp` parent so the vendored stylesheet doesn't collide
- *      with Skriv's existing UI. Output goes to
- *      public/js/leksihjelp/styles/leksihjelp.css.
- *   5. Writes public/js/leksihjelp/.version with the upstream version,
- *      commit SHA, and sync timestamp.
- *   6. Prints a summary table.
+ * What is left here is the PULL side:
  *
- * Vocab loading model: BUNDLED, NOT runtime-fetched. Phase 40.2 of leksihjelp
- * forbids runtime API fetch (release gate `check-no-vocab-fetch`). Skriv
- * matches that architecture: data/<lang>.json files ship inside Skriv's
- * static bundle and are read by vocab-seam.js via fetch('/js/leksihjelp/data/...').
- * No dependency on papertek-vocabulary.vercel.app at runtime.
+ *   1. Find the source repo and report branch + version + commit. embed-sync
+ *      mirrors the WORKING COPY of the leksihjelp checkout, not a branch you
+ *      name, so the wrong branch silently rolls public/js/leksihjelp/ sideways
+ *      or backwards. We refuse anything but a release branch (see below).
+ *   2. Run embed-sync with Skriv's profile: no-audio (no MP3 playback here),
+ *      scoped under .skriv-leksihjelp (Skriv owns the surrounding UI), and
+ *      without the pdf-viewer block (Skriv has no PDF reader surface).
+ *      No --subset: Skriv takes the shared layer-2 views too.
+ *   3. Regenerate the managed blocks in public/index.html and public/sw.js
+ *      from load-order.json, so the load order is a pure function of upstream
+ *      and never a hand-held list.
+ *
+ * Flags: --dry-run and --force are forwarded to embed-sync. --dry-run stops
+ * after upstream's per-layer report; nothing is written.
+ * --allow-any-branch skips the release-branch check (see below).
+ *
+ * ── Why the release-branch check ────────────────────────────────────────
+ * The leksihjelp checkout is shared with other sessions and is often parked
+ * on a feature branch with unreleased work. Vendoring from it would ship code
+ * that upstream has not released, and the divergence guard cannot see the
+ * mistake because the files legitimately match that branch. Lockdown learned
+ * this first and added the same refusal on its side.
  *
  * Usage:
- *   node scripts/sync-leksihjelp.js
+ *   node scripts/sync-leksihjelp.js [--dry-run] [--force] [--allow-any-branch]
  *   LEKSIHJELP_REPO_PATH=/abs/path/to/leksihjelp node scripts/sync-leksihjelp.js
  */
 
-'use strict';
-
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
 const root = path.resolve(__dirname, '..');
-const destDir = path.join(root, 'public', 'js', 'leksihjelp');
+const destRel = path.join('public', 'js', 'leksihjelp');
+const destDir = path.join(root, destRel);
 
-// ── Locate the leksihjelp source tree ─────────────────────────────────
+const argv = process.argv.slice(2);
+const dryRun = argv.includes('--dry-run');
+const force = argv.includes('--force');
+const allowAnyBranch = argv.includes('--allow-any-branch');
+
+// Branches that represent released leksihjelp. Anything else is unreleased
+// work in progress and must not be vendored into Skriv.
+const RELEASE_BRANCHES = ['staging', 'main'];
 
 function findSource() {
     const candidates = [
@@ -58,368 +65,162 @@ function findSource() {
     ].filter(Boolean);
 
     for (const p of candidates) {
-        if (fs.existsSync(path.join(p, 'extension', 'content'))) {
-            return p;
-        }
+        if (fs.existsSync(path.join(p, 'scripts', 'embed-sync.js'))) return p;
     }
     return null;
 }
 
+function git(srcRoot, args) {
+    try {
+        return execFileSync('git', ['-C', srcRoot, ...args], { encoding: 'utf8' }).trim();
+    } catch (_) {
+        return '';
+    }
+}
+
 const srcRoot = findSource();
 if (!srcRoot) {
-    console.error('[sync-leksihjelp] No leksihjelp source found. Set LEKSIHJELP_REPO_PATH or check out a sibling clone.');
+    console.error('[sync-leksihjelp] No leksihjelp source found (looked for scripts/embed-sync.js).');
+    console.error('  Set LEKSIHJELP_REPO_PATH, or check out a sibling clone next to this repo.');
     process.exit(1);
 }
-console.log('[sync-leksihjelp] Source:', srcRoot);
 
-// Read upstream version + commit SHA for the .version pin.
-let upstreamVersion = 'unknown';
-let upstreamCommit = 'unknown';
+const branch = git(srcRoot, ['rev-parse', '--abbrev-ref', 'HEAD']) || '(detached)';
+const commit = git(srcRoot, ['rev-parse', '--short', 'HEAD']) || '(unknown)';
+const dirty = git(srcRoot, ['status', '--porcelain']) !== '';
+let srcVersion = '(unknown)';
 try {
-    upstreamVersion = JSON.parse(
-        fs.readFileSync(path.join(srcRoot, 'extension', 'manifest.json'), 'utf8')
-    ).version;
-} catch (_) {}
+    srcVersion = JSON.parse(fs.readFileSync(path.join(srcRoot, 'package.json'), 'utf8')).version;
+} catch (_) { /* reported as unknown */ }
+
+console.log('[sync-leksihjelp] source: ' + srcRoot);
+console.log('  branch ' + branch + '  version ' + srcVersion + '  commit ' + commit + (dirty ? '  (WORKING TREE DIRTY)' : ''));
+
+if (!allowAnyBranch && !dryRun) {
+    // A detached HEAD is how a worktree pinned to a release tag/branch shows
+    // up, so check the commit's branch membership rather than the name alone.
+    const containing = git(srcRoot, ['branch', '--format=%(refname:short)', '--contains', 'HEAD'])
+        .split('\n').map(s => s.trim()).filter(Boolean);
+    const onRelease = RELEASE_BRANCHES.includes(branch)
+        || containing.some(b => RELEASE_BRANCHES.includes(b));
+
+    if (!onRelease) {
+        console.error('');
+        console.error('[sync-leksihjelp] REFUSING: ' + srcRoot + ' is not on a release branch.');
+        console.error('  HEAD is on "' + branch + '"; releases live on: ' + RELEASE_BRANCHES.join(', ') + '.');
+        console.error('  embed-sync mirrors the working copy, so this would vendor unreleased code.');
+        console.error('  Point LEKSIHJELP_REPO_PATH at a checkout/worktree on a release branch,');
+        console.error('  or pass --allow-any-branch if you really mean to vendor this branch.');
+        process.exit(1);
+    }
+}
+
+if (dirty && !force && !dryRun) {
+    console.error('[sync-leksihjelp] REFUSING: the leksihjelp working tree has uncommitted changes.');
+    console.error('  Vendoring it would pin Skriv to a state that exists on no commit. Use --force to override.');
+    process.exit(1);
+}
+
+// ── 1. Run the canonical sync ───────────────────────────────────────────
+const embedSync = path.join(srcRoot, 'scripts', 'embed-sync.js');
+const syncArgs = [
+    embedSync,
+    '--dest', destDir,
+    '--profile', 'no-audio',
+    '--scope', '.skriv-leksihjelp',
+    '--without', 'pdf-viewer',
+];
+if (dryRun) syncArgs.push('--dry-run');
+if (force) syncArgs.push('--force');
+
 try {
-    upstreamCommit = execSync('git rev-parse HEAD', { cwd: srcRoot }).toString().trim();
-} catch (_) {}
-
-// ── File inventory ─────────────────────────────────────────────────────
-//
-// Skriv vendors a SUBSET — dictionary + spell-check, no floating widget,
-// no word prediction, no audio. Engine/renderer pairs (Phase 43) ship
-// together. Inventory mirrors the integration doc §4 with these
-// adjustments for current leksihjelp reality:
-//   - spell-check.js → spell-check-renderer.js + spell-check-engine.js
-//   - word-prediction.js / prediction-renderer.js: NOT vendored (extension only)
-//   - floating-widget.js: NOT vendored (extension only)
-//   - vocab-store.js: NOT vendored (Phase 40.2 made it extension-only;
-//     Skriv ships data/ files in the bundle and reads them directly)
-//   - exam-registry.js + lang-detect.js: vendored
-//   - popup/views/: NOT vendored — Skriv writes its own popup using
-//     dict-state-builder.js's pure VM (per integration doc §4)
-
-// Files copied verbatim. Source paths relative to srcRoot/extension/.
-const FILE_INVENTORY = [
-    // i18n strings
-    'i18n/strings.js',
-
-    // Content seam — pure index builder + hydration policy
-    'content/vocab-seam-core.js',
-    'content/vocab-seam.js',
-    'content/lang-detect.js',
-
-    // Spell-check — engine/renderer pair (Phase 43 split) plus the
-    // 3.8.x renderer/engine dependencies: pause state, per-rule grammar
-    // feature gating, pedagogy panel HTML, and the personalization store
-    // (renderer hard-requires __lexiPersonalization/__lexiPedagogyRender).
-    'content/pause-domain.js',
-    'content/rule-features.js',
-    'content/spell-check-core.js',
-    'content/spell-check-engine.js',
-    'content/pedagogy-render.js',
-    'content/personalization-store.js',
-    'content/spell-check-renderer.js',
-
-    // Exam-mode registry — Skriv's settings panel surfaces it
-    'exam-registry.js',
-
-    // Popup pure logic — Skriv consumes dict-state-builder's view-model
-    // and renders with its own DOM. grammar-features-section is a small
-    // self-contained checkbox renderer Skriv re-uses inside its drawer.
-    'popup/dict-state-builder.js',
-    'popup/grammar-features-section.js',
-];
-
-// Spell-rules: copy whole directory.
-const SPELL_RULES_DIR = 'content/spell-rules';
-
-// Vocab data — bundled into Skriv. Audio stripped, minified.
-const VOCAB_LANGS = ['de', 'es', 'fr', 'en', 'nb', 'nn'];
-
-// Other data files (grammarfeatures-*, bigrams-*, baselines, pitfalls) copy
-// verbatim — they don't carry audio metadata.
-const DATA_PASSTHROUGH_PATTERNS = [
-    /^grammarfeatures-(de|es|fr|en|nb|nn)\.json$/i,
-    /^bigrams-(de|es|fr|en|nb|nn)\.json$/i,
-    /^nb-baseline\.json$/i,
-    /^pitfalls-en\.json$/i,
-];
-
-// ── Helpers ────────────────────────────────────────────────────────────
-
-function ensureDir(p) {
-    fs.mkdirSync(p, { recursive: true });
+    execFileSync(process.execPath, syncArgs, { stdio: 'inherit' });
+} catch (err) {
+    console.error('[sync-leksihjelp] embed-sync failed — nothing regenerated.');
+    process.exit(err.status || 1);
 }
 
-function copyFile(src, dest) {
-    ensureDir(path.dirname(dest));
-    fs.copyFileSync(src, dest);
-    return fs.statSync(dest).size;
+if (dryRun) {
+    console.log('[sync-leksihjelp] --dry-run: no files written, generated blocks untouched.');
+    process.exit(0);
 }
 
-function copyDirRecursive(src, dest) {
-    if (!fs.existsSync(src)) return 0;
-    let bytes = 0;
-    ensureDir(dest);
-    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-        const sp = path.join(src, entry.name);
-        const dp = path.join(dest, entry.name);
-        if (entry.isDirectory()) bytes += copyDirRecursive(sp, dp);
-        else bytes += copyFile(sp, dp);
+// ── 2. Regenerate the managed blocks from load-order.json ───────────────
+const loadOrderPath = path.join(destDir, 'load-order.json');
+if (!fs.existsSync(loadOrderPath)) {
+    console.error('[sync-leksihjelp] embed-sync wrote no load-order.json — refusing to guess a load order.');
+    process.exit(1);
+}
+const loadOrder = JSON.parse(fs.readFileSync(loadOrderPath, 'utf8'));
+const contentScripts = loadOrder.contentScripts || [];
+const views = loadOrder.views || [];
+if (contentScripts.length === 0) {
+    console.error('[sync-leksihjelp] load-order.json lists no content scripts — refusing to empty the bundle.');
+    process.exit(1);
+}
+
+const webPath = rel => '/js/leksihjelp/' + rel;
+
+function replaceBlock(file, beginMarker, endMarker, body) {
+    const full = path.join(root, file);
+    const src = fs.readFileSync(full, 'utf8');
+    const begin = src.indexOf(beginMarker);
+    const end = src.indexOf(endMarker);
+    if (begin === -1 || end === -1 || end < begin) {
+        console.error('[sync-leksihjelp] ' + file + ': generated block markers not found.');
+        process.exit(1);
     }
-    return bytes;
+    const before = src.slice(0, begin + beginMarker.length);
+    const after = src.slice(end);
+    fs.writeFileSync(full, before + '\n' + body + '\n' + after);
 }
 
-// Recursively strip the `audio` key from any object in the JSON tree.
-function stripAudio(o) {
-    if (Array.isArray(o)) return o.map(stripAudio);
-    if (o && typeof o === 'object') {
-        const out = {};
-        for (const k of Object.keys(o)) {
-            if (k === 'audio') continue;
-            out[k] = stripAudio(o[k]);
-        }
-        return out;
-    }
-    return o;
-}
-
-// CSS scoping — prefix every top-level rule selector with `.skriv-leksihjelp `.
-// Conservative regex: only touch selectors that aren't @media/@keyframes
-// declarations and aren't already inside a nested block. This is a
-// best-effort transform; if a selector list contains commas, each part is
-// independently prefixed.
-function scopeCss(input, prefix) {
-    // Split into top-level rules. We respect brace nesting; @media / @keyframes
-    // blocks recurse one level (their inner rules also get scoped).
-    let out = '';
-    let i = 0;
-    const n = input.length;
-
-    function scopeSelectorList(sel) {
-        // Each comma-separated selector. Skip pure @-keyword "selectors".
-        return sel.split(',').map(s => {
-            const t = s.trim();
-            if (!t) return s;
-            if (t.startsWith(prefix)) return s; // idempotent
-            // @keyframes inner stops (0%, from, to) shouldn't be prefixed —
-            // those don't appear at this level (they're inside @keyframes
-            // bodies). Pseudo-elements / chained classes get prefixed too.
-            return s.replace(/^(\s*)/, `$1${prefix} `);
-        }).join(',');
-    }
-
-    function readBlock(startIdx) {
-        // startIdx points at '{'. Return [endIdx (after matching '}'), bodyText].
-        let depth = 0;
-        let j = startIdx;
-        for (; j < n; j++) {
-            const ch = input[j];
-            if (ch === '{') depth++;
-            else if (ch === '}') {
-                depth--;
-                if (depth === 0) { j++; break; }
-            }
-        }
-        return [j, input.slice(startIdx, j)];
-    }
-
-    while (i < n) {
-        // Skip whitespace + comments.
-        while (i < n && /\s/.test(input[i])) { out += input[i++]; }
-        if (i >= n) break;
-        if (input.startsWith('/*', i)) {
-            const end = input.indexOf('*/', i + 2);
-            if (end === -1) { out += input.slice(i); break; }
-            out += input.slice(i, end + 2);
-            i = end + 2;
-            continue;
-        }
-        // Read selector / at-rule prelude up to '{' or ';'.
-        let preludeEnd = i;
-        while (preludeEnd < n && input[preludeEnd] !== '{' && input[preludeEnd] !== ';') preludeEnd++;
-        const prelude = input.slice(i, preludeEnd);
-
-        if (preludeEnd >= n) { out += prelude; break; }
-
-        if (input[preludeEnd] === ';') {
-            // @import, @charset etc. — copy verbatim.
-            out += prelude + ';';
-            i = preludeEnd + 1;
-            continue;
-        }
-
-        // We're at a '{'. Read the block.
-        const [blockEnd, blockText] = readBlock(preludeEnd);
-
-        const trimmed = prelude.trim();
-        if (trimmed.startsWith('@media') || trimmed.startsWith('@supports') || trimmed.startsWith('@layer')) {
-            // Recurse into the inner rules.
-            const inner = blockText.slice(1, -1); // strip outer braces
-            const scopedInner = scopeCss(inner, prefix);
-            out += prelude + '{' + scopedInner + '}';
-        } else if (trimmed.startsWith('@keyframes') || trimmed.startsWith('@font-face') || trimmed.startsWith('@page')) {
-            // Don't scope inner stops/declarations.
-            out += prelude + blockText;
-        } else {
-            out += scopeSelectorList(prelude) + blockText;
-        }
-        i = blockEnd;
-    }
-    return out;
-}
-
-// ── Wipe + sync ────────────────────────────────────────────────────────
-
-if (fs.existsSync(destDir)) {
-    fs.rmSync(destDir, { recursive: true, force: true });
-}
-ensureDir(destDir);
-
-const summary = [];
-let totalBytes = 0;
-
-// 1. Whitelisted JS files
-for (const rel of FILE_INVENTORY) {
-    const src = path.join(srcRoot, 'extension', rel);
-    if (!fs.existsSync(src)) {
-        console.warn(`[sync-leksihjelp] MISSING upstream file: ${rel} — skipping`);
-        summary.push({ file: rel, bytes: 0, note: 'missing upstream' });
-        continue;
-    }
-    const dest = path.join(destDir, rel);
-    const bytes = copyFile(src, dest);
-    totalBytes += bytes;
-    summary.push({ file: rel, bytes });
-}
-
-// 2. spell-rules/ — whole directory
-const rulesSrc = path.join(srcRoot, 'extension', SPELL_RULES_DIR);
-const rulesDest = path.join(destDir, SPELL_RULES_DIR);
-const rulesBytes = copyDirRecursive(rulesSrc, rulesDest);
-totalBytes += rulesBytes;
-const ruleCount = fs.existsSync(rulesDest)
-    ? fs.readdirSync(rulesDest).filter(f => f.endsWith('.js')).length
-    : 0;
-summary.push({ file: `${SPELL_RULES_DIR}/ (${ruleCount} files)`, bytes: rulesBytes });
-
-// 3. data/ — vocab JSONs (audio-stripped, minified) + passthrough JSONs
-const dataSrc = path.join(srcRoot, 'extension', 'data');
-const dataDest = path.join(destDir, 'data');
-ensureDir(dataDest);
-
-let dataBytes = 0;
-let dataAudioSavedBytes = 0;
-for (const entry of fs.readdirSync(dataSrc, { withFileTypes: true })) {
-    if (entry.isDirectory()) continue;
-    const sp = path.join(dataSrc, entry.name);
-    const dp = path.join(dataDest, entry.name);
-
-    const isVocabJson = VOCAB_LANGS.some(l => entry.name.toLowerCase() === `${l}.json`);
-    const isPassthroughJson = DATA_PASSTHROUGH_PATTERNS.some(rx => rx.test(entry.name));
-
-    if (isVocabJson) {
-        const beforeSize = fs.statSync(sp).size;
-        const raw = JSON.parse(fs.readFileSync(sp, 'utf8'));
-        const minified = JSON.stringify(stripAudio(raw));
-        fs.writeFileSync(dp, minified);
-        const afterSize = fs.statSync(dp).size;
-        dataBytes += afterSize;
-        dataAudioSavedBytes += (beforeSize - afterSize);
-    } else if (isPassthroughJson) {
-        dataBytes += copyFile(sp, dp);
-    } else {
-        // Unknown data file — pass through verbatim with a note. Better to
-        // overship a small file than silently drop something a rule references.
-        dataBytes += copyFile(sp, dp);
-    }
-}
-totalBytes += dataBytes;
-summary.push({
-    file: `data/ (audio stripped + minified)`,
-    bytes: dataBytes,
-    note: `saved ${(dataAudioSavedBytes / 1024 / 1024).toFixed(1)} MB vs upstream`,
-});
-
-// 4. styles/content.css → public/js/leksihjelp/styles/leksihjelp.css (scoped)
-const cssSrc = path.join(srcRoot, 'extension', 'styles', 'content.css');
-if (fs.existsSync(cssSrc)) {
-    const cssDestDir = path.join(destDir, 'styles');
-    ensureDir(cssDestDir);
-    const cssDest = path.join(cssDestDir, 'leksihjelp.css');
-    const raw = fs.readFileSync(cssSrc, 'utf8');
-    const scoped = scopeCss(raw, '.skriv-leksihjelp');
-    fs.writeFileSync(cssDest, scoped);
-    const bytes = fs.statSync(cssDest).size;
-    totalBytes += bytes;
-    summary.push({ file: 'styles/leksihjelp.css (scoped under .skriv-leksihjelp)', bytes });
-} else {
-    console.warn('[sync-leksihjelp] MISSING upstream styles/content.css');
-}
-
-// 5a. README — regenerated each sync so the wipe step doesn't strand contributors.
-fs.writeFileSync(path.join(destDir, 'README.md'),
-`# \`public/js/leksihjelp/\` — Vendored from leksihjelp
-
-This tree is **vendored** from the Papertek leksihjelp Chrome extension repo
-(\`Papertek-forlag-AS/leksihjelp\`). **Do not edit files in this directory by
-hand.** Changes happen upstream in the leksihjelp repo and are pulled in
-via \`scripts/sync-leksihjelp.js\`.
-
-See [docs/leksihjelp-integration.md](../../../docs/leksihjelp-integration.md)
-for the full contract: which files belong here, the seam shape Skriv
-expects (\`window.__lexiVocab\`), the version-pinning protocol, and the
-list of cross-repo follow-up tasks.
-
-Current pin: see \`.version\` in this directory (upstream version + commit
-SHA + sync timestamp).
-
-If this directory is empty, the leksihjelp side has not been pulled in
-yet — run \`node scripts/sync-leksihjelp.js\` from the repo root.
-`);
-
-// 5b. .version pin
-const versionData = {
-    upstream_version: upstreamVersion,
-    upstream_commit: upstreamCommit,
-    synced_at: new Date().toISOString(),
-    inventory: FILE_INVENTORY,
-};
-fs.writeFileSync(
-    path.join(destDir, '.version'),
-    JSON.stringify(versionData, null, 2) + '\n'
+// index.html. The order is a hard contract, so the generator owns all of it
+// rather than leaving half in hand-edited markup:
+//   1. the vendored version, so the runtime can cache-bust its own fetches
+//   2. embed/host-runtime.js — layer 2.5, deliberately absent from the
+//      extension manifest and therefore from load-order.json, so the host
+//      loads it itself
+//   3. Skriv's own config, which calls createHostRuntime().install() and so
+//      must run after the runtime exists but before anything reads chrome.*
+//   4. the content scripts in upstream's order, then the shared views
+const version = JSON.parse(fs.readFileSync(path.join(destDir, '.version'), 'utf8')).version;
+const indexBody = [
+    '    <script>window.__skrivLeksihjelpVersion = ' + JSON.stringify(String(version)) + ';</script>',
+    '    <script src="' + webPath('embed/host-runtime.js') + '"></script>',
+    '    <script src="/js/leksihjelp-loader.js"></script>',
+    ...[...contentScripts, ...views].map(rel => '    <script src="' + webPath(rel) + '"></script>'),
+].join('\n');
+replaceBlock(
+    'public/index.html',
+    '<!-- BEGIN GENERATED LEKSIHJELP BUNDLE -->',
+    '    <!-- END GENERATED LEKSIHJELP BUNDLE -->',
+    indexBody
 );
 
-// 6. Summary table
-console.log('');
-console.log('[sync-leksihjelp] Done — synced to public/js/leksihjelp/');
-console.log('');
-console.log(`  upstream version: ${upstreamVersion}`);
-console.log(`  upstream commit:  ${upstreamCommit.slice(0, 12)}`);
-console.log(`  total bytes:      ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
-console.log('');
-console.log('  ' + 'file'.padEnd(58) + 'size       note');
-console.log('  ' + '─'.repeat(58 + 11 + 30));
-for (const row of summary) {
-    const sizeStr = row.bytes >= 1024 * 1024
-        ? `${(row.bytes / 1024 / 1024).toFixed(2)} MB`
-        : `${(row.bytes / 1024).toFixed(1)} KB`;
-    console.log('  ' + row.file.padEnd(58) + sizeStr.padEnd(11) + (row.note || ''));
-}
-console.log('');
-console.log('  Next: load these in index.html in dependency order:');
-console.log('    1. i18n/strings.js');
-console.log('    2. exam-registry.js');
-console.log('    3. content/vocab-seam-core.js');
-console.log('    4. content/vocab-seam.js');
-console.log('    5. content/lang-detect.js');
-console.log('    6. content/spell-check-core.js');
-console.log('    7. content/spell-rules/*.js  (78 rule files)');
-console.log('    8. content/spell-check-engine.js  (must precede renderer)');
-console.log('    9. content/spell-check-renderer.js');
-console.log('   10. popup/dict-state-builder.js');
-console.log('   11. popup/grammar-features-section.js');
-console.log('  Plus: <link rel="stylesheet" href="/js/leksihjelp/styles/leksihjelp.css">');
-console.log('  Plus: bump sw.js ASSETS array + cache version.');
-console.log('');
+// sw.js — the executable baseline plus metadata and the small Bokmål
+// fallback. Full language datasets stay lazy; the fetch handler caches
+// them on first use.
+const EAGER_DATA = ['data/nb-baseline.json'];
+const STYLES = ['styles/content.css', 'styles/popup-views.css'];
+const swAssets = [
+    '.version',
+    'load-order.json',
+    'embed/host-runtime.js',
+    ...STYLES,
+    ...contentScripts,
+    ...views,
+    ...EAGER_DATA,
+].filter(rel => fs.existsSync(path.join(destDir, rel)));
+
+const swBody = swAssets.map(rel => "    '" + webPath(rel) + "',").join('\n');
+replaceBlock(
+    'public/sw.js',
+    '// BEGIN GENERATED LEKSIHJELP ASSETS',
+    '    // END GENERATED LEKSIHJELP ASSETS',
+    swBody
+);
+
+console.log('[sync-leksihjelp] regenerated index.html (' + (contentScripts.length + views.length) + ' scripts)'
+    + ' and sw.js (' + swAssets.length + ' cached paths).');
+console.log('[sync-leksihjelp] Remember to bump CACHE_NAME in public/sw.js.');

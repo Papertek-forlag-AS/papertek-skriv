@@ -2684,6 +2684,51 @@
     return out;
   }
 
+  // Bokmål→nynorsk stammekart (papertek-vocabulary 6aa1b152, 26.08.2026).
+  // 70 menneskesignerte oppføringar, kvar slått opp i Nynorskordboka og
+  // kryssjekka mot Språkrådets administrative ordliste og NB-korpuset.
+  //
+  // Returnerer Map: bokmålsstamme → { nn, former, samansettForm }.
+  //   nn             — den primære nynorske stammeforma
+  //   former         — [nn, ...likestilte]; § 15-4 krev at ALLE kjem fram,
+  //                    så den som skriv meldinga skal lese denne, ikkje `nn`
+  //   samansettForm  — stammen sett inn i `sett_i`-ordet OG stadfesta i
+  //                    Norsk ordbank, eller null.
+  //
+  // `samansettForm === null` (46 av 70) tyder to ting som ikkje lèt seg
+  // skilje i feltet: anten er forma god nynorsk som Ordbanken ikkje fører
+  // (`personlegheit`), eller så lagar nynorsk substantivet heilt annleis
+  // (`uenig`→`usamd`, men substantivet er `usemje`, ikkje «usamdheit»).
+  // Difor: kartet styrer PREDIKATET alltid, men gjev berre FORSLAG når
+  // samansettForm står der. Aldri lim stamme + suffiks.
+  //
+  // `utelatne`-blokka i fila er avgjerder, ikkje hol — ho blir med vilje
+  // ikkje lesen inn her.
+  function buildStemCrossref(json) {
+    const out = new Map();
+    const entries = json && json.nb_nn_stem_crossref;
+    if (!entries || typeof entries !== 'object') return out;
+    for (const [stem, v] of Object.entries(entries)) {
+      if (!stem || !v || typeof v !== 'object') continue;
+      if (typeof v.nn !== 'string' || !v.nn) continue;
+      const former = [v.nn];
+      if (Array.isArray(v.likestilte)) {
+        for (const alt of v.likestilte) {
+          if (typeof alt === 'string' && alt && !former.includes(alt)) former.push(alt);
+        }
+      }
+      const comp = v.stadfesta && typeof v.stadfesta.samansett_form === 'string'
+        ? v.stadfesta.samansett_form
+        : null;
+      out.set(stem.toLowerCase(), {
+        nn: v.nn,
+        former,
+        samansettForm: comp || null,
+      });
+    }
+    return out;
+  }
+
   // ── Public API ──
 
   // DE regular-verb present-tense paradigm index for de-subject-verb's
@@ -2824,7 +2869,7 @@ function splitFormValues(v) {
   return [...new Set(out)];
 }
 
-function buildIndexes({ raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled, nonCompoundPairs: nonCompoundPairsJson, validwordsExtra } = {}) {
+function buildIndexes({ raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled, nonCompoundPairs: nonCompoundPairsJson, validwordsExtra, stemCrossref: stemCrossrefJson } = {}) {
     // Default predicate: emit all forms (Node / test use — "superset" policy
     // per CONTEXT: consumers filter further at the seam level).
     const iff = typeof isFeatureEnabled === 'function' ? isFeatureEnabled : iffTrue;
@@ -3577,6 +3622,13 @@ function buildIndexes({ raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled, n
       // (subject+verb collisions, idiomatic adj+noun phrases). Empty Set for
       // non-NB/NN or when sidecar not present.
       nonCompoundPairs: buildNonCompoundPairs(nonCompoundPairsJson),
+      // Bokmål→nynorsk stammekart. Map: bokmålsstamme → {nn, former,
+      // samansettForm}. Lèt bokmålisme-reglane kjenne att ein bokmålsk
+      // stamme inne i eit lengre ord (`muligheit`) og skilje han frå ei
+      // produktiv nynorsk avleiing (`stillheit`). Tom Map når kartet
+      // ikkje er lasta. Sjå buildStemCrossref for kvifor samansettForm
+      // er det einaste feltet som lisensierer eit heilordsforslag.
+      nbNnStemCrossref: buildStemCrossref(stemCrossrefJson),
       // DE regular-verb present paradigms ({byLemma, byForm}) for the
       // de-subject-verb regular-verb agreement check. Empty maps for non-DE.
       deRegularPresent,

@@ -112,31 +112,49 @@ test('detectStatus reports embedded (not extension) when DOM attribute absent bu
   } finally { delete globalThis.window; delete globalThis.document; }
 });
 
-test('embedded shim rebinds to each document bridge instead of keeping stale language state', () => {
-  const source = readFileSync(new URL('../public/js/leksihjelp-loader.js', import.meta.url), 'utf8');
-  const context = vm.createContext({ window: {}, console, queueMicrotask });
-  vm.runInContext(source, context);
+test('embedded host config rebinds to each document bridge instead of keeping stale language state', () => {
+  // The loader is now a config around leksihjelp's shared embed runtime, so
+  // the runtime has to be in the context first — exactly the order the
+  // generated block in index.html loads them.
+  const runtimeSource = readFileSync(
+    new URL('../public/js/leksihjelp/embed/host-runtime.js', import.meta.url), 'utf8');
+  const loaderSource = readFileSync(
+    new URL('../public/js/leksihjelp-loader.js', import.meta.url), 'utf8');
+
+  const context = vm.createContext({ console, queueMicrotask, setTimeout, Promise, Map, Set, URL });
+  context.self = context;
+  context.window = context;
+  vm.runInContext(runtimeSource, context, { filename: 'embed/host-runtime.js' });
+  vm.runInContext(loaderSource, context, { filename: 'leksihjelp-loader.js' });
 
   const shim = context.window.__skrivLeksihjelpShim;
+  const setting = (key) => shim.runtime.store.get(key)[key];
+
   assert.equal(
-    shim._store.personalizationEnabled,
+    setting('personalizationEnabled'),
     false,
     'embedded Skriv must not expose ephemeral personalization controls',
   );
+  assert.equal(
+    context.chrome.runtime.id,
+    undefined,
+    'the host config must never claim to be a real extension',
+  );
+
   const firstDocument = createFakeBridge('nn');
   const secondDocument = createFakeBridge('en');
 
   shim.bindBridge(firstDocument);
-  assert.equal(shim._store['lang.spellcheck'], 'nn');
+  assert.equal(setting('lang.spellcheck'), 'nn');
 
   shim.bindBridge(secondDocument);
-  assert.equal(shim._store['lang.spellcheck'], 'en');
+  assert.equal(setting('lang.spellcheck'), 'en');
 
   firstDocument.setWritingLang('de');
-  assert.equal(shim._store['lang.spellcheck'], 'en', 'old document must be detached');
+  assert.equal(setting('lang.spellcheck'), 'en', 'old document must be detached');
 
   secondDocument.setWritingLang('es');
-  assert.equal(shim._store['lang.spellcheck'], 'es');
+  assert.equal(setting('lang.spellcheck'), 'es');
 
   shim.unbindBridge(secondDocument);
   assert.equal(shim.isBound, false);

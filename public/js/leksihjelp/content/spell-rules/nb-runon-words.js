@@ -29,7 +29,7 @@
   'use strict';
   const host = typeof self !== 'undefined' ? self : globalThis;
   host.__lexiSpellRules = host.__lexiSpellRules || [];
-  const { escapeHtml, matchCase, editDistance } = host.__lexiSpellCore || {};
+  const { escapeHtml, matchCase, editDistance, candidateIndex } = host.__lexiSpellCore || {};
 
   // A run-on requires TWO whole words jammed together. If the unknown token
   // is within a SINGLE edit of a real word, the one-typo explanation is far
@@ -42,6 +42,23 @@
     if (typeof editDistance !== 'function') return false;
     const len = word.length;
     const first = word[0];
+    // Ytelse (27.08.2026): samme fulle validWords-skanning som fuzzy hadde.
+    // Her er svaret en boolsk «finnes det én?», så rekkefølgen betyr
+    // ingenting — bøttene gir nøyaktig samme mengde å lete i.
+    const cIdx = typeof candidateIndex === 'function' ? candidateIndex(validWords) : null;
+    if (cIdx) {
+      for (let cl = len - 1; cl <= len + 1; cl++) {
+        if (cl < 1) continue;
+        const b = cIdx.bucket(first, cl);
+        if (!b) continue;
+        for (let i = 0; i < b.words.length; i++) {
+          const cand = b.words[i];
+          if (cand === word) continue;
+          if (editDistance(word, cand, 1) <= 1) return true;
+        }
+      }
+      return false;
+    }
     for (const cand of validWords) {
       if (cand === word) continue;
       if (cand[0] !== first) continue;
