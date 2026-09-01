@@ -42,7 +42,40 @@ export function initMyFeature(editor, options = {}) {
 4. Circular imports are forbidden; update `DEPENDENCIES.md` when an edge changes.
 5. Optional editor review tools use literal dynamic imports so the service-worker asset audit can discover them.
 6. Floating UI is imported from local ESM files. The locally vendored jsPDF UMD exposes `window.jspdf`; guard that global before use.
-7. `public/js/leksihjelp/` is generated from the upstream Leksihjelp repository. Do not hand-edit it. The sync also owns the marked classic-script block in `index.html` and marked Leksihjelp cache inventory in `sw.js`; order comes from the upstream manifest. Runtime access stays behind `app/leksihjelp-bridge.js` plus `leksihjelp-loader.js`.
+7. `public/js/leksihjelp/` is vendored from the Leksihjelp repository. Do not hand-edit it. See "Vendoring Leksihjelp" below. Runtime access stays behind `app/leksihjelp-bridge.js` plus `leksihjelp-loader.js`.
+
+## Vendoring Leksihjelp
+
+**Leksihjelp owns the sync mechanism; the consumer owns the pull.** There is
+one implementation of the file sync — `scripts/embed-sync.js` in the
+leksihjelp repository — and every consumer calls it with its own options.
+Skriv must never grow a second copy of the copying, CSS scoping or audio
+stripping; keeping two implementations is exactly how the old sync drifted
+from Lockdown's.
+
+- `scripts/sync-leksihjelp.js` in *this* repo is the pull side only: it locates
+  the source, refuses unsafe sources, invokes `embed-sync`, and regenerates the
+  managed blocks. Run it from here; leksihjelp never writes into this tree.
+- Skriv's options are `--profile no-audio --scope .skriv-leksihjelp --without
+  pdf-viewer`, and deliberately **no `--subset`** — Skriv takes the shared
+  layer-2 views, not just the engine.
+- **Always `--dry-run` first.** The report buckets changes per layer. A pure
+  engine update is routine; anything touching layer 2 or 2.5 changes visible
+  surface and should be checked in a browser before it lands.
+- **Pull only from a release branch.** `embed-sync` mirrors the *working copy*
+  of the leksihjelp checkout, not a branch you name, so a checkout parked on a
+  feature branch silently vendors unreleased code. The script refuses anything
+  that is not on `staging` or `main`; when the shared checkout is busy, point
+  `LEKSIHJELP_REPO_PATH` at a worktree pinned to a release branch.
+- **Fix upstream, then pull.** A bug found through Skriv is fixed in the
+  leksihjelp repository and re-synced. The divergence guard compares each file
+  against `.version` and stops the sync if a vendored file was edited locally.
+- The sync owns the generated blocks in `index.html` and `sw.js`, derived from
+  `load-order.json`: the version global, `embed/host-runtime.js`,
+  `leksihjelp-loader.js`, then the content scripts and shared views in upstream
+  order. That ordering is a contract — the runtime must exist before Skriv's
+  config installs it, and both before anything vendored reads `chrome.*`.
+  Bump `CACHE_NAME` in `sw.js` afterwards.
 
 ## Localization and language
 

@@ -39,7 +39,7 @@ public/
 ├── school.html                 standalone per-school one-pager (paragraph trainer; `?skole=<id>` picks config)
 ├── stabekk.html                redirect to school.html?skole=stabekk, kept for shared links/QR
 ├── manifest.json               PWA manifest
-├── sw.js                       Service Worker, current cache `skriv-v94`
+├── sw.js                       Service Worker, current cache `skriv-v95`
 ├── css/main.css                app/editor CSS and responsive rules
 ├── icons/                      install icon
 ├── vendor/                     pinned Tailwind, jsPDF, MSAL Browser, and docx distributions
@@ -125,7 +125,7 @@ The dependency graph is a DAG. Storage access to `skriv-documents` is centralize
 
 ## PWA and update safety
 
-The current cache is `skriv-v94`.
+The current cache is `skriv-v95`.
 
 1. The service worker atomically precaches the critical app shell and full ES-module graph.
 2. Vendored Leksihjelp code, styles, metadata, and the compact NB fallback are cached best-effort per file. Larger language data is cached on first use by the same-origin fetch handler so installing the word processor does not eagerly download every language.

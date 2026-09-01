@@ -18,38 +18,50 @@ instead of showing two competing surfaces.
 
 - All executable code and vocabulary data lives under
   `public/js/leksihjelp/`.
-- `public/js/leksihjelp-loader.js` runs first and provides the narrow
-  `chrome.runtime` and `chrome.storage` compatibility API expected by the
-  upstream classic scripts.
-- The generated classic-script block in `public/index.html` follows the
-  dependency order in upstream `extension/manifest.json`.
+- `public/js/leksihjelp/embed/host-runtime.js` is Leksihjelp's own shared embed
+  runtime. It provides the `chrome.runtime` / `chrome.storage` compatibility
+  API, the capability contract, and the store and dataSource seams. Skriv no
+  longer maintains a hand-written shim for any of this.
+- `public/js/leksihjelp-loader.js` is Skriv's *configuration* of that runtime:
+  asset base, seeded settings, capabilities, and the two-way bridge binding.
+  It must never set `runtimeId` — its absence is how `vocab-seam` tells an
+  embedded host from a real extension — and its capabilities stay false/null.
+- The generated block in `public/index.html` is derived from
+  `public/js/leksihjelp/load-order.json`, which upstream derives from
+  `extension/manifest.json`.
 - Upstream scripts communicate through explicit `window.__lexi*` globals.
   Skriv's authored integration stays behind `app/leksihjelp-bridge.js`,
   `app/leksihjelp-settings.js`, and `app/leksihjelp-dictionary.js`.
 - Vocabulary JSON is fetched only from Skriv's own origin. There is no runtime
   vocabulary API, CDN, analytics, or authentication dependency.
 
-The embedded subset deliberately omits TTS, prediction, the floating widget,
-extension background code, account UI, and remote synchronization. Upstream's
-personal dictionary and learning-state controls are also disabled in the Skriv
-shim until Skriv has a durable, product-owned storage and UI contract for them.
+Capabilities are declared `{ network: false, tts: false, report: false }`, with
+`policySource` and `identity` left `null`. Those two are prepared seams for
+teacher-managed settings and optional Leksihjelp sign-in; the runtime refuses
+any non-null value until they are actually built, so a half-wired feature fails
+loudly instead of pretending to work. Upstream's personal dictionary and
+learning-state controls stay disabled until Skriv has a durable,
+product-owned storage and UI contract for them.
 
-## Classic-script dependency order
+## Load order
 
-The sync script filters the upstream manifest to this shape:
+The order is a contract, generated — never hand-held:
 
-1. i18n and exam registry
-2. vocabulary core, vocabulary seam, and language detection
-3. rule-feature gating and spell-check core
-4. every manifest-listed `content/spell-rules/*.js`, in manifest order
-5. spell-check engine
-6. pedagogy renderer and personalization store required by the current renderer
-7. spell-check renderer
-8. Skriv's two vendored popup helpers
+1. the vendored version, as a global, so the runtime can cache-bust its fetches
+2. `embed/host-runtime.js` — layer 2.5, deliberately absent from the upstream
+   manifest and therefore from `load-order.json`, so the host loads it itself
+3. `js/leksihjelp-loader.js` — Skriv's config, which installs the runtime and
+   so must run after it exists but before anything vendored reads `chrome.*`
+4. every `contentScripts` entry from `load-order.json`, in upstream order
+   (i18n, host capabilities, exam registry, vocabulary seam, language
+   detection, rule gating, spell-check core, every `content/spell-rules/*.js`,
+   the engine, then the renderers)
+5. the shared `views` from `load-order.json`
 
-The loader remains immediately before the managed block; `app/main.js` remains
-immediately after it. A rule copied to disk but absent from this ordered block
-does not execute, so the order and inventory are generated and tested together.
+`app/main.js` remains immediately after the block. A rule copied to disk but
+absent from this ordered block does not execute, so the order and the file
+inventory are generated and tested together
+(`tests/leksihjelp-vendor-contract.test.mjs`).
 
 ## Vendoring contract
 
@@ -57,35 +69,49 @@ does not execute, so the order and inventory are generated and tested together.
 snapshot. Do not hand-edit `public/js/leksihjelp/`, the marked Leksihjelp block
 in `public/index.html`, or the marked Leksihjelp asset block in `public/sw.js`.
 
-The script:
+**Leksihjelp owns the sync mechanism; Skriv owns the pull.** The file sync
+itself is `scripts/embed-sync.js` in the Leksihjelp repository — one
+implementation shared by every embed consumer. Skriv must not grow a second
+copy of the copying, CSS scoping or audio stripping.
 
-1. Locates a sibling Leksihjelp checkout or reads `LEKSIHJELP_REPO_PATH`.
-2. Parses `extension/manifest.json` once for version and classic-script order.
-3. Validates required files and managed markers before replacing the old
-   snapshot.
-4. Copies the exact manifest-listed rule set plus required seam, renderer, and
-   popup-helper files.
-5. Copies bundled vocabulary data, strips unused audio metadata from the six
-   main language payloads, and scopes upstream CSS under `.skriv-leksihjelp`.
-6. Writes `.version` with the upstream version, commit, complete generated file
-   inventory, classic-script order, and sync timestamp.
-7. Regenerates the managed HTML and service-worker inventories.
+`scripts/sync-leksihjelp.js` here is the pull side:
 
-Run from the Skriv repository root:
+1. Locates a sibling Leksihjelp checkout or reads `LEKSIHJELP_REPO_PATH`, and
+   reports its branch, version and commit.
+2. Refuses to pull from anything but a release branch (`staging`, `main`), or
+   from a dirty working tree. `embed-sync` mirrors the *working copy*, not a
+   branch you name, so a checkout parked on a feature branch would silently
+   vendor unreleased code. Override with `--allow-any-branch` / `--force` only
+   deliberately.
+3. Runs `embed-sync` with Skriv's options: `--profile no-audio --scope
+   .skriv-leksihjelp --without pdf-viewer`, and no `--subset` — Skriv takes the
+   shared layer-2 views as well as the engine. Audio stripping, CSS scoping and
+   the pdf-viewer strip all happen upstream.
+4. Regenerates the managed blocks in `index.html` and `sw.js` from the
+   `load-order.json` that `embed-sync` wrote.
+
+Upstream writes `.version` (version, commit, profile, scope and a per-file hash
+inventory) and `load-order.json` (content scripts and shared views). Both are
+generated; `.version` is also the divergence guard's baseline, so a locally
+edited vendored file stops the next sync until the change is ported upstream.
+
+Always dry-run first — the report buckets changes per layer, so a pure engine
+update can be pulled as routine while anything touching layer 2 is checked in a
+browser:
 
 ```sh
+node scripts/sync-leksihjelp.js --dry-run
 node scripts/sync-leksihjelp.js
 ```
 
-Or select a checkout explicitly:
+Select a checkout explicitly when the shared one is busy or on a feature
+branch (a `git worktree` pinned to `staging` works well):
 
 ```sh
 LEKSIHJELP_REPO_PATH=/absolute/path/to/leksihjelp node scripts/sync-leksihjelp.js
 ```
 
-The script pins the source checkout's current `HEAD`; updating or fetching that
-checkout is a separate, deliberate step. Always inspect its branch, status, and
-remote tracking state before syncing.
+Bump `CACHE_NAME` in `public/sw.js` afterwards.
 
 ## Offline policy
 
@@ -116,12 +142,19 @@ uses the Leksihjelp button.
 
 In embedded mode, the bridge mirrors the active document's writing language,
 the dictionary lookup language, and the limited-assistance flag into the
-in-page storage shim. Writing language is document-owned and also drives the
-editor `lang`, native spellcheck, special characters, and frame selection.
+runtime's store. Writing language is document-owned and also drives the editor
+`lang`, native spellcheck, special characters, and frame selection.
 
-The persistent key contract is documented in `specs/DATA-MODEL.md`. The shim's
-additional upstream settings are in-memory compatibility state, not new Skriv
-storage.
+The binding is two-way, and the direction that is easy to get wrong is the
+return path: the runtime's memory store fires a change on *every* write, including
+one that sets a key to the value it already held. The old hand-written shim
+skipped no-op writes; this one does not. What keeps
+bridge → store → bridge from looping is that every bridge setter returns early
+when the value is unchanged. Preserve that property in any new setter.
+
+The persistent key contract is documented in `specs/DATA-MODEL.md`. The
+runtime's additional upstream settings are in-memory compatibility state, not
+new Skriv storage.
 
 ## Verification after a sync
 
