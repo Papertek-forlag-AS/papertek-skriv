@@ -105,7 +105,10 @@ app/folder-picker.js         → app/{folder-store,school-level}.js,
                                shared/{i18n,html-escape}.js
 app/onboarding-modal.js      → app/school-level.js,
                                shared/{i18n,html-escape,dom-helpers}.js
-app/leksihjelp-settings.js   → shared/{i18n,html-escape}.js
+app/leksihjelp-settings.js   → app/leksihjelp-view-host.js,
+                               shared/{i18n,html-escape}.js
+app/leksihjelp-view-host.js  → shared/{i18n,html-escape}.js
+                               (mounts the vendored shared dictionary view)
 app/leksihjelp-bridge.js     (ES-import leaf; uses runtime shim globals)
 app/leksihjelp-dictionary.js (ES-import leaf; uses runtime Leksihjelp globals)
 ```

@@ -31,7 +31,21 @@ instead of showing two competing surfaces.
   `extension/manifest.json`.
 - Upstream scripts communicate through explicit `window.__lexi*` globals.
   Skriv's authored integration stays behind `app/leksihjelp-bridge.js`,
-  `app/leksihjelp-settings.js`, and `app/leksihjelp-dictionary.js`.
+  `app/leksihjelp-settings.js`, `app/leksihjelp-view-host.js`, and
+  `app/leksihjelp-dictionary.js`.
+- The drawer's Ordbok tab mounts Leksihjelp's own `dictionary-view` through
+  `app/leksihjelp-view-host.js`, so the dictionary is the same surface here as
+  in Lockdown and the extension. Skriv no longer renders search results from
+  the view-model itself, which also retires the standing risk that a change in
+  what `dict-state-builder` returns breaks Skriv's renderer silently.
+  Host-owned differences, declared as deps rather than forked code:
+  vocabulary is bundled rather than IndexedDB-cached, audio and external
+  dictionary links are off, and the language pills are dictionary-scoped —
+  switching one changes the lookup language (mirrored into the bridge, so
+  Skriv's own Oppslagsspråk select agrees) and never the language the pupil is
+  writing in.
+- The Innstillinger tab stays Skriv's: Eksamensmodus, Skrivespråk,
+  Oppslagsspråk and Grammatikknivå are host policy, not shared UI.
 - Vocabulary JSON is fetched only from Skriv's own origin. There is no runtime
   vocabulary API, CDN, analytics, or authentication dependency.
 

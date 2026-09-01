@@ -85,12 +85,21 @@ test('version timeline preview is a localized, keyboard-contained dialog', async
 });
 
 test('Leksihjelp language choices reuse the app locale names', async () => {
-    const source = await readSource('../public/js/app/leksihjelp-settings.js');
+    const [settings, viewHost] = await Promise.all([
+        readSource('../public/js/app/leksihjelp-settings.js'),
+        readSource('../public/js/app/leksihjelp-view-host.js'),
+    ]);
 
-    assert.match(source, /const LANGS = \['nb', 'nn', 'en', 'de', 'es', 'fr'\]/);
-    assert.match(source, /t\(`language\.\$\{id\}`\)/);
-    assert.match(source, /const langName = t\(`language\.\$\{lang\}`\)/);
-    assert.doesNotMatch(source, /\{ id: 'nb', label:/);
+    // The Skrivespråk / Oppslagsspråk selects.
+    assert.match(settings, /const LANGS = \['nb', 'nn', 'en', 'de', 'es', 'fr'\]/);
+    assert.match(settings, /t\(`language\.\$\{id\}`\)/);
+    assert.doesNotMatch(settings, /\{ id: 'nb', label:/);
+
+    // The shared dictionary view names languages through a host-supplied
+    // callback, so its pills must resolve to the same strings as the selects
+    // rather than the vendored bundle's own names.
+    assert.match(viewHost, /const langName = t\(`language\.\$\{lang\}`\)/);
+    assert.match(viewHost, /langName: i18n\.langName/);
 });
 
 test('the skip link has a safe fallback and follows the initialized UI locale', async () => {
