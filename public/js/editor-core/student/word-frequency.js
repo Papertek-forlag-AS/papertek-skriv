@@ -28,11 +28,14 @@ const HIGHLIGHT_CLASS = 'skriv-repeat-word';
  * Load the word bank for the current language (same as writing-spinner).
  * @returns {Promise<{ stopwords: Set, stem: Function, synonyms: object }>}
  */
-async function loadWordBank() {
-    const lang = getCurrentLanguage();
+async function loadWordBank(contentLang) {
+    const lang = contentLang || getCurrentLanguage();
     try {
         if (lang === 'nn') {
             return await import('./spinner-data-nn.js');
+        }
+        if (lang === 'en') {
+            return await import('./spinner-data-en.js');
         }
         return await import('./spinner-data-nb.js');
     } catch (err) {
@@ -83,6 +86,7 @@ function tokenize(text) {
  * @param {HTMLElement} container - parent wrapping the editor
  * @param {object} [options]
  * @param {Function} [options.onWordClick] - Called with (word, range) when a highlighted word is clicked
+ * @param {() => string|null} [options.getContentLang] - Returns the language the pupil writes in ('nb'|'nn'|'en'); defaults to UI language
  * @returns {{ destroy, toggle, isActive, analyze }}
  */
 export function initWordFrequency(editor, container, options = {}) {
@@ -91,7 +95,7 @@ export function initWordFrequency(editor, container, options = {}) {
     let debounceTimer = null;
     let highlights = [];  // Track highlight <mark> elements for cleanup
 
-    const bankPromise = loadWordBank().then(bank => { wordBank = bank; });
+    const bankPromise = loadWordBank(options.getContentLang?.()).then(bank => { wordBank = bank; });
 
     /**
      * Remove all existing highlight marks from the editor.

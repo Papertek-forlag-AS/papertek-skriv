@@ -42,10 +42,11 @@ export const SCHOOL_LEVEL_BANDS = Object.freeze({
 
 /**
  * Map a stored school-level ID to a broad pedagogical band.
- * Returns null for missing or unknown values so portable modules can choose
- * an unfiltered fallback instead of guessing a student's level.
+ * Defaults to the stored level, so callers that mean "this student" need not
+ * repeat the lookup. Returns null for missing or unknown values so portable
+ * modules can choose an unfiltered fallback instead of guessing a level.
  */
-export function getSchoolLevelBand(levelId) {
+export function getSchoolLevelBand(levelId = getSchoolLevel()) {
     return SCHOOL_LEVEL_BANDS[levelId] || null;
 }
 

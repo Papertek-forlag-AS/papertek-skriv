@@ -76,11 +76,27 @@
         category: 'dictionary',
       }),
     }),
+    // Examples are ALLOWED in ordinary exam mode, in every language.
+    //
+    // They were suppressed outright between 2026-08-19 and 2026-08-25, after a
+    // teacher reported that «særlig setningsforslag til ord med rød strek gjør
+    // at svake elever kan surfe på setninger de ikke har tenkt ut selv». That
+    // cure was too broad: the lift-value of an example is high in a language
+    // the pupil cannot yet write and low in their mother tongue, so hiding
+    // «test av bilen» from a Norwegian exam bought nothing and cost a pupil
+    // who needed to see the word used.
+    //
+    // The teacher's concern is real, so it gets its OWN control instead of
+    // riding on exam mode: the `hideExampleSentences` flag — "ordbok uten
+    // eksempelsetninger" — a third level below exam mode. **The flag exists
+    // and both renderers honour it; nothing sets it yet.** No settings UI, no
+    // teacher control in lockdown, no exam-profile binding. Those are a later
+    // decision (Geir, 2026-08-25); its intended use is foreign-language exams.
     Object.freeze({
       id: 'dictionary.examples',
       exam: Object.freeze({
-        safe: false,
-        reason: 'Dictionary example sentences are ready-made prose, not reference data. A pupil looking up a flagged word gets a finished sentence to lift; the headword, gender and inflection table stay available',
+        safe: true,
+        reason: 'Example sentences show a word in use, which is reference information rather than a ready-made answer. Suppressing them is a separate, opt-in choice — the hideExampleSentences flag, "ordbok uten eksempelsetninger" — not something ordinary exam mode does',
         category: 'dictionary',
       }),
     }),

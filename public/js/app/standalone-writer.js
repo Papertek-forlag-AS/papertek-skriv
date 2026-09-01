@@ -28,6 +28,9 @@ import { initImageManager } from '../editor-core/student/image-manager.js';
 import { initKeyboardShortcuts } from '../editor-core/student/keyboard-shortcuts.js';
 import { initVersionHistory } from '../editor-core/student/version-history.js';
 import { initGermanHintDrawer } from '../editor-core/student/german-hint-drawer.js';
+import { initEditorLang } from '../editor-core/student/editor-lang.js';
+import { initReadAloud } from '../editor-core/student/read-aloud.js';
+import { initReadingSettings } from '../editor-core/student/reading-settings.js';
 import { initLeksihjelpBridge } from './leksihjelp-bridge.js';
 import { initLeksihjelpSettings } from './leksihjelp-settings.js';
 import { initLeksihjelpDictionary } from './leksihjelp-dictionary.js';
@@ -64,15 +67,6 @@ const WRITING_LANGUAGE_LABEL_KEYS = {
     de: 'language.de',
     es: 'language.es',
     fr: 'language.fr',
-};
-
-const WRITING_LANGUAGE_TAGS = {
-    nb: 'nb-NO',
-    nn: 'nn-NO',
-    en: 'en',
-    de: 'de',
-    es: 'es',
-    fr: 'fr',
 };
 
 /**
@@ -273,8 +267,8 @@ export async function launchEditor(container, docId, onBack, options = {}) {
     editor.setAttribute('role', 'textbox');
     editor.setAttribute('aria-multiline', 'true');
     editor.setAttribute('aria-label', t('skriv.editorLabel'));
-    editor.setAttribute('lang', WRITING_LANGUAGE_TAGS[currentWritingLanguage] || currentWritingLanguage);
-    editor.setAttribute('spellcheck', 'true');
+    // The lang and spellcheck attributes are owned by initEditorLang below,
+    // which also yields spell-checking to Leksihjelp when it is present.
 
     // Load existing content
     if (doc.html) {
@@ -360,6 +354,11 @@ export async function launchEditor(container, docId, onBack, options = {}) {
             offline: `<div class="flex items-center gap-1.5" title="${escapeAttr(t('skriv.savedLocally'))}"><svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/></svg><span class="hidden sm:inline">${t('skriv.offline')}</span></div>`,
             error: t('skriv.saveError'),
         },
+        // The status pill is easy to miss. A failing save is the one thing a
+        // pupil must notice, so say it loudly — once per failure streak.
+        onError: () => {
+            showToast(t('skriv.saveErrorToast'), { duration: 10000 });
+        },
     });
 
     microsoftButton.addEventListener('click', async () => {
@@ -442,9 +441,11 @@ export async function launchEditor(container, docId, onBack, options = {}) {
     if (doc.frameType) {
         frameApi.setActiveFrameType(doc.frameType);
         // Re-load frame markdown for the guide panel
+        // nb fallback when the writing-language file is missing, same as the
+        // frame selector.
         const frameLanguage = resolveFrameLanguage(currentWritingLanguage);
         fetch(`/frames/${frameLanguage}/${doc.frameType}.md`)
-            .then(r => r.ok ? r.text() : null)
+            .then(r => r.ok ? r.text() : fetch(`/frames/nb/${doc.frameType}.md`).then(r2 => r2.ok ? r2.text() : null))
             .then(md => {
                 if (md) {
                     const parsed = parseFrameMarkdown(md);
@@ -627,6 +628,8 @@ export async function launchEditor(container, docId, onBack, options = {}) {
 
     // --- Insights Drawer (Gjennomgang) ---
     const insightsDrawerApi = initInsightsDrawer(writingEnv, [
+        { label: t('readAloud.title'), description: t('readAloud.desc'), icon: 'M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z', isTool: true, action: () => readAloudApi.toggle() },
+        { label: t('readingView.title'), description: t('readingView.desc'), icon: 'M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75', isTool: true, action: () => readingSettingsApi.toggle() },
         { label: t('review.search'), description: t('review.searchDesc'), icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', isTool: true, action: openSearch },
         { label: t('review.focus'), description: t('review.focusDesc'), icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z', isTool: true, action: () => invokeLazyFeature('focus', 'toggle') },
         { label: t('review.spinner'), description: t('review.spinnerDesc'), icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', isTool: true, action: () => invokeLazyFeature('spinner', 'show') },
@@ -662,6 +665,24 @@ export async function launchEditor(container, docId, onBack, options = {}) {
     // The open document seeds Leksihjelp; switching between documents must not
     // inherit the language of whichever document happened to be open last.
     leksihjelpBridge.setWritingLang(currentWritingLanguage);
+
+    // The editor's lang/spellcheck attributes follow THIS document's writing
+    // language, not a global pick. Leksihjelp (embedded or extension) owns
+    // spell-check when present; keep the native checker off so the pupil sees
+    // one set of squiggles.
+    const editorLangApi = initEditorLang(editor, {
+        getWritingLang: () => currentWritingLanguage,
+        hasExternalSpellcheck: () => leksihjelpBridge.getStatus() !== 'absent',
+        onSpellcheckOwnerChange: (fn) => leksihjelpBridge.onStatusChange(fn),
+    });
+
+    const readAloudApi = initReadAloud(editor, writingEnv, {
+        getLang: () => currentWritingLanguage,
+    });
+
+    // --- Reading settings (lesevisning — dyslexia-friendly display) ---
+    const readingSettingsApi = initReadingSettings(editor, writingEnv);
+
     const leksihjelpSettingsApi = initLeksihjelpSettings(writingEnv, leksihjelpBridge);
     const leksihjelpBtn = topBar.querySelector('#btn-leksihjelp');
     // The button is always available now. Behaviour branches on bridge status
@@ -690,7 +711,7 @@ export async function launchEditor(container, docId, onBack, options = {}) {
         const changed = nextLanguage !== currentWritingLanguage;
         currentWritingLanguage = nextLanguage;
         writingLanguageSelect.value = nextLanguage;
-        editor.setAttribute('lang', WRITING_LANGUAGE_TAGS[nextLanguage] || nextLanguage);
+        editorLangApi.refresh();
         specialCharsApi.setActiveLanguage(nextLanguage);
 
         if (syncBridge) leksihjelpBridge.setWritingLang(nextLanguage);
@@ -952,6 +973,9 @@ export async function launchEditor(container, docId, onBack, options = {}) {
             lazyFeaturePromises.clear();
             specialCharsApi.destroy();
             insightsDrawerApi.destroy();
+            editorLangApi.destroy();
+            readAloudApi.destroy();
+            readingSettingsApi.destroy();
             leksihjelpDictApi.destroy();
             if (germanHintApi) germanHintApi.destroy();
             leksihjelpSettingsApi.destroy();
@@ -1054,7 +1078,7 @@ export async function launchEditor(container, docId, onBack, options = {}) {
             wordCount: countWords(cleanText),
             hasReferences: refsApi.getReferences().length > 0,
             hasHeadings: editor.querySelectorAll('h1, h2').length > 0,
-            exportType: 'doc',
+            exportType: 'docx',
         });
         if (proceed) {
             downloadDocx(editor, { title: getTitle() });

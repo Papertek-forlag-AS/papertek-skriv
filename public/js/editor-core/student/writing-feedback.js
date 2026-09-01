@@ -19,22 +19,36 @@ import { isFrameElement, isImageBlock } from '../shared/frame-elements.js';
 
 const DEBOUNCE_MS = 1000;
 
-const FILLER_WORDS = [
-    'liksom', 'bare', 'egentlig', 'faktisk', 'vel', 'altsa',
-    'jo', 'nok', 'visst', 'sikkert', 'litt', 'ganske',
-    'veldig', 'virkelig'
-];
+const FILLER_WORDS = {
+    nb: [
+        'liksom', 'bare', 'egentlig', 'faktisk', 'vel', 'altså',
+        'jo', 'nok', 'visst', 'sikkert', 'litt', 'ganske',
+        'veldig', 'virkelig'
+    ],
+    nn: [
+        'liksom', 'berre', 'eigentleg', 'faktisk', 'vel', 'altså',
+        'jo', 'nok', 'visst', 'sikkert', 'litt', 'ganske',
+        'veldig', 'verkeleg'
+    ],
+};
 
-// Reflexive -s verbs that are NOT passive (allowlist)
+// Reflexive/deponent verbs that are NOT passive (allowlist, normalized
+// via normalize() so both nb -s/-es and nn -ast forms are covered)
 const REFLEXIVE_VERBS = [
     'moetes', 'trives', 'finnes', 'lykkes', 'minnes', 'synes',
-    'ferdes', 'skjelves', 'lages', 'slippes', 'trenges'
+    'ferdes', 'skjelves', 'lages', 'slippes', 'trenges',
+    'moetast', 'trivast', 'finnast', 'lukkast', 'minnast', 'synast',
+    'ferdast', 'kjennest', 'tykkjest'
 ];
 
-// Passive auxiliary patterns
-const PASSIVE_AUX_REGEX = /\b(ble|blir|blitt)\s+(\w+(?:t|et|dd))\b/gi;
-// Passive -s/-es verb pattern (excluding reflexive allowlist)
-const PASSIVE_S_REGEX = /\b(\w{4,}(?:es|s))\b/gi;
+// Passive auxiliary patterns (nb ble/blir/blitt, nn vart/vert/blei).
+// The -a participle form requires 3+ stem letters so short adjectives
+// («blei bra») don't trigger.
+const PASSIVE_AUX_REGEX = /\b(?:ble|blir|blitt|vart|vert|blei)\s+(\w+(?:t|et|dd)|\w{3,}a)\b/gi;
+// s-passive: only flag the explicit det-passive construction
+// («det vises», «det hevdes», nn «det gjerast») — matching bare words
+// ending in -s produced false hits on plurals and genitives.
+const PASSIVE_S_REGEX = /\b(?:det|dette|her)\s+([a-zæøå]{3,}(?:es|ast))\b/gi;
 
 const PARAGRAPH_MAX_WORDS = 200;
 const PARAGRAPH_MIN_WORDS = 20;
@@ -206,7 +220,12 @@ function normalize(word) {
 // --- Main export ---
 
 export function initWritingFeedback(editor, container, options = {}) {
-    const { getActiveFrame } = options;
+    const { getActiveFrame, getWritingLang } = options;
+
+    // Document writing language, collapsed to the two data languages.
+    function dataLang() {
+        return (getWritingLang ? getWritingLang() : 'nb') === 'nn' ? 'nn' : 'nb';
+    }
 
     let active = false;
     let panel = null;
@@ -253,62 +272,55 @@ export function initWritingFeedback(editor, container, options = {}) {
 
     function checkPassiveVoice(sentences) {
         for (const { text, element } of sentences) {
-            // Pattern 1: ble/blir/blitt + past participle
+            // Pattern 1: auxiliary + past participle
             const auxMatches = [...text.matchAll(PASSIVE_AUX_REGEX)];
             for (const match of auxMatches) {
                 findings.push({
                     type: 'passive',
-                    group: 'Passiv form',
+                    group: t('feedback.groupPassive'),
                     icon: '⚠️',
                     severity: 'warning',
-                    text: `Passiv konstruksjon: «${match[0]}» — prøv aktiv form`,
+                    text: t('feedback.passiveWord', { word: match[0] }),
                     excerpt: text.substring(0, 60),
                     element
                 });
             }
 
-            // Pattern 2: passive -s/-es verbs
+            // Pattern 2: det-passive -es/-ast verbs
             const sMatches = [...text.matchAll(PASSIVE_S_REGEX)];
             for (const match of sMatches) {
-                const word = match[1].toLowerCase();
                 // Skip if in reflexive allowlist
-                const normalized = normalize(word);
-                if (REFLEXIVE_VERBS.includes(normalized)) continue;
-                // Only flag if preceded by "det" or looks passive in context
-                const idx = match.index;
-                const before = text.substring(Math.max(0, idx - 10), idx).toLowerCase();
-                if (before.includes('det ') || before.includes('dette ')) {
-                    findings.push({
-                        type: 'passive',
-                        group: 'Passiv form',
-                        icon: '⚠️',
-                        severity: 'warning',
-                        text: `Passiv: «${match[1]}» — prøv aktiv form: «Forskerne viser» i stedet for «det vises»`,
-                        excerpt: text.substring(0, 60),
-                        element
-                    });
-                }
+                if (REFLEXIVE_VERBS.includes(normalize(match[1]))) continue;
+                findings.push({
+                    type: 'passive',
+                    group: t('feedback.groupPassive'),
+                    icon: '⚠️',
+                    severity: 'warning',
+                    text: t('feedback.passiveWord', { word: match[0] }),
+                    excerpt: text.substring(0, 60),
+                    element
+                });
             }
         }
     }
 
     function checkFillerWords(fullText) {
-        const lowerText = fullText.toLowerCase();
-        const words = lowerText.split(/\s+/);
+        // normalize() lowercases and folds æ/ø/å to ASCII, so \b works
+        // for words like «altså» that end in a non-\w character.
+        const searchText = normalize(fullText);
 
-        for (const filler of FILLER_WORDS) {
-            // Count whole-word occurrences
-            const regex = new RegExp(`\\b${filler}\\b`, 'gi');
-            const matches = fullText.match(regex);
+        for (const filler of FILLER_WORDS[dataLang()]) {
+            const regex = new RegExp(`\\b${normalize(filler)}\\b`, 'g');
+            const matches = searchText.match(regex);
             const count = matches ? matches.length : 0;
 
             if (count >= FILLER_THRESHOLD) {
                 findings.push({
                     type: 'filler',
-                    group: 'Fyllord',
+                    group: t('feedback.groupFiller'),
                     icon: '💡',
                     severity: 'tip',
-                    text: `«${filler}» brukes ${count} ganger — kan noen fjernes?`,
+                    text: t('feedback.filler', { word: filler, count }),
                     element: null
                 });
             }
@@ -321,20 +333,20 @@ export function initWritingFeedback(editor, container, options = {}) {
             if (wc > PARAGRAPH_MAX_WORDS) {
                 findings.push({
                     type: 'paragraph-length',
-                    group: 'Avsnittslengde',
+                    group: t('feedback.groupParagraphs'),
                     icon: '📝',
                     severity: 'warning',
-                    text: `Dette avsnittet er ${wc} ord — vurder å dele det opp`,
+                    text: t('feedback.longParagraph', { count: wc }),
                     excerpt: text.substring(0, 50),
                     element
                 });
             } else if (wc < PARAGRAPH_MIN_WORDS && wc > 0) {
                 findings.push({
                     type: 'paragraph-length',
-                    group: 'Avsnittslengde',
+                    group: t('feedback.groupParagraphs'),
                     icon: '📝',
                     severity: 'tip',
-                    text: `Kort avsnitt (${wc} ord) — kan det utvides eller slås sammen?`,
+                    text: t('feedback.shortParagraph', { count: wc }),
                     excerpt: text.substring(0, 50),
                     element
                 });
@@ -353,19 +365,19 @@ export function initWritingFeedback(editor, container, options = {}) {
         const wc = countWords(fullText);
         if (wc < SOURCE_MIN_WORDS) return;
 
-        // Check for citation markers
+        // Check for citation markers (nb «ifølge», nn «ifølgje»)
         const hasCitation = /\[\d+\]/.test(fullText)
-            || /ifølge/i.test(fullText)
-            || /i følge/i.test(fullText)
+            || /ifølgj?e/i.test(fullText)
+            || /i følgj?e/i.test(fullText)
             || /\(.*\d{4}.*\)/.test(fullText);
 
         if (!hasCitation) {
             findings.push({
                 type: 'missing-sources',
-                group: 'Kildebruk',
+                group: t('feedback.groupSources'),
                 icon: '⚠️',
                 severity: 'warning',
-                text: 'Teksten mangler kildehenvisninger — husk å begrunne med kilder',
+                text: t('feedback.noSources'),
                 element: null
             });
         }
@@ -392,10 +404,10 @@ export function initWritingFeedback(editor, container, options = {}) {
                 if (streak >= REPETITION_THRESHOLD) {
                     findings.push({
                         type: 'repetition',
-                        group: 'Variasjon',
+                        group: t('feedback.groupVariation'),
                         icon: '💡',
                         severity: 'tip',
-                        text: `${streak} setninger på rad starter med «${streakWord}» — varier starten`,
+                        text: t('feedback.sentenceRepeat', { count: streak, word: streakWord }),
                         element: sentences[streakStart].element
                     });
                 }
@@ -407,10 +419,10 @@ export function initWritingFeedback(editor, container, options = {}) {
         if (streak >= REPETITION_THRESHOLD) {
             findings.push({
                 type: 'repetition',
-                group: 'Variasjon',
+                group: t('feedback.groupVariation'),
                 icon: '💡',
                 severity: 'tip',
-                text: `${streak} setninger på rad starter med «${streakWord}» — varier starten`,
+                text: t('feedback.sentenceRepeat', { count: streak, word: streakWord }),
                 element: sentences[streakStart].element
             });
         }
@@ -422,10 +434,10 @@ export function initWritingFeedback(editor, container, options = {}) {
             if (wc > SENTENCE_MAX_WORDS) {
                 findings.push({
                     type: 'long-sentence',
-                    group: 'Setningslengde',
+                    group: t('feedback.groupSentences'),
                     icon: '⚠️',
                     severity: 'warning',
-                    text: `Denne setningen er ${wc} ord — vurder å dele den i to`,
+                    text: t('feedback.longSentence', { count: wc }),
                     excerpt: text.substring(0, 60),
                     element
                 });
@@ -508,9 +520,9 @@ export function initWritingFeedback(editor, container, options = {}) {
 
         if (findings.length === 0) {
             panel.innerHTML = `
-                <h3>Tilbakemelding</h3>
+                <h3>${escapeHtml(t('feedback.title'))}</h3>
                 <div class="skriv-feedback-empty">
-                    Ingen forslag akkurat nå — bra jobbet!
+                    ${escapeHtml(t('feedback.noFindings'))}
                 </div>`;
             return;
         }
@@ -522,16 +534,16 @@ export function initWritingFeedback(editor, container, options = {}) {
             groups[f.group].push(f);
         }
 
-        let html = `<h3>Tilbakemelding <span style="font-weight:400;font-size:12px;color:var(--skriv-muted,#6b7280)">(${findings.length})</span></h3>`;
+        let html = `<h3>${escapeHtml(t('feedback.title'))} <span style="font-weight:400;font-size:12px;color:var(--skriv-muted,#6b7280)">(${findings.length})</span></h3>`;
 
         for (const [groupName, items] of Object.entries(groups)) {
             html += `<div class="skriv-feedback-group">`;
-            html += `<div class="skriv-feedback-group-title">${groupName}</div>`;
+            html += `<div class="skriv-feedback-group-title">${escapeHtml(groupName)}</div>`;
             for (let i = 0; i < items.length; i++) {
                 const f = items[i];
                 const cardClass = f.severity === 'tip' ? 'skriv-feedback-card skriv-feedback-card--tip' : 'skriv-feedback-card';
                 const showBtn = f.element
-                    ? `<button class="skriv-feedback-card-btn" data-finding-idx="${findings.indexOf(f)}">Vis</button>`
+                    ? `<button class="skriv-feedback-card-btn" data-finding-idx="${findings.indexOf(f)}">${escapeHtml(t('feedback.show'))}</button>`
                     : '';
                 html += `
                     <div class="${cardClass}">

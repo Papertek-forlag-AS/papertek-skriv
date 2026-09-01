@@ -1,5 +1,5 @@
 /**
- * Export written text as a downloadable .txt, .pdf, or Word-compatible .doc file.
+ * Export written text as a downloadable .txt, .pdf, or real .docx (OOXML) file.
  * Supports TOC and reference rendering in PDF.
  */
 
@@ -7,6 +7,7 @@ import { countWords } from '../shared/word-counter.js';
 import { showInPageAlert } from '../shared/in-page-modal.js';
 import { isFrameElement, isImageBlock } from '../shared/frame-elements.js';
 import { t, getDateLocale } from '../shared/i18n.js';
+import { loadDocxLibrary, buildDocxDocument } from './docx-export.js';
 
 /**
  * Download text as a .txt file with UTF-8 BOM.
@@ -147,7 +148,7 @@ export function downloadPDF({ title, studentName, text, html, references }) {
         doc.setFont('Helvetica', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(150, 150, 150);
-        const pageNumText = `Side ${i}`;
+        const pageNumText = t('export.page', { num: i });
         const textWidth = doc.getTextWidth(pageNumText);
         doc.text(pageNumText, (pageWidth - textWidth) / 2, pageHeight - 12);
     }
@@ -159,63 +160,59 @@ export function downloadPDF({ title, studentName, text, html, references }) {
 }
 
 /**
- * Download content as a .doc file (Word-compatible HTML).
+ * Download content as a real .docx (OOXML) document.
+ * The vendored docx library is lazy-loaded on first use; the document
+ * builder is shared with Papertek Skriveprøve (see docx-export.js).
+ *
  * @param {HTMLElement} editor - The editor element containing the content
  * @param {Object} options
  * @param {string} [options.title] - Document title
- * @param {string} [options.author] - Author name
  */
-export function downloadDocx(editor, options = {}) {
-    const { title = 'Dokument', author = '' } = options;
+export async function downloadDocx(editor, options = {}) {
+    const { title = t('export.defaultTitle') } = options;
+
+    const docxLib = await loadDocxLibrary();
 
     const content = getCleanHTML(editor);
+    const body = document.createElement('div');
+    body.innerHTML = content;
 
-    const docHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
-      xmlns:w="urn:schemas-microsoft-com:office:word"
-      xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-    <meta charset="utf-8">
-    <title>${escapeHtml(title)}</title>
-    <!--[if gte mso 9]>
-    <xml>
-        <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>100</w:Zoom>
-        </w:WordDocument>
-    </xml>
-    <![endif]-->
-    <style>
-        @page { margin: 2.5cm; }
-        body { font-family: 'Times New Roman', serif; font-size: 12pt; line-height: 1.5; }
-        h1 { font-size: 16pt; font-weight: bold; margin-top: 24pt; margin-bottom: 12pt; }
-        h2 { font-size: 14pt; font-weight: bold; margin-top: 18pt; margin-bottom: 8pt; }
-        h3 { font-size: 12pt; font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; }
-        p { margin-top: 0; margin-bottom: 6pt; text-indent: 0.5cm; }
-        h1 + p, h2 + p, h3 + p { text-indent: 0; }
-        ul, ol { margin-left: 1cm; margin-bottom: 6pt; }
-        li { margin-bottom: 3pt; }
-        blockquote { margin-left: 2cm; margin-right: 1cm; font-style: italic; border-left: 2pt solid #ccc; padding-left: 0.5cm; }
-        figure { text-align: center; margin: 12pt 0; }
-        figure img { max-width: 70%; height: auto; }
-        figcaption { font-style: italic; font-size: 10pt; text-align: center; margin-top: 4pt; color: #555; }
-        table { border-collapse: collapse; width: 100%; margin: 6pt 0; }
-        td, th { border: 1px solid #999; padding: 4pt 6pt; }
-        th { background-color: #f0f0f0; font-weight: bold; }
-    </style>
-</head>
-<body>
-${content}
-</body>
-</html>`;
+    // Re-parsed data-URI images have no decoded size yet — stamp the live
+    // editor's natural dimensions onto the matching clones (same order:
+    // getCleanHTML removes scaffold but never reorders figures).
+    const liveImgs = editor.querySelectorAll('img');
+    body.querySelectorAll('img').forEach((img, i) => {
+        const live = liveImgs[i];
+        if (live && live.naturalWidth) {
+            img.setAttribute('width', String(live.naturalWidth));
+            img.setAttribute('height', String(live.naturalHeight));
+        }
+    });
 
-    const blob = new Blob(['﻿' + docHtml], { type: 'application/vnd.ms-word;charset=utf-8' });
+    const plainText = body.textContent || '';
+    const dateStr = new Date().toLocaleDateString(getDateLocale(), {
+        year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    const doc = buildDocxDocument(docxLib, {
+        title: title || t('export.defaultTitle'),
+        body,
+        labels: {
+            dateStr,
+            wordCount: t('export.wordCount', { count: countWords(plainText) }),
+            page: t('export.pageLabel'),
+            pageOf: t('export.pageOf'),
+        },
+    });
+
+    const blob = await docxLib.Packer.toBlob(doc);
     const url = URL.createObjectURL(blob);
 
     const safeTitle = (title || 'dokument').replace(/[^a-zA-ZæøåÆØÅäöüÄÖÜß0-9]/g, '-');
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${safeTitle}.doc`;
+    a.download = `${safeTitle}.docx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -224,14 +221,17 @@ ${content}
 
 /**
  * Extract clean HTML from the editor, stripping frame scaffolding and editor artifacts.
+ * Exported for tests — this is the gate that keeps scaffold out of deliverables.
  * @param {HTMLElement} editor - The editor element
  * @returns {string} Clean HTML string
  */
-function getCleanHTML(editor) {
+export function getCleanHTML(editor) {
     const clone = editor.cloneNode(true);
 
-    // Remove frame scaffolding elements
-    clone.querySelectorAll('[data-frame-section], [data-frame-header], [data-frame-prompt]').forEach(el => el.remove());
+    // Remove frame scaffolding elements. The dividers are also caught by the
+    // contenteditable="false" rule below, but scaffold in a deliverable is
+    // embarrassing enough to warrant belt and braces.
+    clone.querySelectorAll('[data-frame-section], [data-frame-header], [data-frame-prompt], .skriv-frame-divider').forEach(el => el.remove());
     clone.querySelectorAll('[contenteditable="false"]').forEach(el => {
         // Keep images and figures, remove other non-editable elements (toolbars, controls)
         if (!el.closest('figure') && el.tagName !== 'FIGURE' && el.tagName !== 'IMG') {
@@ -277,13 +277,6 @@ function getCleanHTML(editor) {
     });
 
     return clone.innerHTML;
-}
-
-/**
- * Escape HTML special characters.
- */
-function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /**

@@ -161,6 +161,11 @@ const _STRINGS = {
     tense_infinitive: 'Infinitiv',
     tense_imperative: 'Imperativ',
     tense_past_participle: 'Perfektum partisipp',
+    tense_present_perfect: 'Presens perfektum',
+    pp_mf: 'Hankjønn/hunkjønn',
+    pp_n: 'Intetkjønn',
+    pp_def: 'Bestemt',
+    pp_pl: 'Flertall',
     tense_comparative: 'Komparativ',
     tense_superlative: 'Superlativ',
     tense_present_participle: 'Presens partisipp',
@@ -173,6 +178,8 @@ const _STRINGS = {
     // Bøyingstabell for ord med likestilte skrivemåter (Språkrådet §15-4):
     // én kolonne per tillatt form, ingen framhevet.
     likestilte_heading: 'Bøying av alle tillatte former',
+    likestilte_genus_note: 'Hver kolonne er én fullstendig bøying. Alle kolonnene er like gyldige — velg én og bruk alle formene derfra. Formene fra to kolonner kan ikke blandes.',
+    likestilte_gap_note: 'Hver kolonne er én skrivemåte med sine egne former. En tankestrek (–) betyr at normen ikke har den formen for den skrivemåten — velg én kolonne og bruk formene derfra.',
     likestilte_note: 'Alle formene under er likestilte. Du kan bruke hvilken som helst av dem.',
     // Samme opplysning for en bøyingstabell der radene er FORMVERDIER og
     // ikke skrivemåter: der er det bare formene i én og samme celle som er
@@ -180,6 +187,12 @@ const _STRINGS = {
     // alternativer. Se multiFormNote() i dictionary-view.js.
     cell_forms_note: 'Der en celle viser flere former, er de likestilte. Du kan bruke hvilken som helst av dem.',
     likestilte_gender: 'Kjønn',
+    verb_systems_heading: 'To bøyingsmønstre',
+    verb_systems_note: 'Verbet har to bøyingsmønstre. Velg én kolonne og bruk alle formene derfra — de kan ikke blandes.',
+    genus_columns_heading: 'Bøying etter kjønn',
+    genus_columns_note: 'Ordet kan bøyes som to kjønn. Velg én kolonne og bruk alle formene derfra — de kan ikke blandes.',
+    paradigm_columns_heading: 'Bøyingsmønstre',
+    paradigm_columns_note: 'Ordet har flere bøyingsmønstre. Mønstrene er likestilte, men de kan ikke blandes — velg én kolonne og bruk alle formene derfra.',
     // Merknad på Infinitiv-raden for de nynorske verbene som står på den
     // normerte lista over kløyvd infinitiv (Rettskrivinga av 2012). Begge
     // infinitivene er fortsatt likestilte — merknaden opplyser, den framhever
@@ -684,6 +697,11 @@ const _STRINGS = {
     tense_infinitive: 'Infinitiv',
     tense_imperative: 'Imperativ',
     tense_past_participle: 'Perfektum partisipp',
+    tense_present_perfect: 'Presens perfektum',
+    pp_mf: 'Hankjønn/hokjønn',
+    pp_n: 'Inkjekjønn',
+    pp_def: 'Bunden',
+    pp_pl: 'Fleirtal',
     tense_comparative: 'Komparativ',
     tense_superlative: 'Superlativ',
     tense_present_participle: 'Presens partisipp',
@@ -696,9 +714,17 @@ const _STRINGS = {
     // Bøyingstabell for ord med likestilte skrivemåtar (Språkrådet §15-4):
     // éin kolonne per tillaten form, ingen framheva.
     likestilte_heading: 'Bøying av alle tillatne former',
+    likestilte_genus_note: 'Kvar kolonne er éi fullstendig bøying. Alle kolonnane er like gyldige — vel éi og bruk alle formene derifrå. Formene frå to kolonnar kan ikkje blandast.',
+    likestilte_gap_note: 'Kvar kolonne er éi skrivemåte med sine eigne former. Ein tankestrek (–) tyder at norma ikkje har den forma for den skrivemåten — vel éi kolonne og bruk formene derifrå.',
     likestilte_note: 'Alle formene under er likestilte. Du kan bruke kva som helst av dei.',
     cell_forms_note: 'Der ei celle viser fleire former, er dei likestilte. Du kan bruke kva som helst av dei.',
     likestilte_gender: 'Kjønn',
+    verb_systems_heading: 'To bøyingsmønster',
+    verb_systems_note: 'Verbet har to bøyingsmønster. Vel éi kolonne og bruk alle formene derifrå — dei kan ikkje blandast.',
+    genus_columns_heading: 'Bøying etter kjønn',
+    genus_columns_note: 'Ordet kan bøyast som to kjønn. Vel éi kolonne og bruk alle formene derifrå — dei kan ikkje blandast.',
+    paradigm_columns_heading: 'Bøyingsmønster',
+    paradigm_columns_note: 'Ordet har fleire bøyingsmønster. Mønstra er likestilte, men dei kan ikkje blandast — vel éi kolonne og bruk alle formene derifrå.',
     kloyvd_infinitiv_note: 'tek -a ved kløyvd infinitiv',
 
     settings_back: '← Tilbake',
@@ -1174,6 +1200,11 @@ const _STRINGS = {
     tense_infinitive: 'Infinitive',
     tense_imperative: 'Imperative',
     tense_past_participle: 'Past participle',
+    tense_present_perfect: 'Present perfect',
+    pp_mf: 'Masculine/feminine',
+    pp_n: 'Neuter',
+    pp_def: 'Definite',
+    pp_pl: 'Plural',
     tense_comparative: 'Comparative',
     tense_superlative: 'Superlative',
     tense_present_participle: 'Present participle',
@@ -1186,9 +1217,17 @@ const _STRINGS = {
     // Inflection table for words with equal spelling variants (Språkrådet
     // §15-4): one column per allowed form, none favoured.
     likestilte_heading: 'Inflection of every allowed form',
+    likestilte_genus_note: 'Each column is one complete inflection. Every column is equally valid — pick one and use all its forms. Forms from two columns cannot be mixed.',
+    likestilte_gap_note: 'Each column is one spelling with its own forms. A dash (–) means the standard has no such form for that spelling — pick one column and use its forms.',
     likestilte_note: 'All the forms below are equally correct. You may use any of them.',
     cell_forms_note: 'Where a cell shows more than one form, the forms are equally correct. You may use any of them.',
     likestilte_gender: 'Gender',
+    verb_systems_heading: 'Two inflection patterns',
+    verb_systems_note: 'This verb has two inflection patterns. Pick one column and use every form from it — they cannot be mixed.',
+    genus_columns_heading: 'Inflection by gender',
+    genus_columns_note: 'This word can be inflected as either of two genders. Pick one column and use every form from it — they cannot be mixed.',
+    paradigm_columns_heading: 'Inflection patterns',
+    paradigm_columns_note: 'This word has more than one inflection pattern. The patterns are equally correct, but they cannot be mixed — pick one column and use every form from it.',
     kloyvd_infinitiv_note: 'takes -a in kløyvd infinitiv',
 
     settings_back: '← Back',

@@ -31,13 +31,14 @@
     <link rel="stylesheet" href="/css/main.css">
 
     <script>
-        // Init theme early to prevent flash
-        const skrivTheme = localStorage.getItem('skriv_theme') || 'system';
-        if (skrivTheme === 'dark' || (skrivTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        // Init theme early to prevent flash. Mirrors shared/theme.js:
+        // 'skriv_theme' is 'light' | 'dark' | 'system'/unset (= follow OS).
+        (function () {
+            var theme = localStorage.getItem('skriv_theme');
+            var dark = theme === 'dark' ||
+                (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', dark);
+        })();
     </script>
 </head>
 
@@ -72,9 +73,11 @@
     <script src="/js/leksihjelp/exam-registry.js"></script>
     <script src="/js/leksihjelp/content/vocab-seam-core.js"></script>
     <script src="/js/leksihjelp/content/vocab-seam.js"></script>
-    <script src="/js/leksihjelp/content/lang-detect.js"></script>
+    <script src="/js/leksihjelp/content/pause-domain.js"></script>
     <script src="/js/leksihjelp/content/rule-features.js"></script>
     <script src="/js/leksihjelp/content/spell-check-core.js"></script>
+
+    <!-- Spell rules (order mirrors leksihjelp extension/manifest.json) -->
     <script src="/js/leksihjelp/content/spell-rules/grammar-tables.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/quotation-suppression.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/de-capitalization.js"></script>
@@ -256,6 +259,13 @@
     <script src="/js/leksihjelp/content/spell-rules/nb-impersonal-det.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-noun-plural-quantifier.js"></script>
     <script src="/js/leksihjelp/content/spell-rules/nb-bare-infinitive-present.js"></script>
+
+    <!-- Lang detect must load before engines/renderers -->
+    <script src="/js/leksihjelp/content/lang-detect.js"></script>
+
+    <!-- Engines + renderers (engines BEFORE renderers — Phase 43 split).
+         pedagogy-render + personalization-store must precede the renderer,
+         which hard-requires their globals (3.8.x). -->
     <script src="/js/leksihjelp/content/spell-check-engine.js"></script>
     <script src="/js/leksihjelp/content/pedagogy-render.js"></script>
     <script src="/js/leksihjelp/content/personalization-store.js"></script>

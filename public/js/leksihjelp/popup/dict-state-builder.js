@@ -294,6 +294,51 @@
         }
       }
 
+      // Adjective forms. Verbs index every paradigm slot and nouns index
+      // plurals and definite forms, but adjectivebank had NO branch at all — so
+      // no inflected adjective ever resolved to its lemma. A student who wrote
+      // «varmt», «varme», «sværere» or «sværest» and looked it up got nothing,
+      // and the only reason it never showed up as a bug is that the headword
+      // itself always matched.
+      //
+      // Found 2026-08-23 by renaming `svært_adj` → `svær_adj`: «svært» is the
+      // neuter of «svær», and the rename was made on the assumption that the
+      // neuter would still resolve the way «apar» resolves «ape». It does not —
+      // that path is the nounbank branch above. The control «varmt» → «varm»
+      // failed too, which is what turned a one-word regression into a class.
+      if (entry._bank === 'adjectivebank') {
+        // matchType 'case' → «er en bøyd form», the one neutral label that is
+        // true of a neuter, a definite, a plural, a comparative and a
+        // superlative alike. Anything unrecognised falls through to the PLURAL
+        // hint, which said ««svært» er flertall» — wrong, it is the neuter.
+        const add = (v, kind) => {
+          for (const x of (Array.isArray(v) ? v.flat(Infinity) : [v])) {
+            if (typeof x !== 'string' || !x || x === '-') continue;
+            // Periphrastic degree («mer tydelig») is a phrase, not a form to
+            // look up — indexing it would make «mer» resolve to an adjective.
+            if (/^(mer|meir|mest) /.test(x)) continue;
+            addToIndex(x.toLowerCase(), entry, kind, null);
+          }
+        };
+        const d = entry.declension || {};
+        if (d.positiv) for (const k of ['maskulin', 'feminin', 'noytrum', 'bestemt', 'flertall']) add(d.positiv[k], 'case');
+        for (const par of (Array.isArray(d.paradigms) ? d.paradigms : [])) {
+          if (par && par.positiv) for (const k of ['maskulin', 'feminin', 'noytrum', 'bestemt', 'flertall']) add(par.positiv[k], 'case');
+        }
+        if (d.komparativ) add(d.komparativ.alle, 'case');
+        if (d.superlativ) { add(d.superlativ.ubestemt, 'case'); add(d.superlativ.bestemt, 'case'); }
+        const c = entry.comparison || {};
+        add(c.komparativ, 'case');
+        add(c.superlativ, 'case');
+        const f = entry.forms || {};
+        if (f.ubestemt) { add(f.ubestemt.hankjønn_hunkjønn, 'case'); add(f.ubestemt.intetkjønn, 'case'); }
+        add(f.bestemt, 'case');
+        add(f.flertall, 'case');
+        add(f.komparativ, 'case');
+        if (f.superlativ && typeof f.superlativ === 'object') { add(f.superlativ.ubestemt, 'case'); add(f.superlativ.bestemt, 'case'); }
+        else add(f.superlativ, 'case');
+      }
+
       // Noun case forms (v2.0: cases.{case}.forms.{number}.{article})
       if (entry._bank === 'nounbank' && entry.cases) {
         for (const [caseName, caseData] of Object.entries(entry.cases)) {

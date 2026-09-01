@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 2026-08-23
+> Last updated: 2026-09-01
 
 ## Product boundary
 
@@ -21,12 +21,13 @@ Local-first reduces data exposure but does not make Skriv a locked browser, a se
 | Optional school storage | Microsoft Graph v1.0 | Direct delegated browser requests; one `.skriv` file per linked document |
 | Optional Microsoft auth | MSAL Browser 5.17.3 | Vendored authorization code + PKCE client and redirect bridge; session-scoped cache |
 | PDF export | jsPDF 2.5.1 UMD | Pinned local vendor file |
+| Word export | docx 9.5.0 (vendored) | `/vendor/docx.iife.js`; lazy-loaded classic script on first `.docx` export |
 | Positioning | Floating UI DOM 1.7.5 | Vendored local ES modules |
 | PWA | Manifest + Service Worker | Versioned, atomic offline release cache |
 | i18n | Custom module | Bokmål, Nynorsk, English |
 | Backend/build | None | Static files served as-is |
 
-The application makes no runtime request to a third-party CDN. Same-origin release files are normally cached by the service worker. Leksihjelp and MSAL Browser are locally vendored. Only an explicitly enabled Microsoft 365 session makes direct cross-origin requests to Microsoft identity, Microsoft Graph, the configured school SharePoint host, and short-lived upload/download URLs. The dedicated MSAL redirect page/bridge and all cross-origin connector traffic bypass the service-worker and browser HTTP caches. `scripts/serve-local.mjs` supplies the redirect-specific headers required for mock-tenant localhost testing.
+The application makes no runtime request to a third-party CDN. `index.html` loads Tailwind, jsPDF, and MSAL Browser from `/vendor/`, and Floating UI DOM from `public/js/editor-core/vendor/`; there is no `cdn.tailwindcss.com`, `cdnjs.cloudflare.com`, or `cdn.jsdelivr.net` reference anywhere in the app. Same-origin release files are normally cached by the service worker. Leksihjelp and MSAL Browser are locally vendored. Only an explicitly enabled Microsoft 365 session makes direct cross-origin requests to Microsoft identity, Microsoft Graph, the configured school SharePoint host, and short-lived upload/download URLs. The dedicated MSAL redirect page/bridge and all cross-origin connector traffic bypass the service-worker and browser HTTP caches. `scripts/serve-local.mjs` supplies the redirect-specific headers required for mock-tenant localhost testing.
 
 ## Directory structure
 
@@ -35,17 +36,44 @@ public/
 ├── index.html                  SPA shell
 ├── microsoft-auth-redirect.html  network-only MSAL popup response bridge
 ├── whitepaper.html             transparency and portability notes
+├── school.html                 standalone per-school one-pager (paragraph trainer; `?skole=<id>` picks config)
+├── stabekk.html                redirect to school.html?skole=stabekk, kept for shared links/QR
 ├── manifest.json               PWA manifest
-├── sw.js                       Service Worker, current cache `skriv-v82`
+├── sw.js                       Service Worker, current cache `skriv-v94`
 ├── css/main.css                app/editor CSS and responsive rules
 ├── icons/                      install icon
-├── vendor/                     pinned Tailwind, jsPDF, and MSAL Browser distributions
+├── vendor/                     pinned Tailwind, jsPDF, MSAL Browser, and docx distributions
 ├── frames/
-│   ├── nb/                     12 Bokmål writing frames
-│   ├── nn/                     12 Nynorsk writing frames
-│   └── *.md                    three legacy Bokmål paths
+│   ├── nb/                     17 Bokmål writing frames
+│   ├── nn/                     17 Nynorsk writing frames
+│   └── en/                     17 English writing frames (the English subject)
 └── js/
     ├── app/                    routing, storage, screens, backup
+    │   ├── main.js             router, init
+    │   ├── db.js               canonical `skriv-documents` opener
+    │   ├── document-store.js
+    │   ├── document-list.js
+    │   ├── document-search.js
+    │   ├── trash-store.js
+    │   ├── cleanup-desk.js     pedagogical missing-title/folder workspace
+    │   ├── standalone-writer.js  editor orchestrator
+    │   ├── word-count-stats.js
+    │   ├── folder-store.js       folder CRUD, tree helpers, school year logic
+    │   ├── sidebar.js            collapsible folder tree navigation
+    │   ├── folder-picker.js      multi-select folder assignment dropdown
+    │   ├── school-level.js       school level data + persistence
+    │   ├── onboarding-modal.js   first-time level selection modal
+    │   ├── library-backup.js     whole-library `.skriv` backup/restore
+    │   ├── german-exam-route.js  route + screen wiring for #/tysk
+    │   ├── paragraph-trainer-route.js  route + screen wiring for #/avsnitt
+    │   ├── school-page.js        entry point for school.html (standalone paragraph trainer, config-driven school)
+    │   ├── leksihjelp-bridge.js  brokers leksihjelp status + Skrivespråk/Oppslagsspråk
+    │   ├── leksihjelp-settings.js  slide-in drawer with the leksihjelp controls
+    │   ├── leksihjelp-dictionary.js  in-editor word lookup popup
+    │   ├── microsoft-config.js, microsoft-auth.js, microsoft-graph.js,
+    │   │   microsoft-document-codec.js, microsoft-storage.js,
+    │   │   microsoft-storage-dialog.js  opt-in Microsoft 365 connector
+    │   └── sw-manager.js         service-worker registration/update prompt
     ├── editor-core/
     │   ├── config.js
     │   ├── shared/             portable utilities
@@ -97,7 +125,7 @@ The dependency graph is a DAG. Storage access to `skriv-documents` is centralize
 
 ## PWA and update safety
 
-The current cache is `skriv-v82`.
+The current cache is `skriv-v94`.
 
 1. The service worker atomically precaches the critical app shell and full ES-module graph.
 2. Vendored Leksihjelp code, styles, metadata, and the compact NB fallback are cached best-effort per file. Larger language data is cached on first use by the same-origin fetch handler so installing the word processor does not eagerly download every language.
@@ -125,5 +153,18 @@ The current cache is `skriv-v82`.
 |---|---|---|
 | `#/` | Document library | `document-list.js` |
 | `#/trash` | Recoverable trash | `document-list.js` |
-| `#/doc/{id}` | Editor | `standalone-writer.js` |
+| `#/doc/{id}` | Editor (optional `?focus=title`) | `standalone-writer.js` |
 | `#/tysk` | German task spinner | `german-exam-route.js` |
+| `#/avsnitt` | Paragraph trainer | `paragraph-trainer-route.js` |
+
+### Standalone pages (outside the hash router)
+
+| Path | Purpose |
+|---|---|
+| `index.html` | SPA shell |
+| `whitepaper.html` | Transparency and portability notes |
+| `school.html?skole=<id>` | Per-school one-pager hosting the paragraph trainer without the Skriv shell; config-driven via `school-page.js` |
+| `stabekk.html` | Static redirect to `school.html?skole=stabekk`, kept for shared links/QR codes |
+| `microsoft-auth-redirect.html` | Network-only MSAL popup response bridge |
+
+There is no CDN dependency table here by design: every third-party library Skriv loads is pinned and vendored under `public/vendor/` or `public/js/editor-core/vendor/`. See `DEPENDENCIES.md` for the exact versions, local paths, and consumers.

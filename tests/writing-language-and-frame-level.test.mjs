@@ -43,19 +43,27 @@ test('frame recommendations prioritize age-appropriate choices without hiding th
     const primary = partitionFramesByLevel(DEFAULT_FRAME_REGISTRY, 'barneskole');
     assert.deepEqual(
         primary.recommended.map(frame => frame.id),
-        ['leserinnlegg', 'novelle', 'kreativ-tekst'],
+        ['fortelling', 'faktatekst', 'bokmelding', 'leserinnlegg', 'novelle', 'kreativ-tekst'],
     );
     assert.equal(primary.recommended.length + primary.additional.length, DEFAULT_FRAME_REGISTRY.length);
     assert.ok(primary.additional.some(frame => frame.id === 'kortsvar'));
 
+    // The junior genres are the only ones vgs does not lead with — and even
+    // those stay reachable under "flere skriverammer".
     const upperSecondary = partitionFramesByLevel(DEFAULT_FRAME_REGISTRY, 'vgs');
-    assert.equal(upperSecondary.recommended.length, DEFAULT_FRAME_REGISTRY.length);
-    assert.equal(upperSecondary.additional.length, 0);
+    assert.deepEqual(
+        upperSecondary.additional.map(frame => frame.id),
+        ['fortelling', 'faktatekst', 'bokmelding'],
+    );
+    assert.equal(
+        upperSecondary.recommended.length + upperSecondary.additional.length,
+        DEFAULT_FRAME_REGISTRY.length,
+    );
 });
 
 test('frame paths follow document language and disclose a Bokmål fallback', () => {
     assert.equal(resolveFrameLanguage('nn'), 'nn');
-    assert.equal(resolveFrameLanguage('en'), 'nb');
+    assert.equal(resolveFrameLanguage('en'), 'en');
     assert.equal(resolveFramePath('/frames/{{lang}}/novelle.md', 'nn'), '/frames/nn/novelle.md');
     assert.equal(resolveFramePath('/frames/{{lang}}/novelle.md', 'de'), '/frames/nb/novelle.md');
 });

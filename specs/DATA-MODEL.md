@@ -1,6 +1,6 @@
 # Data Model
 
-> Last updated: 2026-08-23
+> Last updated: 2026-09-01
 
 Skriv is local-first. Documents, trash, folders, and version snapshots remain in the browser unless the student explicitly downloads a backup/export or opts into a school-enabled Microsoft 365 connection. There is no Papertek account or server-side document copy. Even when a remote `.skriv` copy is linked, the IndexedDB document remains the canonical working copy and every edit is saved locally first.
 
@@ -180,7 +180,7 @@ Remote item identity and the upload acknowledgement's eTag stay in the local doc
 | `skriv.leksihjelp.examMode` | `1` or empty | Technical legacy key for the UI's **Limited assistance** setting; not a secure exam mode or locked browser |
 | `skriv.leksihjelp.activeTab` | `dictionary` / `settings` | Last Leksihjelp drawer tab |
 
-The embedded loader keeps `enabledGrammarFeatures` only in its in-memory `chrome.storage.local` shim. Those choices reset on reload and are not localStorage data.
+The embedded loader keeps `enabledGrammarFeatures` only in its in-memory `chrome.storage.local` shim (per-language grammar-feature checkbox state, written by `leksihjelp-settings.js`'s preset pills). Those choices reset on reload and are not localStorage data.
 
 ### German task preferences
 
@@ -193,6 +193,22 @@ The embedded loader keeps `enabledGrammarFeatures` only in its in-memory `chrome
 | `germanHintDrawer.variant.<docId>` | `simple` / `rich` hint tab per document |
 
 The word `exam` in these legacy technical keys identifies the German task collection or earlier Leksihjelp integration. It does not imply secure assessment software.
+
+### Paragraph trainer preferences
+
+| Key | Purpose |
+| --- | --- |
+| `papertek.skriv.paragraphTrainer.deck` | JSON array of remaining paragraph-trainer topic ids; auto-shuffles on exhaustion |
+| `papertek.skriv.paragraphTrainer.draft` | JSON `{ topicId, steps: [string×3], checks: [bool×4] }` — in-progress attempt, restored on next visit |
+| `papertek.skriv.paragraphTrainer.history` | JSON array of finished attempts, newest first, capped at 20: `[{ts, topic, text, checksPassed, checksTotal, words}]`; logged on copy/save only |
+
+Shared unchanged between `#/avsnitt` and `school.html`'s standalone trainer (same origin, same keys).
+
+### Reading and dictionary display preferences
+
+| Key | Purpose |
+| --- | --- |
+| `skriv.readingSettings` | JSON. Lesevisning display settings: `{ font, size, lineHeight, letterSpacing }` (see `reading-settings.js`); applies inline styles to the editor container only, saved document HTML is untouched |
 
 ### Dormant opt-in feature preferences
 
@@ -226,5 +242,9 @@ Production reads public client ID, tenant ID, and bare SharePoint host from `skr
 
 ## Other local storage
 
-- **Service Worker cache:** current static cache is `skriv-v82`. Critical shell/modules/frames, the Microsoft connector modules, and the main vendored MSAL Browser distribution are precached atomically. Vendored Leksihjelp code, styles, metadata, and the compact NB fallback are best-effort precached; larger language data is cache-on-use through the same-origin cache-first fetch handler. Cross-origin Microsoft traffic is not cached. The same-origin `/microsoft-auth-redirect.html` and `/vendor/msal-redirect-bridge-5.17.3.min.js` resources also bypass the worker and must be served network-only with `Cache-Control: no-store` and no `Cross-Origin-Opener-Policy` response header.
+- **Service Worker cache:** current static cache is `skriv-v94` (`CACHE_NAME` in `sw.js`). Critical shell/modules/frames (`ASSETS[]`), the Microsoft connector modules, and the main vendored MSAL Browser distribution are precached atomically. `LEKSIHJELP_ASSETS[]` (vendored Leksihjelp code, styles, metadata, and the compact NB fallback) and `OPTIONAL_ASSETS[]` (currently just `/vendor/docx.iife.js`, the ~800 kB docx bundle) are precached best-effort — individual failures don't block install. Larger Leksihjelp language data is cached on first use by the same-origin fetch handler. Cross-origin Microsoft traffic is not cached. The same-origin `/microsoft-auth-redirect.html` and `/vendor/msal-redirect-bridge-5.17.3.min.js` resources also bypass the worker and must be served network-only with `Cache-Control: no-store` and no `Cross-Origin-Opener-Policy` response header.
 - **Images:** compressed images are stored as base64 data URIs inside document HTML; there is no separate image store.
+- **Persistent storage:** `main.js` calls `navigator.storage.persist()` at startup so the browser treats the origin's IndexedDB as protected rather than best-effort (Safari otherwise purges it after 7 days without a visit).
+- **Version snapshots (`skriv-versions` DB):** confirmed in `version-history.js`'s `VERSION_HISTORY_POLICY` — a snapshot at most every 5 minutes (`snapshotIntervalMs: 300000`) or after +100 words (`majorWordThreshold`), capped at 50 snapshots per document (`maxSnapshotsPerDocument`), matching the "Migration history"/snapshot description above. Snapshots store the full editor HTML, so the cap bounds quota usage.
+
+The `.skriv` backup file's exact format and merge-only restore semantics are already fully described above under "Portable library backup" — including that trash and version snapshots *are* part of the backup, contrary to an earlier draft of this note.

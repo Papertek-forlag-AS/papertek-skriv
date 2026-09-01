@@ -463,12 +463,14 @@ const CSS = `
 `;
 
 // --- Spinner word-bank loading (shared semantics with writing-spinner) ---
-async function loadSpinnerStarters() {
-    const lang = getCurrentLanguage();
+async function loadSpinnerStarters(contentLang) {
+    const lang = contentLang || getCurrentLanguage();
     try {
         const mod = lang === 'nn'
             ? await import('./spinner-data-nn.js')
-            : await import('./spinner-data-nb.js');
+            : lang === 'en'
+                ? await import('./spinner-data-en.js')
+                : await import('./spinner-data-nb.js');
         return mod.starters || {};
     } catch (err) {
         console.error('Failed to load spinner starters:', err);
@@ -524,6 +526,7 @@ function scrambleReveal(el, finalText, onDone) {
 export function initFrameGuide(editor, container, options = {}) {
     // options.onSave — callback to trigger auto-save
     // options.getLevel — () => school level (for spinner integration)
+    // options.getContentLang — () => language the pupil writes in ('nb'|'nn'|'en')
     let panel = null;
     let styleEl = null;
     let frameData = null;
@@ -986,7 +989,7 @@ export function initFrameGuide(editor, container, options = {}) {
     // --- Spinner helpers ---
     function ensureSpinnerData() {
         if (!starterDataPromise) {
-            starterDataPromise = loadSpinnerStarters();
+            starterDataPromise = loadSpinnerStarters(options.getContentLang?.());
         }
         return starterDataPromise;
     }

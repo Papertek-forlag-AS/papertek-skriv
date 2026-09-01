@@ -6,11 +6,13 @@ level: vgs
 description: Kort og slagkraftig meiningstekst som reagerer på ei aktuell sak
 
 ## Innleiing
+spinner: innleiing
 > Sei tydeleg kva du reagerer på og kva du meiner. Eit lesarinnlegg er kort og direkte — gå rett på sak.
 - Eg reagerer sterkt på at...
 - Det er på tide at nokon seier ifrå om...
 
 ## Hovuddel
+spinner: hovuddel
 
 ### Hovudargument
 > Presenter ditt viktigaste argument. Ver tydeleg og konkret — kvifor meiner du det du meiner?

@@ -13,9 +13,19 @@ import { initServiceWorker } from './sw-manager.js';
 import { hasSchoolLevel, setSchoolLevel } from './school-level.js';
 import { showOnboardingModal } from './onboarding-modal.js';
 import { renderGermanExamScreen } from './german-exam-route.js';
+import { renderParagraphTrainerScreen } from './paragraph-trainer-route.js';
 
 async function init() {
     initTheme();
+
+    // Ask the browser to protect local data from automatic eviction.
+    // Without this, IndexedDB is best-effort storage: Safari purges it
+    // after 7 days without a visit, and other browsers may evict it
+    // under storage pressure — silently deleting the pupil's documents.
+    if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().catch(() => {});
+    }
+
     initServiceWorker();
     await initI18n();
 
@@ -28,12 +38,6 @@ async function init() {
     document.addEventListener('skriv:database-blocked', () => {
         showToast(t('skriv.databaseBlocked'), { duration: 10000 });
     });
-
-    // First-time onboarding: ask student for school level
-    if (!hasSchoolLevel()) {
-        const levelId = await showOnboardingModal();
-        setSchoolLevel(levelId);
-    }
 
     // Purge expired trash documents on startup (silent, non-blocking)
     purgeExpired().catch(() => {});
@@ -48,6 +52,24 @@ async function init() {
     let renderedHash = window.location.hash || '#/';
     let routeCounter = 0;
     let routeQueue = Promise.resolve();
+
+    // First-time onboarding: ask student for school level. Gated per route
+    // instead of at init so pure practice surfaces reached by deep link
+    // (#/avsnitt) skip the question — the level has no function there.
+    // The modal appears on first navigation into the app proper instead.
+    // "Velg senere" defers the question for the rest of the session —
+    // level-aware features fall back to showing everything, and the level
+    // can always be set from the sidebar ("Bytt trinn").
+    let levelPromptDeferred = false;
+    async function ensureSchoolLevel() {
+        if (hasSchoolLevel() || levelPromptDeferred) return;
+        const levelId = await showOnboardingModal();
+        if (levelId) {
+            setSchoolLevel(levelId);
+        } else {
+            levelPromptDeferred = true;
+        }
+    }
 
     async function performRoute(localRouteCounter) {
         // Coalesce hash changes that arrived before this queued route began.
@@ -77,6 +99,11 @@ async function init() {
 
         const hash = window.location.hash || '#/';
 
+        if (hash !== '#/avsnitt') {
+            await ensureSchoolLevel();
+            if (localRouteCounter !== routeCounter) return;
+        }
+
         if (hash.startsWith('#/doc/')) {
             const [docId, queryString = ''] = hash.slice(6).split('?');
             const routeParams = new URLSearchParams(queryString);
@@ -87,6 +114,10 @@ async function init() {
             renderedHash = hash;
         } else if (hash === '#/tysk') {
             const screen = await renderGermanExamScreen(app);
+            currentScreen = screen;
+            renderedHash = hash;
+        } else if (hash === '#/avsnitt') {
+            const screen = await renderParagraphTrainerScreen(app);
             currentScreen = screen;
             renderedHash = hash;
         } else if (hash === '#/trash') {

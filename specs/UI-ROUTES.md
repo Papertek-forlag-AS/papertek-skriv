@@ -1,6 +1,6 @@
 # UI & Routes
 
-> Last updated: 2026-08-23
+> Last updated: 2026-09-01
 
 ## Routing
 
@@ -10,12 +10,30 @@
 |---|---|---|---|
 | `#/` | Document library | `document-list.js` | Default route |
 | `#/trash` | Recoverable trash | `document-list.js` | Soft-deleted documents and permanent-delete controls |
-| `#/doc/{id}` | Editor | `standalone-writer.js` | One local document |
-| `#/tysk` | German task spinner | `german-exam-route.js` | Tysk 1/2 practice prompts; not a locked exam environment |
+| `#/doc/{id}` | Editor (optional `?focus=title`) | `standalone-writer.js` | One local document |
+| `#/tysk` | German task spinner | `german-exam-route.js` (`renderGermanExamScreen`) | Tysk 1/2 practice prompts; not a locked exam environment. On pick, creates a document in folder "Tysk" and routes to `#/doc/{id}` |
+| `#/avsnitt` | Paragraph trainer | `paragraph-trainer-route.js` (`renderParagraphTrainerScreen`) | Three-step paragraph drill (trestegsmodellen): random topic deck, three labelled writing fields, self-check checklist, assembled-paragraph preview. `onSaveDocument` optionally creates a document from the finished paragraph; the attempt itself persists in localStorage regardless |
+
+## Standalone pages (outside the SPA router)
+
+| Path | Module | Description |
+|---|---|---|
+| `index.html` | (SPA shell) | Loads `app/main.js` and the hash router |
+| `/whitepaper.html` | (static HTML) | Legal/transparency page |
+| `/school.html?skole=<id>` | `school-page.js` | Per-school one-pager: hosts the paragraph trainer without the Skriv shell (no router, sidebar, onboarding, or service worker). Slim header with school badge and its own theme-cycle button. School identity (name, fixed level, accent palette remapping the emerald scale, theme-color) comes from the `SKRIV_SCHOOLS` config map in `school.html` — adding a school is one config entry; the trainer module is shared with `#/avsnitt` unchanged, and no `onSaveDocument` is passed so the trainer's save button stays hidden here. Same origin, so trainer draft/deck in localStorage is shared with `#/avsnitt`. Stabekk's palette is anchored in Pantone 640 C `#0082ba` (Akershus fylkeskommune) |
+| `/stabekk.html` | (static redirect) | Redirects to `/school.html?skole=stabekk` — kept for links/QR codes already in the wild |
+| `/microsoft-auth-redirect.html` | (network-only MSAL bridge) | Dedicated popup response relay for the Microsoft 365 connector; see `ARCHITECTURE.md` and `DEPENDENCIES.md` |
 
 ```text
-App start
-└── no school level → required level picker → #/
+App init → route()
+└── First navigation into a screen (no school level saved yet) → Onboarding modal (must pick level)
+      ├── Gated per route rather than at init: shown before every screen EXCEPT #/avsnitt —
+      │   a deep link straight to the paragraph trainer skips the question, since level has
+      │   no function there. If no level is ever set, `paragraph-trainer-route.js`'s
+      │   `getLevel` returns null and the trainer defaults to the 'ungdomsskole' level,
+      │   i.e. the 'us' (not 'vgs') starter-chip tier.
+      └── Picks level → saves to localStorage → continues to the route
+            (or "Velg senere" defers the question for the rest of the session)
 
 #/
 ├── new text → create in IndexedDB → #/doc/{id}
@@ -44,15 +62,16 @@ At 1024 px and wider, the desktop layout has three columns: folder sidebar, a na
 - Trash with count badge
 - “Ny tekst” primary action
 
-### Sidebar
+### Sidebar (`sidebar.js`)
 
-- School-year selector
-- All/recent documents
-- Collapsible folder tree with descendant counts, maximum depth 3
-- Add, rename, nest, move, and delete custom folders
-- “Uten mappe” and personal-folder filters
-- German writing-practice route
-- Change school level
+- School-year selector (`<select>`, Aug–Jul, auto-detects current year)
+- "Siste dokumenter" — all/recent documents (default view)
+- Collapsible folder tree with descendant counts, maximum depth 3; "+ Legg til mappe" inline input creates root-level folders
+- Context menu on custom folders: rename, add subfolder (if depth < 3), delete
+- "Uten mappe" (orphan documents, `folderIds.length === 0`, amber indicator when count > 0) and "Personlig mappe" (`folderIds` includes `sys___personal__`) filters
+- "Tysk eksamenstrening" — navigates to `#/tysk` (German exam spinner)
+- "Avsnittstrening" — navigates to `#/avsnitt` (three-step paragraph trainer)
+- "Bytt trinn" — change school level button at the bottom, opens the onboarding modal (cancellable)
 - Download whole-library `.skriv` backup
 - Merge/restore a validated `.skriv` backup
 - Local-storage/backup disclosure
@@ -106,12 +125,30 @@ Below 768 px the sidebar becomes an overlay navigation drawer. The hamburger exp
 | Button | Module | Behavior |
 |---|---|---|
 | Back | router/editor autosave | Flush, then return to library |
-| Structure | `frame-selector.js` | Level-grouped frame picker; all frames remain available |
+| Structure | `frame-selector.js` | Level-grouped frame picker over all 17 genres; all frames remain available |
 | Review | `insights-drawer.js` | Opens review/support actions |
 | 💡 Help text | `german-hint-drawer.js` | German-task documents only; simple/richer Norwegian prompt support |
 | 📚 Leksihjelp | app Leksihjelp modules | Dictionary/settings, or guidance to the installed extension panel |
 | Microsoft 365 | `microsoft-storage-dialog.js` | Optional account/folder setup, link/sync state, unlink, and conflict-safe **Keep both** |
-| Export | `text-export.js` | TXT, PDF, Word-compatible `.doc` |
+| Export | `text-export.js` | TXT, PDF, real `.docx` (an earlier draft of this row said "Word-compatible `.doc`" — that predates the real OOXML `.docx` export added by `docx-export.js`) |
+
+**Advanced tools menu** (lazy-loaded review tools, opened from the Review drawer):
+
+| Button | Module | Behavior |
+|---|---|---|
+| Ordspinner | `writing-spinner.js` | Shows random word suggestion |
+| Gjentakelse | `word-frequency.js` | Toggles repetition highlighting |
+| Setningslengde | `sentence-length.js` | Toggles rhythm bar visualization |
+| Avsnittskart | `paragraph-map.js` | Toggles document minimap |
+| Tabell | `table-manager.js` | Opens table insertion dialog |
+| Tilbakemelding | `writing-feedback.js` | Toggles local writing feedback panel |
+| Versjonshistorikk | `version-history.js` | Toggles saved snapshot timeline |
+| LIX | `lix-score.js` | Toggles readability score panel |
+| Argumentflyt | `argument-flow.js` | Toggles argument flow panel |
+| Opplesing | `read-aloud.js` | Toggles read-aloud control bar (Web Speech API; block highlight + scroll-along; voice matched to the writing language) |
+| Lesevisning | `reading-settings.js` | Toggles dyslexia-friendly display panel (font, size, line/letter spacing) |
+
+**Editor accessibility (no button):** `editor-lang.js` keeps the contenteditable's `lang` attribute in sync with the writing language and turns the native `spellcheck` off while Leksihjelp owns spell-checking.
 
 Local save status is a polite live region. Offline status says the text is saved locally in the browser profile. Microsoft status is separate: a delayed, denied, signed-out, missing, or conflicting remote copy never changes the local-saved message or blocks typing/navigation.
 
@@ -174,7 +211,7 @@ All three exports open a non-blocking self-check dialog. The student may continu
 
 - TXT: UTF-8 text with title/date/word count.
 - PDF: locally vendored jsPDF.
-- Word: Word-compatible HTML with the truthful `.doc` extension; it is not presented as `.docx`.
+- Word: a real OOXML `.docx` file built by `docx-export.js` from the vendored `docx` 9.5.0 library (lazy-loaded classic script), not a renamed HTML `.doc`. An earlier draft of this note described a Word-compatible `.doc` fallback; that predates the real `.docx` export.
 
 ## PWA behavior
 

@@ -25,9 +25,11 @@
  * @param {HTMLElement} [opts.statusEl] - Element to show save status
  * @param {number} [opts.debounceMs=1000] - Debounce interval
  * @param {{ saving: string, saved: string, error: string, offline?: string }} [opts.labels]
+ * @param {Function} [opts.onError] - Called with the error when a save fails
+ *   (once per failure streak, so the caller can alert loudly without spam)
  * @returns {{ schedule: Function, saveNow: Function, flush: Function, destroy: Function, setInitialHash: Function, isDirty: Function }}
  */
-export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, labels = {} }) {
+export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, labels = {}, onError }) {
     const {
         saving = 'Lagrer...',
         saved  = 'Lagret',
@@ -47,6 +49,7 @@ export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, 
     let destroying = false;
     let destroyed = false;
     let destroyPromise = null;
+    let failing = false;
 
     function setStatus(html, clearAfter = 0) {
         if (!statusEl || destroyed) return;
@@ -119,12 +122,21 @@ export function createAutoSave({ saveFn, getState, statusEl, debounceMs = 1000, 
             try {
                 await saveFn(current.state);
                 lastSavedHash = current.hash;
+                failing = false;
             } catch (err) {
                 console.error('Auto-save failed:', err);
                 // Preserve the newest state for a later retry. If nothing
                 // newer arrived while this write ran, retry this state.
                 if (!queuedSave) queuedSave = current;
                 setStatus(error);
+                // Once per failure streak, so the caller can alert loudly
+                // without spamming on every retry.
+                if (!failing) {
+                    failing = true;
+                    if (onError) {
+                        try { onError(err); } catch (_) { /* alerts must not break saving */ }
+                    }
+                }
                 allSaved = false;
                 break;
             } finally {

@@ -21,12 +21,17 @@ import { parseFrameMarkdown } from './frame-parser.js';
  * Can be overridden via options.frames.
  */
 export const DEFAULT_FRAME_REGISTRY = [
+    { id: 'fortelling', file: '/frames/{{lang}}/fortelling.md', labelKey: 'skriv.frameFortelling', descKey: 'skriv.frameFortellingDesc', levels: ['barneskole', 'ungdomsskole'] },
+    { id: 'faktatekst', file: '/frames/{{lang}}/faktatekst.md', labelKey: 'skriv.frameFaktatekst', descKey: 'skriv.frameFaktatekstDesc', levels: ['barneskole', 'ungdomsskole'] },
+    { id: 'bokmelding', file: '/frames/{{lang}}/bokmelding.md', labelKey: 'skriv.frameBokmelding', descKey: 'skriv.frameBokmeldingDesc', levels: ['barneskole', 'ungdomsskole'] },
     { id: 'droefting', file: '/frames/{{lang}}/droefting.md', labelKey: 'skriv.frameDroefting', descKey: 'skriv.frameDroeftingDesc', levels: ['ungdomsskole', 'vgs'] },
     { id: 'analyse', file: '/frames/{{lang}}/analyse.md', labelKey: 'skriv.frameAnalyse', descKey: 'skriv.frameAnalyseDesc', levels: ['ungdomsskole', 'vgs'] },
     { id: 'kronikk', file: '/frames/{{lang}}/kronikk.md', labelKey: 'skriv.frameKronikk', descKey: 'skriv.frameKronikkDesc', levels: ['vgs'] },
     { id: 'kaaseri', file: '/frames/{{lang}}/kaaseri.md', labelKey: 'skriv.frameKaaseri', descKey: 'skriv.frameKaaseriDesc', levels: ['ungdomsskole', 'vgs'] },
     { id: 'fagartikkel', file: '/frames/{{lang}}/fagartikkel.md', labelKey: 'skriv.frameFagartikkel', descKey: 'skriv.frameFagartikkelDesc', levels: ['ungdomsskole', 'vgs'] },
     { id: 'leserinnlegg', file: '/frames/{{lang}}/leserinnlegg.md', labelKey: 'skriv.frameLeserinnlegg', descKey: 'skriv.frameLeserinnleggDesc', levels: ['barneskole', 'ungdomsskole', 'vgs'] },
+    { id: 'soeknad', file: '/frames/{{lang}}/soeknad.md', labelKey: 'skriv.frameSoeknad', descKey: 'skriv.frameSoeknadDesc', levels: ['ungdomsskole', 'vgs'] },
+    { id: 'formelt-brev', file: '/frames/{{lang}}/formelt-brev.md', labelKey: 'skriv.frameFormeltBrev', descKey: 'skriv.frameFormeltBrevDesc', levels: ['ungdomsskole', 'vgs'] },
     { id: 'novelle', file: '/frames/{{lang}}/novelle.md', labelKey: 'skriv.frameNovelle', descKey: 'skriv.frameNovelleDesc', levels: ['barneskole', 'ungdomsskole', 'vgs'] },
     { id: 'retorisk-analyse', file: '/frames/{{lang}}/retorisk-analyse.md', labelKey: 'skriv.frameRetoriskAnalyse', descKey: 'skriv.frameRetoriskAnalyseDesc', levels: ['ungdomsskole', 'vgs'] },
     { id: 'kortsvar', file: '/frames/{{lang}}/kortsvar.md', labelKey: 'skriv.frameKortsvar', descKey: 'skriv.frameKortsvarDesc', levels: ['vgs'] },
@@ -35,7 +40,7 @@ export const DEFAULT_FRAME_REGISTRY = [
     { id: 'sammenligning', file: '/frames/{{lang}}/sammenligning.md', labelKey: 'skriv.frameSammenligning', descKey: 'skriv.frameSammenligningDesc', levels: ['ungdomsskole', 'vgs'] },
 ];
 
-const FRAME_LANGUAGES = ['nb', 'nn'];
+const FRAME_LANGUAGES = ['nb', 'nn', 'en'];
 
 /** Resolve the available frame language for a document writing language. */
 export function resolveFrameLanguage(lang) {

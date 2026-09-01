@@ -12,9 +12,10 @@ spinner: innledning
 - Temaet er aktuelt fordi...
 
 ## Hoveddel
-spinner: argument
+spinner: fakta
 
 ### Bakgrunn og teori
+spinner: forklaring
 > Gi leseren nødvendig bakgrunnsinformasjon. Forklar sentrale begreper og teorier som er relevante for emnet. Henvis til kilder.
 - For å forstå dette må vi først se på...
 - Ifølge forskning viser det seg at...
@@ -25,6 +26,7 @@ spinner: argument
 - Tall fra undersøkelsen viser at...
 
 ### Drøfting av funn
+spinner: forklaring
 > Diskuter hva funnene betyr i en større sammenheng. Er det ulike tolkninger? Hva er styrker og svakheter ved kildene du har brukt?
 - Dette kan tolkes på flere måter...
 - En mulig forklaring er at...

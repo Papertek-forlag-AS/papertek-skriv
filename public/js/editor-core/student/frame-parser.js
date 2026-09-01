@@ -25,7 +25,7 @@
  */
 
 const SUBSECTION_NAME_BUCKETS = [
-    { match: /virkemid/i, bucket: 'verkemiddel' },
+    { match: /v[ei]rkemid/i, bucket: 'verkemiddel' },
     { match: /tolkning|tematikk/i, bucket: 'tolkning' },
 ];
 

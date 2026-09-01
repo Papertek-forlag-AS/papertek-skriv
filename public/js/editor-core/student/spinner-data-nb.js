@@ -755,259 +755,6 @@ export const starters = {
     },
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RETORISK ANALYSE — analyse av retoriske virkemidler (etos, patos, logos)
-    // ─────────────────────────────────────────────────────────────────────────
-    'retorisk-analyse': {
-        us: {
-            innledning: [
-                'I denne teksten skal jeg analysere retorikken i...',
-                'Teksten jeg skal undersøke bruker flere retoriske grep...',
-                'Avsenderen forsøker å overbevise leseren om at...',
-                'Formålet med teksten er å påvirke mottakeren til...',
-                'Jeg skal se på hvordan forfatteren bruker etos, patos og logos...',
-                'Den retoriske situasjonen er preget av...',
-            ],
-            retorisk: [
-                'Avsenderen bygger troverdighet (etos) ved å...',
-                'Her appellerer teksten til følelsene våre (patos) gjennom...',
-                'Argumentet hviler på logikk (logos) fordi...',
-                'Etos-appellen forsterkes av at avsenderen...',
-                'Patos brukes effektivt når forfatteren...',
-                'Logos kommer til uttrykk gjennom fakta som...',
-            ],
-            verkemiddel: [
-                'Et viktig virkemiddel er bruken av...',
-                'Gjentakelsen av... skaper en effekt av...',
-                'Retoriske spørsmål brukes for å...',
-                'Kontrasten mellom... og... understreker...',
-                'Metaforen "..." får leseren til å...',
-                'Forfatteren bruker vi-form for å...',
-            ],
-            avslutning: [
-                'Oppsummert bruker avsenderen... for å overbevise...',
-                'De retoriske grepene virker... fordi...',
-                'Teksten lykkes/lykkes ikke med å overbevise fordi...',
-                'Samlet sett er den sterkeste appellen...',
-                'Retorikken er effektiv fordi...',
-                'Analysen viser at teksten primært appellerer til...',
-            ],
-        },
-        vgs: {
-            innledning: [
-                'Denne analysen undersøker de retoriske strategiene i...',
-                'Den retoriske situasjonen kjennetegnes av...',
-                'Med utgangspunkt i den retoriske situasjonen vil jeg analysere...',
-                'Teksten inngår i en kontekst der kairos er...',
-                'Avsenderens retoriske hensikt er å...',
-                'I det følgende analyseres de retoriske appellformene i...',
-            ],
-            retorisk: [
-                'Etos-appellen konstrueres gjennom avsenderens...',
-                'Patos-dimensjonen realiseres ved at teksten...',
-                'Logos-argumentasjonen bygger på premisset om at...',
-                'Etosen forsterkes intertekstuelt gjennom referanser til...',
-                'Den emosjonelle appellen intensiveres ved...',
-                'Den logiske argumentasjonsrekken hviler på...',
-                'Samspillet mellom etos og patos skaper...',
-            ],
-            verkemiddel: [
-                'Den retoriske figuren... fungerer ved at...',
-                'Anaforens repetitive struktur forsterker...',
-                'Det stilistiske registeret signaliserer en...',
-                'Topos-bruken plasserer argumentet innenfor...',
-                'Den implisitte premissen forutsetter at mottakeren...',
-                'Metonymien erstatter... med... og oppnår...',
-                'Kairos utnyttes ved at teksten aktualiserer...',
-            ],
-            avslutning: [
-                'Analysen avdekker et samspill mellom appellformene der...',
-                'Den retoriske strategien er primært... med innslag av...',
-                'Tekstens overbevisningskraft hviler i hovedsak på...',
-                'Retorikkens effektivitet begrenses imidlertid av...',
-                'Avslutningsvis demonstrerer teksten hvordan...',
-                'Den samlede retoriske effekten er...',
-            ],
-        },
-    },
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // KORTSVAR — kort sammenligning av tekster
-    // ─────────────────────────────────────────────────────────────────────────
-    'kortsvar': {
-        us: {
-            innledning: [
-                'I dette kortsvaret skal jeg sammenligne...',
-                'De to tekstene handler begge om... men...',
-                'Tekstene ligner hverandre ved at... men skiller seg ved...',
-                'Jeg skal se på likheter og forskjeller mellom...',
-                'Begge tekstene tar opp temaet... men på ulik måte...',
-            ],
-            sammenligning: [
-                'En likhet mellom tekstene er at...',
-                'En viktig forskjell er at...',
-                'Mens tekst 1... så tekst 2...',
-                'Begge tekstene bruker... men med ulik effekt...',
-                'I motsetning til tekst 1 velger tekst 2 å...',
-                'Felles for tekstene er at...',
-                'Der tekst 1 fokuserer på... legger tekst 2 vekt på...',
-            ],
-            avslutning: [
-                'Samlet sett viser sammenligningen at...',
-                'Den viktigste forskjellen er at...',
-                'Til tross for ulikhetene deler tekstene...',
-                'Konklusjonen er at tekstene... fordi...',
-                'Sammenligningen viser at begge tekstene...',
-            ],
-        },
-        vgs: {
-            innledning: [
-                'Denne sammenligningen tar for seg... med vekt på...',
-                'De to tekstene posisjonerer seg ulikt innenfor...',
-                'Med utgangspunkt i... skal jeg sammenligne...',
-                'Tekstenes felles tematikk åpner for en sammenligning av...',
-                'I det følgende sammenlignes... med hensyn til...',
-            ],
-            sammenligning: [
-                'Et gjennomgående trekk ved begge tekstene er...',
-                'Tekstene divergerer imidlertid i sin behandling av...',
-                'Der den ene teksten anlegger et... perspektiv, velger den andre...',
-                'Kontrasten blir særlig tydelig i måten tekstene...',
-                'Parallellen mellom... og... understreker...',
-                'Den kompositoriske forskjellen gjenspeiler ulike syn på...',
-                'Mens den ene forfatteren privilegerer... prioriterer den andre...',
-            ],
-            avslutning: [
-                'Sammenligningen avdekker at tekstene representerer...',
-                'De komplementære perspektivene belyser...',
-                'Avslutningsvis demonstrerer tekstene hvordan...',
-                'Til tross for overflatisk likhet er forskjellene fundamentale...',
-                'Den samlede sammenligningen viser at...',
-            ],
-        },
-    },
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // KREATIV TEKST — monolog, dikt, prosa, hybridtekst
-    // ─────────────────────────────────────────────────────────────────────────
-    'kreativ-tekst': {
-        us: {
-            aapning: [
-                'Det var noe jeg aldri fikk sagt...',
-                'Ordene forsvant i det øyeblikket...',
-                'Jeg husker lyden av...',
-                'Alt begynte med en tanke som...',
-                'Noen ganger tenker jeg at...',
-                'Det finnes steder der...',
-            ],
-            utvikling: [
-                'Og plutselig var alt annerledes...',
-                'Tankene mine vandret til...',
-                'Det var som om verden...',
-                'Stemmen i meg sa...',
-                'Bildene skiftet —...',
-                'Noe forandret seg da...',
-                'Kroppen husket det hodet hadde glemt...',
-            ],
-            avslutning: [
-                'Og der, i stillheten, fant jeg...',
-                'Kanskje var det alltid slik...',
-                'Det eneste som gjensto var...',
-                'Slik ender det — ikke med et smell, men...',
-                'Og så var det stille igjen...',
-                'Men nå vet jeg at...',
-            ],
-        },
-        vgs: {
-            aapning: [
-                'Det finnes et øyeblikk mellom...',
-                'La meg fortelle deg om et sted der...',
-                'Membranen mellom drøm og virkelighet...',
-                'Tre bilder: ...',
-                'Kroppen som arkiv — der sitter...',
-                'Dersom språket kunne fange det...',
-                'I grenselandet mellom... og...',
-            ],
-            utvikling: [
-                'Og tiden folder seg — ...',
-                'Her bryter noe gjennom overflaten...',
-                'Fragmentene ordner seg til...',
-                'Stemmene veksler mellom... og...',
-                'Det usagte tar form som...',
-                'Rytmen skifter — fra... til...',
-                'I spennet mellom det fortalte og det fortiede...',
-            ],
-            avslutning: [
-                'Slik avsluttes ingenting — alt fortsetter som...',
-                'Det som gjenstår er sporet av...',
-                'Og kanskje er det nettopp dette: ...',
-                'Mellom linjene hviler det som aldri ble...',
-                'Siste bilde: ...',
-                'Sirkelen lukker seg — men ikke helt...',
-            ],
-        },
-    },
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // REFLEKTERENDE TEKST — personlig utforsking av et tema
-    // ─────────────────────────────────────────────────────────────────────────
-    'reflekterende-tekst': {
-        us: {
-            innledning: [
-                'Noe som har fått meg til å tenke er...',
-                'Jeg har ofte lurt på...',
-                'Da jeg opplevde... begynte jeg å reflektere over...',
-                'Et spørsmål jeg stadig vender tilbake til er...',
-                'Det er vanskelig å sette ord på... men...',
-                'Mange tar for gitt at... men er det virkelig slik?',
-            ],
-            utforsking: [
-                'Når jeg tenker nærmere over dette...',
-                'En annen måte å se det på er...',
-                'Kanskje handler det egentlig om...',
-                'Min erfaring er at...',
-                'Jeg tror dette henger sammen med...',
-                'Det som overrasker meg er at...',
-                'Samtidig må jeg innrømme at...',
-            ],
-            avslutning: [
-                'Etter å ha tenkt over dette innser jeg at...',
-                'Jeg har ikke et endelig svar, men...',
-                'Denne refleksjonen har lært meg at...',
-                'Kanskje er det viktigste at...',
-                'Jeg tror vi alle trenger å...',
-                'Det jeg sitter igjen med er...',
-            ],
-        },
-        vgs: {
-            innledning: [
-                'Refleksjonen som følger springer ut av...',
-                'Det finnes spørsmål som ikke lar seg besvare entydig...',
-                'I møtet mellom... og... oppstår et rom for refleksjon...',
-                'Erfaringen av... har satt i gang en tankeprosess om...',
-                'Å reflektere over... innebærer å anerkjenne at...',
-                'Denne teksten utforsker spenningen mellom...',
-            ],
-            utforsking: [
-                'Ved nærmere ettertanke fremstår det som...',
-                'Paradokset er at...',
-                'Perspektivet forskyves dersom vi...',
-                'Det er fristende å forenkle, men...',
-                'Den personlige erfaringen resonerer med...',
-                'Ambivalensen skyldes kanskje at...',
-                'I spenningsfeltet mellom... og... finnes...',
-            ],
-            avslutning: [
-                'Refleksjonen leder ikke til et entydig svar, men...',
-                'Det som gjenstår er en dypere forståelse av...',
-                'Kanskje er selve undringen det verdifulle...',
-                'Erkjennelsen som trer fram er at...',
-                'Prosessen har vist at... krever...',
-                'Innsikten jeg bærer med meg er at...',
-            ],
-        },
-    },
-
-    // ─────────────────────────────────────────────────────────────────────────
     // SAMMENLIGNING — sammenligne to eller flere tekster
     // ─────────────────────────────────────────────────────────────────────────
     sammenligning: {
@@ -1092,24 +839,37 @@ export const starters = {
                 'Jeg skal sammenligne... og...',
                 'I dette kortsvaret vil jeg ta for meg...',
                 'Begge tekstene tar opp temaet...',
+                'I dette kortsvaret skal jeg sammenligne...',
+                'De to tekstene handler begge om... men...',
+                'Tekstene ligner hverandre ved at... men skiller seg ved...',
+                'Jeg skal se på likheter og forskjeller mellom...',
             ],
             sammenligning: [
                 'Begge tekstene peker på at...',
                 'Et fellestrekk ved tekstene er...',
                 'Den største likheten er hvordan de...',
                 'Både forfatter 1 og forfatter 2 vektlegger...',
+                'En likhet mellom tekstene er at...',
+                'Begge tekstene bruker... men med ulik effekt...',
+                'Felles for tekstene er at...',
             ],
             forskjeller: [
                 'På den annen side velger tekst 2 å...',
                 'En viktig forskjell er at...',
                 'Mens tekst 1 er..., er tekst 2...',
                 'Til forskjell fra tekst 1, bruker tekst 2...',
+                'I motsetning til tekst 1 velger tekst 2 å...',
+                'Der tekst 1 fokuserer på... legger tekst 2 vekt på...',
             ],
             oppsummering: [
                 'Kort oppsummert viser sammenligningen at...',
                 'Samlet sett gir de to tekstene et bilde av...',
                 'Hovedforskjellen koker ned til...',
                 'Til tross for ulikhetene, er budskapet...',
+                'Samlet sett viser sammenligningen at...',
+                'Til tross for ulikhetene deler tekstene...',
+                'Konklusjonen er at tekstene... fordi...',
+                'Den viktigste forskjellen er at...',
             ],
         },
         vgs: {
@@ -1118,24 +878,37 @@ export const starters = {
                 'Jeg skal foreta en sammenligning av...',
                 'Begge tekstene retter søkelyset mot...',
                 'Formålet med denne sammenligningen er...',
+                'Denne sammenligningen tar for seg... med vekt på...',
+                'De to tekstene posisjonerer seg ulikt innenfor...',
+                'Tekstenes felles tematikk åpner for en sammenligning av...',
+                'I det følgende sammenlignes... med hensyn til...',
             ],
             sammenligning: [
                 'Tematisk sett har tekstene mye til felles, spesielt...',
                 'Et gjennomgående likhetstrekk er forfatternes bruk av...',
                 'Parallellen mellom tekstene blir tydelig når...',
                 'Begge tekstene bygger på premisset om at...',
+                'Et gjennomgående trekk ved begge tekstene er...',
             ],
             forskjeller: [
                 'Forskjellen i virkemiddelbruk kommer frem ved at...',
                 'Mens tekst 1 appellerer til..., støtter tekst 2 seg på...',
                 'Kontrasten er markant i måten forfatterne...',
                 'Der tekst 1 inntar et... perspektiv, velger tekst 2...',
+                'Tekstene divergerer imidlertid i sin behandling av...',
+                'Den kompositoriske forskjellen gjenspeiler ulike syn på...',
+                'Mens den ene forfatteren privilegerer... prioriterer den andre...',
             ],
             oppsummering: [
                 'Sammenligningen avdekker at tekstene utfyller...',
                 'Konklusjonen er at tekstene belyser temaet fra...',
                 'Dette viser hvordan ulik form påvirker...',
                 'Samlet sett underbygger de begge at...',
+                'Sammenligningen avdekker at tekstene representerer...',
+                'De komplementære perspektivene belyser...',
+                'Avslutningsvis demonstrerer tekstene hvordan...',
+                'Til tross for overflatisk likhet er forskjellene fundamentale...',
+                'Den samlede sammenligningen viser at...',
             ],
         },
     },
@@ -1150,6 +923,21 @@ export const starters = {
                 'Uten forvarsel smalt det...',
                 'Sola stekte, og gatene var tomme...',
                 'Ingen hadde trodd at...',
+                'Det var noe jeg aldri fikk sagt...',
+                'Ordene forsvant i det øyeblikket...',
+                'Jeg husker lyden av...',
+                'Alt begynte med en tanke som...',
+                'Noen ganger tenker jeg at...',
+                'Det finnes steder der...',
+            ],
+            utvikling: [
+                'Og plutselig var alt annerledes...',
+                'Tankene mine vandret til...',
+                'Det var som om verden...',
+                'Stemmen i meg sa...',
+                'Bildene skiftet —...',
+                'Noe forandret seg da...',
+                'Kroppen husket det hodet hadde glemt...',
             ],
             skildring: [
                 'Lufta var tung av...',
@@ -1168,6 +956,12 @@ export const starters = {
                 'Kanskje var det like greit.',
                 'Stillheten senket seg endelig.',
                 'Noen ganger er det beste å...',
+                'Og der, i stillheten, fant jeg...',
+                'Kanskje var det alltid slik...',
+                'Det eneste som gjensto var...',
+                'Slik ender det — ikke med et smell, men...',
+                'Og så var det stille igjen...',
+                'Men nå vet jeg at...',
             ],
         },
         vgs: {
@@ -1176,6 +970,22 @@ export const starters = {
                 'Stillheten i rommet var nesten til å ta og føle på...',
                 'I et flyktig sekund trodde hun at...',
                 'Det lå en ubeskrivelig tyngde over...',
+                'Det finnes et øyeblikk mellom...',
+                'La meg fortelle deg om et sted der...',
+                'Membranen mellom drøm og virkelighet...',
+                'Tre bilder: ...',
+                'Kroppen som arkiv — der sitter...',
+                'Dersom språket kunne fange det...',
+                'I grenselandet mellom... og...',
+            ],
+            utvikling: [
+                'Og tiden folder seg — ...',
+                'Her bryter noe gjennom overflaten...',
+                'Fragmentene ordner seg til...',
+                'Stemmene veksler mellom... og...',
+                'Det usagte tar form som...',
+                'Rytmen skifter — fra... til...',
+                'I spennet mellom det fortalte og det fortiede...',
             ],
             skildring: [
                 'Lyset brøt gjennom støvskyen og...',
@@ -1194,6 +1004,12 @@ export const starters = {
                 'Minner blekende i lyset av en ny dag.',
                 'Og ingenting ville noensinne bli det samme.',
                 'Til syvende og sist var alt bare...',
+                'Slik avsluttes ingenting — alt fortsetter som...',
+                'Det som gjenstår er sporet av...',
+                'Og kanskje er det nettopp dette: ...',
+                'Mellom linjene hviler det som aldri ble...',
+                'Siste bilde: ...',
+                'Sirkelen lukker seg — men ikke helt...',
             ],
         },
     },
@@ -1208,12 +1024,26 @@ export const starters = {
                 'Dette temaet får meg til å tenke på...',
                 'I dag snakker alle om..., men...',
                 'Et spørsmål som ofte dukker opp er...',
+                'Noe som har fått meg til å tenke er...',
+                'Jeg har ofte lurt på...',
+                'Da jeg opplevde... begynte jeg å reflektere over...',
+                'Det er vanskelig å sette ord på... men...',
+                'Mange tar for gitt at... men er det virkelig slik?',
             ],
             hoveddel: [
                 'På den ene siden kan man si at...',
                 'Samtidig er det viktig å huske på...',
                 'Dette kan henge sammen med...',
                 'Mine egne erfaringer viser at...',
+            ],
+            utforsking: [
+                'Når jeg tenker nærmere over dette...',
+                'En annen måte å se det på er...',
+                'Kanskje handler det egentlig om...',
+                'Min erfaring er at...',
+                'Jeg tror dette henger sammen med...',
+                'Det som overrasker meg er at...',
+                'Samtidig må jeg innrømme at...',
             ],
             refleksjon: [
                 'Jeg tror at grunnen til dette er...',
@@ -1226,6 +1056,11 @@ export const starters = {
                 'Forhåpentligvis vil vi en dag...',
                 'Det viktigste jeg tar med meg er...',
                 'Kanskje har vi noe å lære av...',
+                'Etter å ha tenkt over dette innser jeg at...',
+                'Jeg har ikke et endelig svar, men...',
+                'Denne refleksjonen har lært meg at...',
+                'Jeg tror vi alle trenger å...',
+                'Det jeg sitter igjen med er...',
             ],
         },
         vgs: {
@@ -1234,12 +1069,27 @@ export const starters = {
                 'Å reflektere over... tvinger oss til å...',
                 'Debatten om... reiser grunnleggende spørsmål om...',
                 'Det finnes neppe et entydig svar på hvorfor...',
+                'Refleksjonen som følger springer ut av...',
+                'Det finnes spørsmål som ikke lar seg besvare entydig...',
+                'I møtet mellom... og... oppstår et rom for refleksjon...',
+                'Erfaringen av... har satt i gang en tankeprosess om...',
+                'Å reflektere over... innebærer å anerkjenne at...',
+                'Denne teksten utforsker spenningen mellom...',
             ],
             hoveddel: [
                 'Et sentralt aspekt ved denne problematikken er...',
                 'Det er nærliggende å trekke paralleller til...',
                 'Dette fenomenet må ses i sammenheng med...',
                 'I et bredere perspektiv kan man hevde at...',
+            ],
+            utforsking: [
+                'Ved nærmere ettertanke fremstår det som...',
+                'Paradokset er at...',
+                'Perspektivet forskyves dersom vi...',
+                'Det er fristende å forenkle, men...',
+                'Den personlige erfaringen resonerer med...',
+                'Ambivalensen skyldes kanskje at...',
+                'I spenningsfeltet mellom... og... finnes...',
             ],
             refleksjon: [
                 'Dette etterlater en følelse av ambivalens...',
@@ -1252,6 +1102,12 @@ export const starters = {
                 'Avslutningsvis er det grunn til å minne om...',
                 'Til syvende og sist koker det ned til...',
                 'Refleksjonen leder oss frem til at...',
+                'Refleksjonen leder ikke til et entydig svar, men...',
+                'Det som gjenstår er en dypere forståelse av...',
+                'Kanskje er selve undringen det verdifulle...',
+                'Erkjennelsen som trer fram er at...',
+                'Prosessen har vist at... krever...',
+                'Innsikten jeg bærer med meg er at...',
             ],
         },
     },
@@ -1266,6 +1122,10 @@ export const starters = {
                 'Formålet med teksten er å overbevise om at...',
                 'Avsenderen av teksten er...',
                 'Målgruppen ser ut til å være...',
+                'I denne teksten skal jeg analysere retorikken i...',
+                'Teksten jeg skal undersøke bruker flere retoriske grep...',
+                'Avsenderen forsøker å overbevise leseren om at...',
+                'Jeg skal se på hvordan forfatteren bruker etos, patos og logos...',
             ],
             'retorisk-situasjon': [
                 'Teksten ble skrevet fordi...',
@@ -1278,30 +1138,44 @@ export const starters = {
                 'Avsenderen fremstår som troverdig fordi...',
                 'Bruken av egne erfaringer styrker etos...',
                 'Etos etableres tidlig i teksten ved...',
+                'Avsenderen bygger troverdighet (etos) ved å...',
+                'Etos-appellen forsterkes av at avsenderen...',
             ],
             patos: [
                 'Teksten spiller på følelser som...',
                 'Forfatteren prøver å vekke leserens...',
                 'Bruken av sterke ord skaper en følelse av...',
                 'For å fange oppmerksomheten bruker avsender...',
+                'Her appellerer teksten til følelsene våre (patos) gjennom...',
+                'Patos brukes effektivt når forfatteren...',
             ],
             logos: [
                 'Forfatteren bruker fakta for å bevise at...',
                 'Logikken i teksten er bygget opp rundt...',
                 'Argumentene støttes av statistikk som viser...',
                 'Avsenderen argumenterer logisk ved å vise til...',
+                'Argumentet hviler på logikk (logos) fordi...',
+                'Logos kommer til uttrykk gjennom fakta som...',
             ],
             virkemidler: [
                 'Et viktig virkemiddel her er...',
                 'Gjentakelsen av... understreker at...',
                 'Forfatteren bruker ironi for å vise at...',
                 'Metaforen... hjelper leseren å forstå...',
+                'Retoriske spørsmål brukes for å...',
+                'Kontrasten mellom... og... understreker...',
+                'Forfatteren bruker vi-form for å...',
             ],
             avslutning: [
                 'Alt i alt lykkes teksten med å...',
                 'Den mest effektive appellformen er...',
                 'Konklusjonen er at forfatteren klarer å...',
                 'Til tross for sterke argumenter, mangler teksten...',
+                'Oppsummert bruker avsenderen... for å overbevise...',
+                'De retoriske grepene virker... fordi...',
+                'Teksten lykkes/lykkes ikke med å overbevise fordi...',
+                'Retorikken er effektiv fordi...',
+                'Analysen viser at teksten primært appellerer til...',
             ],
         },
         vgs: {
@@ -1310,6 +1184,12 @@ export const starters = {
                 'Hovedintensjonen til avsenderen er å...',
                 'Teksten posisjonerer seg i debatten om...',
                 'Den retoriske strategien hviler tungt på...',
+                'Denne analysen undersøker de retoriske strategiene i...',
+                'Den retoriske situasjonen kjennetegnes av...',
+                'Med utgangspunkt i den retoriske situasjonen vil jeg analysere...',
+                'Teksten inngår i en kontekst der kairos er...',
+                'Avsenderens retoriske hensikt er å...',
+                'I det følgende analyseres de retoriske appellformene i...',
             ],
             'retorisk-situasjon': [
                 'Det påtrengende problemet (exigence) er...',
@@ -1322,30 +1202,307 @@ export const starters = {
                 'Den avledede etosen styrkes underveis ved at...',
                 'Kompetanse og autoritet etableres gjennom...',
                 'Etos appellerer til målgruppens verdier (dygd) ved å...',
+                'Etos-appellen konstrueres gjennom avsenderens...',
+                'Etosen forsterkes intertekstuelt gjennom referanser til...',
+                'Samspillet mellom etos og patos skaper...',
             ],
             patos: [
                 'Patosappellen aktiveres umiddelbart gjennom...',
                 'Det følelsesmessige engasjementet vekkes ved hjelp av...',
                 'Billedbruken bidrar sterkt til å mobilisere patos...',
                 'Skiftet i tonefall skaper en emosjonell kontrast som...',
+                'Patos-dimensjonen realiseres ved at teksten...',
+                'Den emosjonelle appellen intensiveres ved...',
             ],
             logos: [
                 'Den logiske argumentasjonen (logos) bæres frem av...',
                 'Preste- og entymemer benyttes for å...',
                 'Induktiv resonnering ligger til grunn for påstanden om...',
                 'Holdbarheten i argumentasjonen styrkes av...',
+                'Logos-argumentasjonen bygger på premisset om at...',
+                'Den logiske argumentasjonsrekken hviler på...',
             ],
             virkemidler: [
                 'Det stilistiske valget av... fungerer overbevisende...',
                 'De retoriske spørsmålene tjener funksjonen å...',
                 'Kontrastbruken polariserer debatten ved å...',
                 'Den gjennomgående metaforikken forsterker inntrykket av...',
+                'Den retoriske figuren... fungerer ved at...',
+                'Anaforens repetitive struktur forsterker...',
+                'Det stilistiske registeret signaliserer en...',
+                'Topos-bruken plasserer argumentet innenfor...',
+                'Den implisitte premissen forutsetter at mottakeren...',
+                'Metonymien erstatter... med... og oppnår...',
+                'Kairos utnyttes ved at teksten aktualiserer...',
             ],
             avslutning: [
                 'Samlet sett fremstår den retoriske strategien som...',
                 'Den dominerende patosappellen overskygger imidlertid...',
                 'Avsenderen oppnår sitt perlokutive mål ved å...',
                 'Tekstens retoriske styrke ligger i samspillet mellom...',
+                'Analysen avdekker et samspill mellom appellformene der...',
+                'Den retoriske strategien er primært... med innslag av...',
+                'Tekstens overbevisningskraft hviler i hovedsak på...',
+                'Retorikkens effektivitet begrenses imidlertid av...',
+                'Avslutningsvis demonstrerer teksten hvordan...',
+                'Den samlede retoriske effekten er...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FORTELLING — barneskole/ungdomsskole narrativ (us-tier = enkelt språk)
+    // ─────────────────────────────────────────────────────────────────────────
+    fortelling: {
+        us: {
+            begynnelse: [
+                'Det var en gang...',
+                'En dag skulle...',
+                'Det hele startet da...',
+                'Akkurat da... skjedde det noe rart.',
+                'Langt borte i... bodde det...',
+                'Jeg glemmer aldri dagen da...',
+            ],
+            midtdel: [
+                'Plutselig...',
+                'Da oppdaget...',
+                'Det ble verre og verre, fordi...',
+                'Uten å tenke seg om...',
+                'Hjertet banket fort da...',
+                'Ingen visste at...',
+            ],
+            slutt: [
+                'Til slutt...',
+                'Endelig var...',
+                'Etter den dagen...',
+                'Alt ble bra igjen da...',
+                'Og det var slik...',
+                'Nå vet jeg at...',
+            ],
+        },
+        vgs: {
+            begynnelse: [
+                'Det begynte som en helt vanlig dag, helt til...',
+                'Ingen i... hadde noen gang sett...',
+                'Lyden av... var det første jeg la merke til.',
+                'Alle sa at man aldri skulle... men...',
+            ],
+            midtdel: [
+                'I det samme øyeblikket forsto...',
+                'Alt hang plutselig sammen:...',
+                'Det fantes ingen vei tilbake da...',
+                'Med hendene fulle av... snudde...',
+            ],
+            slutt: [
+                'Da roen endelig senket seg...',
+                'Ingenting ble helt som før, men...',
+                'Kanskje var det nettopp det som måtte skje...',
+                'Historien om... fortelles fortsatt.',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FAKTATEKST — barneskole/ungdomsskole informerende tekst
+    // ─────────────────────────────────────────────────────────────────────────
+    faktatekst: {
+        us: {
+            innledning: [
+                'Denne teksten handler om...',
+                'Visste du at...',
+                'Har du noen gang lurt på...',
+                'Nå skal du få lære om...',
+            ],
+            fakta: [
+                'En viktig ting å vite er at...',
+                'Forskere har funnet ut at...',
+                'Noe annet som er spennende, er at...',
+                'Det betyr at...',
+                'De fleste... har...',
+                'Et eksempel på dette er...',
+            ],
+            avslutning: [
+                'Nå har du lært at...',
+                'Det viktigste å huske er...',
+                'Som du ser, er... et spennende emne.',
+                'Hvis du vil lære mer, kan du...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Denne teksten gir en oversikt over...',
+                'Temaet... er aktuelt fordi...',
+                'For å forstå... må vi først se på...',
+            ],
+            fakta: [
+                'Undersøkelser viser at...',
+                'Et sentralt kjennetegn ved... er...',
+                'Dette henger sammen med...',
+                'Sammenlignet med... er...',
+            ],
+            avslutning: [
+                'Oppsummert kjennetegnes... av...',
+                'Kunnskap om... er viktig fordi...',
+                'Det gjenstår fortsatt å finne ut...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BOKMELDING — presentasjon, handling og vurdering av ei bok
+    // ─────────────────────────────────────────────────────────────────────────
+    bokmelding: {
+        us: {
+            innledning: [
+                'Boka jeg har lest, heter...',
+                'Den er skrevet av...',
+                'Dette er en bok om...',
+                'Sjangeren er... og boka passer for...',
+            ],
+            handling: [
+                'Boka handler om...',
+                'Hovedpersonen er... som...',
+                'Problemet i historien er at...',
+                'Underveis møter... på...',
+                'Det mest spennende stedet i boka er når...',
+            ],
+            vurdering: [
+                'Det beste med boka var... fordi...',
+                'Jeg likte godt at...',
+                'Noe jeg ikke likte så godt, var...',
+                'Språket i boka er...',
+                'Boka fikk meg til å føle...',
+            ],
+            anbefaling: [
+                'Jeg anbefaler boka til deg som liker...',
+                'Denne boka passer for...',
+                'Jeg gir boka... av 6 stjerner fordi...',
+                'Hvis du likte... vil du også like denne.',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Romanen... av... kom ut i...',
+                'Forfatteren er kjent for...',
+                'Boka plasserer seg i sjangeren...',
+            ],
+            handling: [
+                'Handlingen kretser rundt...',
+                'Konflikten oppstår når...',
+                'Fortellingen veksler mellom...',
+            ],
+            vurdering: [
+                'Bokas største styrke er...',
+                'Forfatteren lykkes særlig med...',
+                'Et svakt punkt er imidlertid...',
+                'Språklig kjennetegnes boka av...',
+            ],
+            anbefaling: [
+                'Boka anbefales til lesere som...',
+                'Samlet sett fortjener boka...',
+                'Lesere av... vil kjenne seg igjen i...',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SØKNAD — jobbsøknad / søknad om plass
+    // ─────────────────────────────────────────────────────────────────────────
+    soeknad: {
+        us: {
+            innledning: [
+                'Jeg søker med dette på stillingen som...',
+                'Jeg viser til utlysningen på... og søker herved...',
+                'Jeg så annonsen deres på... og vil gjerne søke.',
+            ],
+            kvalifikasjoner: [
+                'Jeg har erfaring med... fra...',
+                'Gjennom... har jeg lært å...',
+                'Som... hadde jeg ansvar for...',
+                'På skolen har jeg vist at jeg...',
+                'Venner og lærere beskriver meg som...',
+            ],
+            motivasjon: [
+                'Jeg ønsker meg denne stillingen fordi...',
+                'Det som tiltaler meg ved... er...',
+                'Jeg kan bidra med...',
+                'Jeg er spesielt interessert i...',
+            ],
+            avslutning: [
+                'Jeg stiller gjerne til intervju og kan begynne...',
+                'Ta gjerne kontakt om dere har spørsmål.',
+                'Jeg håper på positivt svar.',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Jeg søker med dette den utlyste stillingen som...',
+                'Med bakgrunn i... ønsker jeg å søke stillingen som...',
+            ],
+            kvalifikasjoner: [
+                'Erfaringen min fra... har gitt meg...',
+                'I rollen som... utviklet jeg...',
+                'Jeg behersker... og har dokumentert...',
+                'Arbeidet med... krevde at jeg...',
+            ],
+            motivasjon: [
+                'Virksomheten deres tiltaler meg fordi...',
+                'Stillingen passer godt med min plan om å...',
+                'Jeg ser fram til å kunne bidra med...',
+            ],
+            avslutning: [
+                'Jeg stiller gjerne i intervju for å utdype søknaden.',
+                'Referanser oppgis på forespørsel.',
+                'Jeg ser fram til å høre fra dere.',
+            ],
+        },
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FORMELT BREV — klage, forespørsel eller melding til ukjent mottaker
+    // ─────────────────────────────────────────────────────────────────────────
+    'formelt-brev': {
+        us: {
+            innledning: [
+                'Jeg skriver til dere fordi...',
+                'Jeg viser til... og ønsker å...',
+                'Jeg kontakter dere angående...',
+            ],
+            sak: [
+                'Den... opplevde jeg at...',
+                'Saken gjelder...',
+                'Jeg vil særlig peke på at...',
+                'Dette har ført til at...',
+            ],
+            handling: [
+                'Jeg ber derfor om at...',
+                'Jeg ønsker en tilbakemelding på...',
+                'Et godt utfall for meg ville være at...',
+            ],
+            avslutning: [
+                'På forhånd takk for hjelpen.',
+                'Jeg ser fram til å høre fra dere.',
+                'Jeg kan kontaktes på...',
+            ],
+        },
+        vgs: {
+            innledning: [
+                'Jeg henvender meg til dere i forbindelse med...',
+                'Det vises til... datert...',
+            ],
+            sak: [
+                'Saksforholdet er som følger:...',
+                'Jeg vil framheve at...',
+                'Vedlagt følger dokumentasjon på...',
+            ],
+            handling: [
+                'På denne bakgrunn ber jeg om at...',
+                'Jeg imøteser en skriftlig tilbakemelding innen...',
+                'Dersom saken ikke løses, vurderer jeg å...',
+            ],
+            avslutning: [
+                'Takk for at dere behandler henvendelsen.',
+                'Jeg står til disposisjon for ytterligere opplysninger.',
             ],
         },
     },

@@ -71,17 +71,22 @@ test('limited assistance is never presented as a secure exam environment', () =>
     }
 });
 
-test('Word-compatible export is labelled as .doc throughout the export flow', async () => {
-    const [writer, checklist, exporter] = await Promise.all([
+test('Word export is a real .docx end to end, not a renamed HTML file', async () => {
+    const [writer, checklist, exporter, docxBuilder] = await Promise.all([
         readSource('../public/js/app/standalone-writer.js'),
         readSource('../public/js/editor-core/student/submission-checklist.js'),
         readSource('../public/js/editor-core/student/text-export.js'),
+        readSource('../public/js/editor-core/student/docx-export.js'),
     ]);
 
-    assert.match(writer, /exportType: 'doc'/);
-    assert.match(checklist, /doc: t\('skriv\.downloadDocx'\)/);
-    assert.match(exporter, /a\.download = `\$\{safeTitle\}\.doc`/);
-    assert.doesNotMatch(exporter.split('\n')[1] || '', /\.docx/);
+    // One spelling of the export type, or the checklist loses its label.
+    assert.match(writer, /exportType: 'docx'/);
+    assert.doesNotMatch(writer, /exportType: 'doc'/);
+    assert.match(checklist, /docx: t\('skriv\.downloadDocx'\)/);
+
+    assert.match(exporter, /a\.download = `\$\{safeTitle\}\.docx`/);
+    // The OOXML builder, not a Word-flavoured HTML blob.
+    assert.match(docxBuilder, /docx\.iife\.js/);
 });
 
 test('backup restore distinguishes invalid, partial, and storage failures', async () => {

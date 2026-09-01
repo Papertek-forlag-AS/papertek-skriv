@@ -21,6 +21,72 @@ import { escapeHtml } from '../shared/html-escape.js';
 import { getModalParent } from '../shared/dom-helpers.js';
 
 /**
+ * Build the checklist items for a document about to be exported.
+ * Pure — no DOM. Exported for tests.
+ *
+ * @param {object} options
+ * @param {string|null} [options.frameType] - Active frame type or null
+ * @param {string} [options.title] - Document title
+ * @param {number} [options.wordCount] - Current word count
+ * @param {boolean} [options.hasReferences] - Whether references exist
+ * @returns {Array<{auto: boolean, pass?: boolean, label: string}>}
+ */
+export function buildChecklistItems({ frameType = null, title = '', wordCount = 0, hasReferences = false } = {}) {
+    const items = [];
+
+    // Auto-detected items
+    items.push({
+        auto: true,
+        pass: title.trim().length > 0,
+        label: t('checklist.hasTitle'),
+    });
+
+    items.push({
+        auto: true,
+        pass: wordCount >= 100,
+        label: t('checklist.hasWords'),
+    });
+
+    items.push({
+        auto: true,
+        pass: hasReferences,
+        label: t('checklist.hasSources'),
+    });
+
+    // Genre-specific items (manual checkboxes)
+    if (frameType === 'droefting') {
+        items.push(
+            { auto: false, label: t('checklist.droefting.question') },
+            { auto: false, label: t('checklist.droefting.argFor') },
+            { auto: false, label: t('checklist.droefting.argAgainst') },
+            { auto: false, label: t('checklist.droefting.conclusion') },
+        );
+    } else if (frameType === 'analyse') {
+        items.push(
+            { auto: false, label: t('checklist.analyse.work') },
+            { auto: false, label: t('checklist.analyse.structure') },
+            { auto: false, label: t('checklist.analyse.devices') },
+            { auto: false, label: t('checklist.analyse.interpretation') },
+        );
+    } else if (frameType === 'kronikk') {
+        items.push(
+            { auto: false, label: t('checklist.kronikk.hook') },
+            { auto: false, label: t('checklist.kronikk.position') },
+            { auto: false, label: t('checklist.kronikk.arguments') },
+            { auto: false, label: t('checklist.kronikk.counterArg') },
+        );
+    }
+
+    // Generic manual items (always shown)
+    items.push(
+        { auto: false, label: t('checklist.introConclusion') },
+        { auto: false, label: t('checklist.spellCheck') },
+    );
+
+    return items;
+}
+
+/**
  * Show the submission checklist modal.
  *
  * @param {object} options
@@ -29,16 +95,11 @@ import { getModalParent } from '../shared/dom-helpers.js';
  * @param {number} options.wordCount - Current word count
  * @param {boolean} options.hasReferences - Whether references exist
  * @param {boolean} options.hasHeadings - Whether H1/H2 headings exist
- * @param {'pdf'|'txt'|'doc'} options.exportType - Which export was clicked
+ * @param {'pdf'|'txt'|'docx'} options.exportType - Which export was clicked
  * @returns {Promise<boolean>} true if student wants to proceed, false if cancelled
  */
 export function showSubmissionChecklist(options) {
     const {
-        frameType = null,
-        title = '',
-        wordCount = 0,
-        hasReferences = false,
-        hasHeadings = false,
         exportType = 'pdf',
     } = options;
 
@@ -46,57 +107,7 @@ export function showSubmissionChecklist(options) {
     document.querySelectorAll('[data-checklist-modal]').forEach(el => el.remove());
 
     return new Promise((resolve) => {
-        // --- Build checklist items ---
-        const items = [];
-
-        // Auto-detected items
-        items.push({
-            auto: true,
-            pass: title.trim().length > 0,
-            label: t('checklist.hasTitle'),
-        });
-
-        items.push({
-            auto: true,
-            pass: wordCount >= 100,
-            label: t('checklist.hasWords'),
-        });
-
-        items.push({
-            auto: true,
-            pass: hasReferences,
-            label: t('checklist.hasSources'),
-        });
-
-        // Genre-specific items (manual checkboxes)
-        if (frameType === 'droefting') {
-            items.push(
-                { auto: false, label: t('checklist.droefting.question') },
-                { auto: false, label: t('checklist.droefting.argFor') },
-                { auto: false, label: t('checklist.droefting.argAgainst') },
-                { auto: false, label: t('checklist.droefting.conclusion') },
-            );
-        } else if (frameType === 'analyse') {
-            items.push(
-                { auto: false, label: t('checklist.analyse.work') },
-                { auto: false, label: t('checklist.analyse.structure') },
-                { auto: false, label: t('checklist.analyse.devices') },
-                { auto: false, label: t('checklist.analyse.interpretation') },
-            );
-        } else if (frameType === 'kronikk') {
-            items.push(
-                { auto: false, label: t('checklist.kronikk.hook') },
-                { auto: false, label: t('checklist.kronikk.position') },
-                { auto: false, label: t('checklist.kronikk.arguments') },
-                { auto: false, label: t('checklist.kronikk.counterArg') },
-            );
-        }
-
-        // Generic manual items (always shown)
-        items.push(
-            { auto: false, label: t('checklist.introConclusion') },
-            { auto: false, label: t('checklist.spellCheck') },
-        );
+        const items = buildChecklistItems(options);
 
         // --- Build HTML ---
         const itemsHtml = items.map((item, i) => {
@@ -123,7 +134,7 @@ export function showSubmissionChecklist(options) {
         const exportLabel = {
             pdf: t('skriv.downloadPdf'),
             txt: t('skriv.downloadTxt'),
-            doc: t('skriv.downloadDocx'),
+            docx: t('skriv.downloadDocx'),
         }[exportType] || t('checklist.proceed');
 
         // --- Create modal ---

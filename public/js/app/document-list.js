@@ -16,7 +16,7 @@ import { showToast } from '../editor-core/shared/toast-notification.js';
 import { t, getDateLocale, renderLanguageSelector } from '../editor-core/shared/i18n.js';
 import { showWordCountStats } from './word-count-stats.js';
 import { createSearchBar, filterDocuments } from './document-search.js';
-import { cycleTheme, getTheme } from '../editor-core/shared/theme.js';
+import { cycleTheme, getThemeIconSVG } from '../editor-core/shared/theme.js';
 import { createSidebar } from './sidebar.js';
 import { createFolderPicker, createFolderBadges } from './folder-picker.js';
 import { initCleanupDesk, getCleanupDocuments, getCleanupReasons } from './cleanup-desk.js';
@@ -367,14 +367,37 @@ export async function renderDocumentList(container, onOpenDocument) {
     cleanupDesk.update(getCleanupDocuments(docs, currentSchoolYear), allFolders);
 
     if (docs.length === 0) {
-        const emptyState = document.createElement('div');
-        emptyState.innerHTML = `
-            <div class="text-center py-16">
+        // First-run empty state: point the pupil at the tools, not just
+        // at an empty list — the trainer and tysk routes are otherwise
+        // only discoverable via the sidebar.
+        const emptyCardClass = 'flex flex-col items-start gap-1.5 p-4 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-sm transition-all text-left w-full';
+        listEl.innerHTML = `
+            <div class="text-center py-10">
                 <div class="text-5xl mb-4 opacity-30">&#9997;&#65039;</div>
-                <p class="text-stone-400 text-sm">${t('skriv.noDocuments')}</p>
+                <p class="text-stone-400 text-sm mb-8">${t('skriv.noDocuments')}</p>
+                <div class="grid gap-3 sm:grid-cols-3 max-w-2xl mx-auto">
+                    <button id="empty-new-doc" class="${emptyCardClass}">
+                        <span class="text-2xl" aria-hidden="true">&#128221;</span>
+                        <span class="text-sm font-semibold text-stone-800 dark:text-stone-100">${t('skriv.newDocument')}</span>
+                        <span class="text-xs text-stone-500 dark:text-stone-400">${t('skriv.emptyNewDocDesc')}</span>
+                    </button>
+                    <a href="#/avsnitt" class="${emptyCardClass}">
+                        <span class="text-2xl" aria-hidden="true">&#129521;</span>
+                        <span class="text-sm font-semibold text-stone-800 dark:text-stone-100">${t('paragraphTrainer.sidebar')}</span>
+                        <span class="text-xs text-stone-500 dark:text-stone-400">${t('skriv.emptyTrainerDesc')}</span>
+                    </a>
+                    <a href="#/tysk" class="${emptyCardClass}">
+                        <span class="text-2xl" aria-hidden="true">&#127891;</span>
+                        <span class="text-sm font-semibold text-stone-800 dark:text-stone-100">${t('germanExam.sidebar')}</span>
+                        <span class="text-xs text-stone-500 dark:text-stone-400">${t('skriv.emptyGermanDesc')}</span>
+                    </a>
+                </div>
             </div>
         `;
-        listEl.appendChild(emptyState);
+        listEl.querySelector('#empty-new-doc').addEventListener('click', async () => {
+            const doc = await createDocument();
+            onOpenDocument(doc.id);
+        });
         mainContent.appendChild(footer);
         return { destroy: destroyScreen };
     }
@@ -806,16 +829,3 @@ function formatRelativeTime(isoString) {
     return date.toLocaleDateString(getDateLocale(), { day: 'numeric', month: 'short' });
 }
 
-/**
- * Get the SVG icon for the current theme.
- */
-function getThemeIconSVG() {
-    const theme = getTheme();
-    if (theme === 'dark') {
-        return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>';
-    }
-    if (theme === 'light') {
-        return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>';
-    }
-    return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>';
-}

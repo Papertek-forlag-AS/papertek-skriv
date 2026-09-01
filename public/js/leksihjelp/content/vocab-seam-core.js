@@ -933,15 +933,26 @@
         // Add plural forms
         const __plMarker = entry.plural === '–' || entry.plural === '-' || entry.plural === '—';
         if (bank === 'nounbank' && entry.plural && !__plMarker && isFeatureEnabled('grammar_plural')) {
-          wordList.push({
-            word: entry.plural.toLowerCase(),
-            display: entry.plural,
-            translation: `${entry.word} (flertall)`,
-            type: 'plural',
-            baseWord: entry.word,
-            genus: entry.genus || null,
-            zipf: zipf
-          });
+          // `plural` may hold SEVERAL equally valid forms — «aper / apar» for a
+          // noun Ordbank lists as both feminine and masculine. Indexing the raw
+          // string put «aper / apar» in as one key, so a student typing «aper»
+          // matched nothing; 37 nb+nn entries were already shaped that way
+          // before the genus rebuild widened it. splitFormValues also absorbs
+          // an array, which is what killed the whole nn index once: one
+          // entry.plural array threw inside buildIndexes and left the
+          // dictionary with zero results, and no gate saw it — only the
+          // browser did.
+          for (const __pl of splitFormValues(entry.plural)) {
+            wordList.push({
+              word: __pl.toLowerCase(),
+              display: __pl,
+              translation: `${entry.word} (flertall)`,
+              type: 'plural',
+              baseWord: entry.word,
+              genus: entry.genus || null,
+              zipf: zipf
+            });
+          }
         } else if (bank === 'nounbank' && __plMarker && isFeatureEnabled('grammar_plural')
                    && /(?:er|el|en|chen|lein)$/.test(entry.word)) {
           // German Nullplural: the plural is IDENTICAL to the singular (der
@@ -971,10 +982,10 @@
         // populate validWords (preventing typo-fuzzy false-flags on plurals like
         // "Nordmenn" / "svensker") without seeding nounGenus.
         if (bank === 'nationalitiesbank') {
-          if (entry.plural) {
+          for (const __pl of splitFormValues(entry.plural)) {
             wordList.push({
-              word: entry.plural.toLowerCase(),
-              display: entry.plural,
+              word: __pl.toLowerCase(),
+              display: __pl,
               translation: `${entry.word} (flertall)`,
               type: 'nationalityform',
               baseWord: entry.word,
@@ -2793,7 +2804,27 @@
     return m;
   }
 
-  function buildIndexes({ raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled, nonCompoundPairs: nonCompoundPairsJson, validwordsExtra } = {}) {
+  /** One slot may hold several equally valid forms — a string, a « / »-joined
+ *  string, or an array (nested, when a paradigm carries likestilte forms).
+ *  Returns them as a flat list of non-empty strings so each is indexed on its
+ *  own. Callers used to read such a slot raw: «aper / apar» became one lookup
+ *  key nobody could type, and an array threw on .toLowerCase(). */
+function splitFormValues(v) {
+  const out = [];
+  const walk = (x) => {
+    if (x == null) return;
+    if (Array.isArray(x)) { x.forEach(walk); return; }
+    if (typeof x !== 'string') return;
+    for (const part of x.split(' / ')) {
+      const f = part.trim();
+      if (f && f !== '-' && f !== '–' && f !== '—') out.push(f);
+    }
+  };
+  walk(v);
+  return [...new Set(out)];
+}
+
+function buildIndexes({ raw, bigrams, freq, sisterRaw, lang, isFeatureEnabled, nonCompoundPairs: nonCompoundPairsJson, validwordsExtra } = {}) {
     // Default predicate: emit all forms (Node / test use — "superset" policy
     // per CONTEXT: consumers filter further at the seam level).
     const iff = typeof isFeatureEnabled === 'function' ? isFeatureEnabled : iffTrue;
