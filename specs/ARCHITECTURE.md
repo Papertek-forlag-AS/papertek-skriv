@@ -32,6 +32,12 @@ The application makes no runtime request to a third-party CDN. `index.html` load
 ## Directory structure
 
 ```text
+.github/workflows/ci.yml        GitHub Actions: tests + service-worker bump guard on every PR
+scripts/
+├── serve-local.mjs             localhost server with the MSAL redirect headers
+├── check-sw-bump.mjs           CI guard: public/ changed => CACHE_NAME must increase
+├── sync-leksihjelp.js          vendor sync from the leksihjelp repository
+└── export-editor-core.js       copies editor-core/ into Lockdown
 public/
 ├── index.html                  SPA shell
 ├── microsoft-auth-redirect.html  network-only MSAL popup response bridge

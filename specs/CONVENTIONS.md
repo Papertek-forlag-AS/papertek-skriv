@@ -1,6 +1,6 @@
 # Conventions
 
-> Last updated: 2026-08-23
+> Last updated: 2026-09-04
 
 ## Feature lifecycle
 
@@ -127,6 +127,13 @@ When adding, removing, or renaming a runtime asset:
 4. Run the offline closure test so all static and dynamic module imports exist in the cache.
 
 Never call `skipWaiting()` during install. A worker waits until an explicit update action completes all registered `skriv:before-app-reload` promises. Fetches for pinned same-origin release assets are cache-first except for the two documented MSAL response resources; cross-origin connector traffic is never intercepted or cached.
+
+## Branches, CI, and release flow
+
+- `main` is production: every push deploys to `skriv.papertek.app` through Vercel. Nothing is pushed to `main` directly; all work goes through a pull request.
+- `.github/workflows/ci.yml` runs on every PR and must be green before merge: `node --test tests/*.test.mjs`, then `scripts/check-sw-bump.mjs` against the PR base.
+- The bump guard fails the PR when any file under `public/` (other than `sw.js`) changed without `CACHE_NAME` increasing. The service worker is cache-first, so an unbumped change never reaches installed clients. The guard also rejects a lower version than the base branch: a version that has been deployed is never reused.
+- Vercel's per-PR preview URL is the place to try a change with a real service worker before merge. A fixed `staging` branch and domain are deliberately not set up until Skriv has real users.
 
 ## Styling and responsive UI
 
