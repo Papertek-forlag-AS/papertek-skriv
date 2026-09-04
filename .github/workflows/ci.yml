@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Unit and contract tests
+        run: node --test tests/*.test.mjs
+      - name: Service-worker cache version bumped when public/ changed
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-sw-bump.mjs origin/${{ github.base_ref }}
