@@ -272,10 +272,13 @@
         }
       }
 
-      // NB/NN noun forms (entry.forms schema used by nb.json / nn.json):
-      //   forms.bestemt.entall        → definite singular ("barnet", "søskenet")
-      //   forms.ubestemt.flertall     → indefinite plural  ("barn", "søsken" — often same as base, skipped)
-      //   forms.paradigms[].bestemt.flertall → definite plural variants ("barna","barnene","søsknene")
+      // NB/NN noun forms (entry.forms schema used by nb.json / nn.json).
+      // Same tre cellene blir indekserte i hovudforma OG i kvart paradigme:
+      //   bestemt.entall    → «barnet», «tida», «tiden»
+      //   bestemt.flertall  → «barna», «elevane», «bøkene»
+      //   ubestemt.flertall → «barn», «fingre»
+      // (ubestemt.entall er oppslagsordet eller ein likestilt skrivemåte, og
+      // blir søkbar gjennom likestilteFormer, ikkje her.)
       if (entry._bank === 'nounbank' && entry.forms) {
         const { ubestemt, bestemt, paradigms } = entry.forms;
         // A cell holds one form OR several equally valid ones («finger» has
@@ -285,13 +288,36 @@
         // resolved to nothing when a student looked them up. The forms the
         // norm makes optional are exactly the ones that fell out.
         const eachForm = (v, fn) => {
-          for (const x of (Array.isArray(v) ? v : [v])) if (typeof x === 'string' && x) fn(x);
+          for (const x of (Array.isArray(v) ? v : [v])) {
+            // «-» er skjemaet sitt merke for ei celle som ikkje finst
+            // («gymnastikk» ber bestemt.flertall «-»). Det er ikkje ei form.
+            if (typeof x === 'string' && x && !/^[-–—]+$/.test(x)) fn(x);
+          }
         };
-        if (bestemt) eachForm(bestemt.entall, (f) => addToIndex(f.toLowerCase(), entry, 'case', 'entall bestemt'));
-        if (ubestemt) eachForm(ubestemt.flertall, (f) => addToIndex(f.toLowerCase(), entry, 'plural', null));
-        for (const paradigm of (Array.isArray(paradigms) ? paradigms : [])) {
-          if (paradigm.bestemt) eachForm(paradigm.bestemt.flertall, (f) => addToIndex(f.toLowerCase(), entry, 'plural', null));
-        }
+        // Fyrste utgåva las bestemt.entall og ubestemt.flertall frå hovudforma
+        // og BERRE bestemt.flertall frå paradigma. Så bunden fleirtal i
+        // hovudforma («elevane», «bøkene», «tidene») og bunden eintal i
+        // paradigma («tida», «tiden», «saka», «saken») var aldri søkbare.
+        // Målt mot Ordbank sitt paradigme 10.09.2026: 81–85 % av nynorsk
+        // bunden fleirtal og 78 % av bokmål hokjønn bunden eintal fann ikkje
+        // fram. Kortet viste formene; søket kjende dei ikkje.
+        // Porten check-noun-forms-searchable held dette fast.
+        const seen = new Set();
+        const add = (f, type, detail) => {
+          const key = f.toLowerCase();
+          if (seen.has(key + '|' + type)) return;   // hovudform og paradigme kan gjenta same form
+          seen.add(key + '|' + type);
+          addToIndex(key, entry, type, detail);
+        };
+        const indexCells = (cells) => {
+          if (!cells) return;
+          const ub = cells.ubestemt, be = cells.bestemt;
+          if (be) eachForm(be.entall, (f) => add(f, 'case', 'entall bestemt'));
+          if (be) eachForm(be.flertall, (f) => add(f, 'plural', null));
+          if (ub) eachForm(ub.flertall, (f) => add(f, 'plural', null));
+        };
+        indexCells({ ubestemt, bestemt });
+        for (const paradigm of (Array.isArray(paradigms) ? paradigms : [])) indexCells(paradigm);
       }
 
       // Adjective forms. Verbs index every paradigm slot and nouns index

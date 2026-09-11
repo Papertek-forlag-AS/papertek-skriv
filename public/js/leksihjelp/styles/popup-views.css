@@ -790,6 +790,49 @@
   font-size: 12px;
   color: var(--text-muted, #888);
   margin: 0 0 6px;
+}
+
+/* Rolle-note: seier at oppslaget er ei norsk gjengiving av eit
+   framandspråkleg uttrykk og ikkje eit ordbokoppslag. Same dempa uttrykk som
+   .likestilte-note, av di han er ei opplysning og ikkje ei åtvaring — men med
+   ei venstrelinje, så han ikkje les som endå ein bøyingsmerknad. */#leksihjelp-sidepanel-root .role-note {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin: 0 0 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border, #e0e0e0);
+}
+
+/* Norsk ordbank-markør (Språkrådet § 15-4 på metadata-nivå). Grøn pille
+   berre der dommen er «verified»; dei andre statusane er dempa omriss, så
+   «ikkje i Ordbank» ikkje les som ein feil. Ingen markør = ingen påstand. */#leksihjelp-sidepanel-root .result-norming {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 500;
+  border: 0;
+  font-family: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}#leksihjelp-sidepanel-root .result-norming::after {
+  content: ' ▾';
+  opacity: 0.7;
+}#leksihjelp-sidepanel-root .result-norming[aria-expanded="true"]::after {
+  content: ' ▴';
+}#leksihjelp-sidepanel-root .norming-note--inline {
+  margin: 6px 0 0;
+}#leksihjelp-sidepanel-root .result-norming--absent, #leksihjelp-sidepanel-root .result-norming--pos, #leksihjelp-sidepanel-root .result-norming--vedtak {
+  background: transparent;
+  color: var(--text-muted, #888);
+  box-shadow: inset 0 0 0 1px currentColor;
+  font-weight: 400;
+}#leksihjelp-sidepanel-root .norming-note {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin: 10px 0 0;
 }#leksihjelp-sidepanel-root .audio-btn {
   display: flex;
   align-items: center;
@@ -812,6 +855,17 @@
 }#leksihjelp-sidepanel-root .result-translation {
   font-size: 14px;
   color: var(--text);
+}
+/* Fleirtydig gloss (C3, 06.09.2026): éin <li> per tyding i staden for
+   « | »-samanlimt linje. Nummereringa er sjølve informasjonen — «bok» er
+   to ord med same bøying, og lesaren skal sjå at det er to. */#leksihjelp-sidepanel-root .result-senses {
+  margin: 0;
+  padding-left: 1.4em;
+}#leksihjelp-sidepanel-root .result-senses li {
+  margin: 0 0 3px;
+}#leksihjelp-sidepanel-root .result-senses li::marker {
+  color: var(--text-muted, #888);
+  font-size: 12px;
 }#leksihjelp-sidepanel-root .senses-block {
   display: flex;
   flex-direction: column;
@@ -918,6 +972,7 @@
 }#leksihjelp-sidepanel-root .result-meta {
   width: 100%;
   display: flex;
+  flex-wrap: wrap; /* 06.09: a fourth chip overflowed the card on a phone */
   gap: 6px;
   margin-top: 2px;
 }#leksihjelp-sidepanel-root .result-pos, #leksihjelp-sidepanel-root .result-gender {

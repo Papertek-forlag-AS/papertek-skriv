@@ -1996,6 +1996,19 @@
     const langSuffix = displayLang === 'nb' ? ' NB' : displayLang === 'nn' ? ' NN' : '';
 
     if (match) {
+      // Bøyingsform-kort («mer» av «mye»): same merknad som i ordboka, utan lenkje.
+      let formHint = '';
+      if (match.oppslagsrolle === 'bøyingsform' && match.moderoppslag && match.moderoppslag.id) {
+        let morOrd = '';
+        for (const bank of Object.values(dict || {})) {
+          if (bank && typeof bank === 'object' && bank[match.moderoppslag.id]) { morOrd = bank[match.moderoppslag.id].word || ''; break; }
+        }
+        if (morOrd) {
+          const key = match.moderoppslag.grad === 'superlativ' ? 'role_note_form_superlativ' : 'role_note_form_komparativ';
+          formHint = `<div style="font-size:12px;color:#64748b;margin-bottom:6px;padding:4px 8px;background:rgba(17,180,154,0.06);border-radius:6px;border-left:3px solid #11B49A;">${escapeHtml(t(key, { parent: morOrd }))}</div>`;
+        }
+      }
+
       const conjugHint = conjugatedFrom
         ? `<div style="font-size:12px;color:#64748b;margin-bottom:6px;padding:4px 8px;background:rgba(17,180,154,0.06);border-radius:6px;border-left:3px solid #11B49A;">${escapeHtml(conjugatedFrom)} → <strong>${escapeHtml(match.word)}</strong></div>`
         : '';
@@ -2051,7 +2064,7 @@
           <button id="lh-lookup-close" style="background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;">&times;</button>
         </div>
         ${crossLangHint}
-        ${conjugHint}
+        ${conjugHint}${formHint}
         <div style="font-size:20px;font-weight:700;color:#11B49A;margin-bottom:2px;">${langFlag ? `<span style="margin-right:4px">${langFlag}${langSuffix}</span>` : ''}${escapeHtml(match.word)}</div>
         ${falseFriendHtml}
         ${translationHtml}

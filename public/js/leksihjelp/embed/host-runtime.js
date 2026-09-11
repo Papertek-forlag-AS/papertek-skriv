@@ -30,7 +30,8 @@
  * avgjerda). check-host-runtime handhevar defaulten dynamisk.
  *
  * CAPABILITIES er eit FROSE nøkkelsett:
- *   { network, tts, report, policySource, identity }
+ *   { network, tts, report, policySource, identity, overlayAnchor }
+ * (overlayAnchor er ein resolver-funksjon, ikkje ein boolean/null).
  * policySource og identity er FØREBUDDE saumar (Geirs avgrensing
  * 2026-08-26): dei er alltid null i dag — lærarstyring og valfri
  * Leksihjelp-innlogging kjem seinare og skal då berre fylle saumane,
@@ -50,13 +51,30 @@
 (function () {
   'use strict';
 
-  const CAPABILITY_KEYS = ['network', 'tts', 'report', 'policySource', 'identity'];
+  const CAPABILITY_KEYS = ['network', 'tts', 'report', 'policySource', 'identity', 'overlayAnchor'];
   const CAPABILITY_DEFAULTS = Object.freeze({
     network: false,
     tts: false,
     report: false,
     policySource: null,   // førebudd saum — lærarstyrte innstillingar (IKKJE implementert)
     identity: null,       // førebudd saum — valfri Leksihjelp-innlogging (IKKJE implementert)
+    // Ein vert som EIG redigeringsflata si kan gje oss eit element å feste
+    // stavemarkørane i, slik at dei ligg i same koordinatrom som orda. Ein
+    // RESOLVER, ikkje eit element: runtime blir installert før verten har
+    // laga flata, og flata kan bli bytt ut utan omlasting. null = extension-
+    // åtferda (viewport-festa markørar).
+    // To krav til ankeret:
+    //   1. Ankeret må vere posisjonert (`position: relative` e.l.). Eit
+    //      statisk anker blir avvist ved oppslag og vi fell tilbake til
+    //      viewport-modus; det einaste sporet er ei loggline i konsollen.
+    //   2. Ingen forfader av ankeret kan lage containing block for `position:
+    //      fixed` — `transform`, `filter`, `backdrop-filter`, `perspective`,
+    //      `will-change`, `contain: paint/layout/content/strict` eller
+    //      `content-visibility` (som slår på containment; `auto` er nett det
+    //      eit sideskift- eller virtualiseringslag grip til). Dette blir
+    //      IKKJE handheva og feilar STILLE: bryt du det, blir popoveret
+    //      forskjøve og klipt.
+    overlayAnchor: null,  // () => Element | null
   });
 
   /**
@@ -172,6 +190,9 @@
       // Saumane er førebudde men IKKJE implementerte — ver høglydt heller
       // enn å late som noko verkar (Geirs avgrensing 2026-08-26).
       throw new Error('[lexi-host-runtime] policySource/identity er førebudde saumar og må vere null inntil vidare');
+    }
+    if (capIn.overlayAnchor != null && typeof capIn.overlayAnchor !== 'function') {
+      throw new Error('[lexi-host-runtime] overlayAnchor må vere ein funksjon som returnerer eit element (eller null)');
     }
     const capabilities = Object.freeze(Object.assign({}, CAPABILITY_DEFAULTS, capIn));
 

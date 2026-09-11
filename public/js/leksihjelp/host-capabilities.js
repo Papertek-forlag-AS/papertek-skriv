@@ -19,6 +19,11 @@
  * Lesing skjer ved KALLTID, ikkje ved lastetid: i embed lastar bundelen
  * content-skripta FØR host-runtime installerer, så ein snapshot her ville
  * alltid vore tom.
+ *
+ * Fila eksponerer TO lesarar: `lexiHostAllows` (ja/nei, over) og
+ * `lexiHostValue` (ei VERDI, ikkje eit ja/nei — sjå eigen docblock). Dei to
+ * har MOTSETT default når settet ikkje er sett, og det er difor dei er to
+ * funksjonar og ikkje éin utvida — sjå `lexiHostValue` sin docblock for kvifor.
  */
 (function () {
   'use strict';
@@ -35,5 +40,27 @@
   }
 
   host.lexiHostAllows = lexiHostAllows;
-  if (typeof module !== 'undefined' && module.exports) module.exports = { lexiHostAllows };
+
+  /**
+   * Les ein capability-VERDI (ikkje eit ja/nei).
+   *
+   * Motsett default av lexiHostAllows, med vilje: er settet ikkje sett, er
+   * dette ein ekte extension på ei framand side, og då finst det ingen vert
+   * som eig redigeringsflata. Ingen verdi = null.
+   *
+   * `undefined`-grenen under vaktar berre ein mistypa eller ukjend nøkkel —
+   * dei ekte nøklane er aldri `undefined`, sidan CAPABILITY_DEFAULTS dekkjer alle.
+   *
+   * @param {string} name — nøkkel frå CAPABILITY_KEYS (t.d. 'overlayAnchor')
+   * @returns {*|null}
+   */
+  function lexiHostValue(name) {
+    const caps = host.__lexiCapabilities;
+    if (!caps) return null;
+    const v = caps[name];
+    return v === undefined ? null : v;
+  }
+
+  host.lexiHostValue = lexiHostValue;
+  if (typeof module !== 'undefined' && module.exports) module.exports = { lexiHostAllows, lexiHostValue };
 })();

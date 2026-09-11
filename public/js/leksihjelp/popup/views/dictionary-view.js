@@ -179,9 +179,52 @@
     });
   }
 
+  // Kvar dep dette viewet les — destrukturerte og `deps.X` under eitt.
+  // Halden i takt med kjelda av `npm run check-view-deps-manifest`, som
+  // hentar namna ut av fila sjølv; ei handhalden liste ville drive.
+  const READ_DEPS = [
+    'BACKEND_URL', 'audioEnabled', 'audioPlayHandler', 'broadcastLanguageChange',
+    'externalLinksEnabled', 'findWordInOtherLangs', 'getAllowedLanguages',
+    'getAllowedPronouns', 'getUiLanguage', 'initGrammarSettings', 'isFeatureEnabled',
+    'isKnownWordForm', 'langName', 'loadDictionary', 'loadGrammarFeatures',
+    'onFirstFLPick', 'onGrammarPickerNeeded', 'onLanguageChanged', 'openLesson',
+    'runtime', 'state', 'storage', 't', 'vocab',
+  ];
+
+  /**
+   * Sei éin gong kva verten ikkje leverte.
+   *
+   * Dei fleste dep-ane her er VAKTA (`if (deps.x)` / `typeof deps.x ===
+   * 'function'`), som er med vilje: ein vert skal kunne velje bort det
+   * han ikkje vil ha. Prisen er at vakta gjer «bevisst valt bort» og
+   * «gløymt» umogleg å skilje — for viewet, for verten, og for oss.
+   * Funne 01.09.2026: skriv monterte viewet utan `isKnownWordForm`, så
+   * ein elev som slo opp ei gyldig bøygd form fekk eit bart «ikkje
+   * funne» i staden for «ordet finst, vi manglar berre ein artikkel».
+   * Ingen feil, ingen 404 — berre ein funksjon som var borte.
+   *
+   * Vi gjer ikkje fråværet til ein feil; vi gjer det SYNLEG, og lèt
+   * verten avgjere. `in` og ikkje sanningsverdi: `audioEnabled: false`
+   * er eit levert val, ikkje ein manglande dep.
+   */
+  function reportUnsuppliedDeps(deps) {
+    try {
+      const missing = READ_DEPS.filter((k) => !(k in deps));
+      if (!missing.length) return;
+      // eslint-disable-next-line no-console
+      console.info(
+        '[lexi] dictionary-view: ' + missing.length + ' dep(s) ikkje leverte av verten. '
+        + 'Kvar av dei er vakta, så ingenting er øydelagt — men funksjonen bak kvar '
+        + 'av dei er stille av. Er det med vilje, kan meldinga ignorerast: '
+        + missing.join(', ')
+      );
+    } catch (_) { /* diagnostikk skal aldri velte ei montering */ }
+  }
+
   function mountDictionaryView(container, deps) {
     if (!container) throw new Error('mountDictionaryView: container required');
     if (!deps) throw new Error('mountDictionaryView: deps required');
+    reportUnsuppliedDeps(deps);
     // `state` is read during mount (updateLangLabels), so omitting it
     // fails as a TypeError several frames deep instead of at the
     // boundary. Embedding hosts get this contract wrong before they get
@@ -1518,10 +1561,18 @@ function renderResults(resultsList, options = {}) {
               // provenienstempel (som ikkje overlever synken) og deretter på
               // ordtal (som slår inn på «betre seg → forbedre seg» òg).
               // Artikkelbindinga er det einaste signalet som held.
+              //
+              // And one more guard (06.09): a definition that IS the headword
+              // («kurs → kurs», «verk → verk») is the other standard's
+              // identical word, not a definition — it surfaced on the kept
+              // half of every homograph split, where `translation` had never
+              // been anything but the bokmål twin. A line that repeats the
+              // headword tells the reader nothing and looks like a defect.
               ? (entry._ordbank_provenance?.article_id && getTranslation(entry)
-                ? `<div class="result-translation">${escapeHtml(getTranslation(entry))}</div>`
+                  && String(getTranslation(entry)).trim().toLowerCase() !== String(entry.word || '').trim().toLowerCase()
+                ? renderGloss(getTranslation(entry))
                 : '')
-              : `<div class="result-translation">${escapeHtml(getTranslation(entry))}</div>`)}
+              : renderGloss(getTranslation(entry)))}
             ${inflectionHint ? `<div class="inflection-hint">${escapeHtml(inflectionHint)}${openLesson && !noGrunnform ? ` <button class="inflection-grunnform-btn" type="button">${escapeHtml(t('inflection_grunnform_les_mer'))}</button>` : ''}</div>` : ''}            <div class="result-meta">
               <span class="result-pos">${escapeHtml(posLabelKey(entry) ? t(posLabelKey(entry)) : (entry.partOfSpeech || ''))}</span>
               ${genderDisplay(entry) ? `<span class="result-gender">${escapeHtml(genderDisplay(entry))}</span>` : ''}
@@ -1536,7 +1587,11 @@ function renderResults(resultsList, options = {}) {
                     renderNounForms does. Found by the held-out sample, not by
                     a gate. */ ''}
               ${entry.plural && !hasLikestilteFormer(entry) && isFeatureEnabled('grammar_plural') ? `<span class="result-plural">${escapeHtml(entry.plural)}</span>` : ''}
+              ${renderNormingBadge(entry)}
             </div>
+            ${renderNormingNote(entry, true)}
+            ${renderRoleNote(entry)}
+            ${renderFormNote(entry)}
             ${renderInlineCompoundBreakdown(entry)}
           </div>
           <button class="explore-btn">${t('result_explore')}</button>
@@ -1568,6 +1623,7 @@ function renderResults(resultsList, options = {}) {
               </div>
             ` : ''}
             ${renderExamples(entry)}
+            ${renderNormingNote(entry)}
           </div>
         </div>
       `;
@@ -1579,6 +1635,17 @@ function renderResults(resultsList, options = {}) {
           const isHidden = expanded.classList.contains('hidden');
           expanded.classList.toggle('hidden');
           btn.textContent = isHidden ? t('result_collapse') : t('result_explore');
+        });
+      });
+
+      // Norsk ordbank chip → toggles its own explanation under the meta row.
+      results.querySelectorAll('.result-norming').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const note = btn.closest('.result-basic')?.querySelector('.norming-note--inline');
+          if (!note) return;
+          note.hidden = !note.hidden;
+          btn.setAttribute('aria-expanded', String(!note.hidden));
         });
       });
 
@@ -1649,6 +1716,181 @@ function renderResults(resultsList, options = {}) {
           }
         });
       }
+    }
+
+    // Språkrådet § 15-4 «fullstendig og nøytral» on the metadata level: say
+    // what the entry was checked against, and say nothing where nothing was.
+    // Reads the per-entry `norming` block papertek-vocabulary stamps from its
+    // Norsk ordbank validator (05.09.2026): {status, sourceVersion, lemmaIds,
+    // reason}. Three statuses carry a claim a reader can use — verified,
+    // editorial_exception, not_in_authority. `pending` and `not_validated`
+    // render NOTHING: an absent marker is the honest state there, and a
+    // badge that appears on every card would stop meaning anything.
+    //
+    // editorial_exception is two different things, told apart by `reason`:
+    // the 2023 rettskrivingsvedtak (the form is right and DEVIATES from the
+    // 2022 snapshot on purpose) versus a part-of-speech decision (the word is
+    // in Ordbank; the class is ours — «ansatt» as noun). The second must not
+    // wear the same badge as `verified`, or the reader is told Ordbank agreed
+    // with the whole entry. not_in_authority splits the same way, on the
+    // curated reason taxonomy (multi-word / compound / newer than the
+    // snapshot / simply absent) — «steindør» and «swipe» are both «not in
+    // Ordbank», and only one of those is worth a raised eyebrow.
+    // A gloss may carry several senses joined with « | » — one card per
+    // Ordbank lemma, and a lemma with two ordbøkene articles of the same
+    // inflection («tak»: roof | the act of taking; «bok»: book | beech)
+    // gets both glossed onto it (papertek-vocabulary C3, 06.09.2026, 152
+    // such entries). Rendered as one line they read as a wall of text;
+    // rendered as a numbered list each sense is one glance. A gloss
+    // without the separator is unchanged.
+    function renderGloss(text) {
+      const s = String(text || '').trim();
+      if (!s) return '';
+      const parts = s.split(/\s\|\s/).map((p) => p.trim()).filter(Boolean);
+      if (parts.length < 2) return `<div class="result-translation">${escapeHtml(s)}</div>`;
+      return `<ol class="result-translation result-senses">${parts.map((p) => `<li>${escapeHtml(p)}</li>`).join('')}</ol>`;
+    }
+
+    const NORMING_POS_LABEL = { adj: 'adjektiv', noun: 'substantiv', verb: 'verb', adv: 'adverb', 'noun/verb': 'substantiv/verb' };
+
+    // `standard`, `authority`, `sourceVersion` and `validatedAt` are the same
+    // for every entry in a bank, so papertek-vocabulary hoists them to
+    // `<bank>._metadata.norming` (09.09.2026) — 1,71 MiB smaller, and a bank
+    // stops changing from run to run when only the date moves. Both shapes are
+    // read here so the card is correct against an un-synced and a synced
+    // bundle alike; drop the entry-level arm once every bundle is hoisted.
+    function bankNormingOf(entry) {
+      const bank = entry && entry._bank;
+      const dict = state && state.dictionary;
+      const b = bank && dict && typeof dict === 'object' ? dict[bank] : null;
+      const m = b && b._metadata && b._metadata.norming;
+      return m && typeof m === 'object' ? m : null;
+    }
+
+    function normingInfo(entry) {
+      const n = entry && entry.norming;
+      if (!n || typeof n !== 'object') return null;
+      if (state.currentLang !== 'nb' && state.currentLang !== 'nn') return null;
+      // NO literal fallback. Every note below names the Ordbank edition the
+      // word was checked against — «(Språkbanken, utgave 2022)» — so a guessed
+      // year is a false statement about which snapshot rendered the verdict.
+      // The old `|| '2022'` was right only by coincidence, and would have gone
+      // quietly wrong the moment the 2026 extract from UiB landed: the text
+      // would still have said 2022 and nobody would have seen it. Rather show
+      // no chip and let `check-norming-coverage` fail the build.
+      const bn = bankNormingOf(entry);
+      const year = String((bn && bn.sourceVersion) || n.sourceVersion || '').slice(0, 4);
+      if (!year) return null;
+      const reason = String(n.reason || '');
+      if (n.status === 'verified') {
+        const ids = Array.isArray(n.lemmaIds) ? n.lemmaIds.join(', ') : '';
+        return { badge: 'norming_badge_verified', note: ids ? 'norming_note_verified' : 'norming_note_verified_noid', cls: 'verified', params: { year, ids } };
+      }
+      if (n.status === 'editorial_exception') {
+        if (/^rettskrivingsvedtak/i.test(reason)) {
+          return { badge: 'norming_badge_vedtak', note: 'norming_note_vedtak', cls: 'vedtak', params: { year } };
+        }
+        const m = reason.match(/som\s+([\w/]+)/);
+        const raw = m ? m[1] : '';
+        return { badge: 'norming_badge_pos', note: 'norming_note_pos', cls: 'pos', params: { year, pos: NORMING_POS_LABEL[raw] || raw } };
+      }
+      if (n.status === 'not_in_authority') {
+        const note = /^multi-word/i.test(reason) ? 'norming_note_mwe'
+          : /^compound/i.test(reason) ? 'norming_note_compound'
+          : /^i ord\.uib\.no/i.test(reason) ? 'norming_note_newer'
+          : 'norming_note_absent';
+        return { badge: 'norming_badge_absent', note, cls: 'absent', params: { year } };
+      }
+      return null;
+    }
+    // The chip is a BUTTON with a short label; the full sentence sits in a
+    // hidden note right under the meta row and opens on click. A chip that
+    // carried the whole sentence overflowed the card on a phone (06.09:
+    // «Rettskri / 2023» pushed outside the card edge) — the label must be
+    // no longer than its neighbours («substantiv», «eksempler»), and the
+    // explanation must not depend on a hover title, which touch has not got.
+    function renderNormingBadge(entry) {
+      const info = normingInfo(entry);
+      if (!info) return '';
+      return `<button type="button" class="result-norming result-norming--${info.cls}" aria-expanded="false" title="${escapeHtml(t(info.note, info.params))}">${escapeHtml(t(info.badge, info.params))}</button>`;
+    }
+    function renderNormingNote(entry, inline) {
+      const info = normingInfo(entry);
+      if (!info) return '';
+      return inline
+        ? `<p class="norming-note norming-note--inline" hidden>${escapeHtml(t(info.note, info.params))}</p>`
+        : `<p class="norming-note">${escapeHtml(t(info.note, info.params))}</p>`;
+    }
+
+    // ROLLE er ein annan akse enn NORMING, og dei må ikkje slåast saman.
+    // `norming` svarar på «fører Norsk ordbank dette?». `role` svarar på
+    // «er dette i det heile eit oppslag i den norske ordboka?». Verdiar:
+    // `oppslag` og `glose`.
+    //
+    // 482 nynorske og 490 bokmålske fleirordsoppføringar er GENERERTE frå eit
+    // framandspråkleg oppslag: «i alpene» finst av di ein elev skal lære «in
+    // den Alpen», «vel bekomme!» av di han skal lære «buen provecho». Dei er
+    // ikkje gale norsk — dei er ikkje ordbokoppslag, og kortet sa ingenting
+    // om det, av di `not_validated` med vilje renderer ingen merkelapp.
+    //
+    // Manglande `oppslagsrolle` er INGEN PÅSTAND, ikkje «headword». Skilnaden er ikkje
+    // ordkløyveri: eit fråvær som TYDER oppslag ville gjere at ein generator
+    // som gløymer feltet stille produserer eit oppslag — nøyaktig feilen
+    // rolleskiljet finst for å hindre. Kortet renderer difor ingenting på
+    // fråvær, og porten skal feile på det når feltet finst i data.
+    // Ingenting endrar seg før data ber feltet,
+    // og ei oppføring som blir merkt `gloss` blir framleis funnen i søket —
+    // eleven som skriv «vel bekomme» skal ikkje møte ein blank skjerm. Det er
+    // KVA KORTET PÅSTÅR Å VERE som endrar seg, ikkje kva som finst.
+    // Feltnamnet er papertek-vocabulary sitt (dei eig skjemaet), og det følgjer
+    // `talkategori`-forma: norsk namn, lukka verdisett, `_kjelde` og
+    // `_godkjent_av` ved sida, usignert er null. `role`/`gloss` ville vore det
+    // einaste engelske kuratorfeltet i banken.
+    function isGloss(entry) {
+      return !!entry && entry.oppslagsrolle === 'glose';
+    }
+    // MONTERT PÅ KORTNIVÅ, ikkje i bøyingsseksjonane. Fyrste forsøk sette han
+    // ved sida av `talkategoriNote`, og det var feil av to grunnar som begge
+    // vart synlege fyrst i nettlesaren: (a) `talkategori` handlar OM bøyinga
+    // («Fleirtal er lite brukt») og høyrer under «Bøying»; rolla handlar om
+    // heile oppslaget. (b) Berre substantivrenderarane har den staden — 62 av
+    // 66 glosar er `generalbank`-frasar utan paradigme, så dei viste
+    // INGENTING.
+    //
+    // Testen min kravde paritet med `talkategoriNote` og var grøn heile tida.
+    // Han verifiserte feil invariant: «montert like mange stader som X» seier
+    // ingenting når X sjølv står feil stad. Ein test som stadfestar feil
+    // invariant er verre enn ingen test, av di han sertifiserer.
+    function renderRoleNote(entry) {
+      if (!isGloss(entry)) return '';
+      return `<p class="role-note">${escapeHtml(t('role_note_gloss'))}</p>`;
+    }
+
+    // BØYINGSFORM-KORT (papertek-vocabulary c4dd713b, 11.09.2026). «mer», «meir»
+    // og «mest» er ikkje sjølvstendige lemma, men eigne kort for ei gradform av
+    // eit moderoppslag: `oppslagsrolle: "bøyingsform"` + `moderoppslag: {id, grad}`.
+    // Kortet ber ingen paradigme — bøyinga står i mora (`comparison`). Før korta
+    // kom attende, vart «mehr» glosa «mye», og søk på «mer» fann berre «mye».
+    //
+    // Same prinsipp som rolla over: utan peikar ingen påstand, så eit kort med
+    // rolla men utan `moderoppslag` renderer ingenting. Knappen gjenbrukar
+    // klassen til samansetjingsdelane, så klikket går gjennom den same
+    // navigasjonen (showWordEntry + tilbake-stabelen).
+    function isFormCard(entry) {
+      return !!entry && entry.oppslagsrolle === 'bøyingsform' && !!(entry.moderoppslag && entry.moderoppslag.id);
+    }
+    function renderFormNote(entry) {
+      if (!isFormCard(entry)) return '';
+      const mor = Array.isArray(state.allWords)
+        ? state.allWords.find((e) => e && e._wordId === entry.moderoppslag.id)
+        : null;
+      const morOrd = mor && mor.word ? mor.word : entry.moderoppslag.id.replace(/_[a-z]+$/, '');
+      const lenkje = mor
+        ? `<button class="compound-inline-part form-parent-link" type="button" data-word="${escapeHtml(morOrd)}">${escapeHtml(morOrd)}</button>`
+        : escapeHtml(morOrd);
+      const key = entry.moderoppslag.grad === 'superlativ' ? 'role_note_form_superlativ' : 'role_note_form_komparativ';
+      const deler = t(key, { parent: '\u0000' }).split('\u0000').map(escapeHtml);
+      return `<p class="role-note form-note">${deler.join(lenkje)}</p>`;
     }
 
     function renderSenses(entry) {
@@ -1761,7 +2003,22 @@ function renderResults(resultsList, options = {}) {
       }
 
       if (entry.linkedTo && !hideExampleTranslations) {
-        const link = entry.linkedTo.nb || entry.linkedTo.nn;
+        // Ein framandspråkleg artikkel ber døme-omsetjingane sine i BEGGE
+        // norske standardane — 567 tyske oppslag har ei nynorsk omsetjing som
+        // skil seg frå den bokmålske («Eg ringer deg» mot «Jeg ringer deg»).
+        // `nb || nn` tok bokmål uvilkårleg, så ein nynorskelev fekk bokmål
+        // servert i den tyske ordboka medan nynorsken låg éin nøkkel unna.
+        // Merk at `hideExampleTranslations` ikkje vernar her: han er sann
+        // berre når ein STÅR i den norske ordboka, og dette er den tyske.
+        // Vel på INNHALD, ikkje på om containeren finst. 13 tyske oppslag
+        // (eltern, herbst, kaffee, spiel, eilig …) ber eit `nn`-objekt UTAN
+        // døme ved sida av eit `nb` med døme. Ein `nn ?? nb`-fallback på
+        // objektet ville gjeve nynorskelevar INGEN døme der dei før fekk
+        // bokmålsdøme — feil målform bytt mot ingenting, som er verre.
+        const withExamples = (c) => (c && c.examples && c.examples.length) ? c : null;
+        const first = uiLang === 'nn' ? entry.linkedTo.nn : entry.linkedTo.nb;
+        const second = uiLang === 'nn' ? entry.linkedTo.nb : entry.linkedTo.nn;
+        const link = withExamples(first) || withExamples(second) || first || second;
         if (link?.examples) {
           for (const ex of link.examples) {
             const sentence = ex.source || ex.sentence || '';
@@ -1819,6 +2076,47 @@ function renderResults(resultsList, options = {}) {
     function kloyvdNote(entry) {
       if (!entry || entry.kloyvdInfinitiv !== true) return '';
       return ` <span class="conj-note">(${escapeHtml(t('kloyvd_infinitiv_note'))})</span>`;
+    }
+
+    // Talkategori: kva TAL eit substantiv finst i. Tre verdiar, sette
+    // oppstraums frå Norsk ordbank (papertek-vocabulary, `talkategori`):
+    //
+    //   massesubstantiv   har eintal, manglar fleirtal   gymnastikk, ull
+    //   fleirtalsord      har fleirtal, manglar eintal   klær, lommepengar
+    //   bestemtform       berre bestemt form             stortinget
+    //
+    // Kvifor tre og ikkje eitt flagg: fyrste utgåva her hadde ein boolsk
+    // `massesubstantiv` og éin note — «fleirtal er lite brukt». På «klær»
+    // seier den setninga det MOTSETTE av sanninga, for «klær» har berre
+    // fleirtal. Éin påstand kan ikkje dekkje tre fenomen (Geir, 08.09.2026).
+    //
+    // Kjelda er Ordbank, IKKJE våre eigne tankestrek, og det skiljet er
+    // heile poenget: `gymnastikk` bar `bestemt.flertall: "-"` medan Ordbank
+    // fører både «gymnastikkar» og «gymnastikkane». Eit strek påstår at forma
+    // ikkje finst; at ho er lite brukt er ein annan påstand. Berre den andre
+    // var sann. Difor er flagget sett berre der Ordbank er eintydig, og dei
+    // orda der Ordbank fører begge tal er ei leksikografisk avgjerd som
+    // ventar på eit menneske.
+    //
+    // Alle tre notane er utsegn om BRUK, aldri om norm. Dei står som eit eige
+    // avsnitt mellom overskrifta og tabellen — UTANFOR cellene, der dei kunne
+    // lesast som at dei peikar ut den eine av to likestilte former («tollar /
+    // toller»). At dei kjem før tabellen og ikkje etter, er verifisert i
+    // nettlesar mot staging 08.09: eleven les atterhaldet før formene, og
+    // tankestreken i cella under har då alt fått forklaringa si.
+    //
+    // Ukjend verdi renderer INGENTING. Det er med vilje: kjem det ein fjerde
+    // kategori oppstraums før vi har ei setning for henne, skal kortet teie
+    // heller enn å velje ei setning som kan vere feil.
+    const TALKATEGORI_NOTE = {
+      massesubstantiv: 'mass_noun_plural_note',
+      fleirtalsord: 'plural_only_note',
+      bestemtform: 'definite_only_note',
+    };
+    function talkategoriNote(entry) {
+      const key = entry && TALKATEGORI_NOTE[entry.talkategori];
+      if (!key) return '';
+      return `<p class="likestilte-note">${escapeHtml(t(key))}</p>`;
     }
 
     // Nynorsk «hive» har TO bøyingssystem, ikkje eitt med valfrie celler:
@@ -2722,6 +3020,7 @@ function renderResults(resultsList, options = {}) {
       return `
         <div class="expanded-section likestilte-section">
           <h4>${t('likestilte_heading')}</h4>
+          ${talkategoriNote(entry)}
           <p class="likestilte-note">${escapeHtml(t(noteKey))}</p>
           <div class="likestilte-scroll">
             <table class="conjugation-table likestilte-table">
@@ -2971,6 +3270,7 @@ function renderResults(resultsList, options = {}) {
       return `
         <div class="expanded-section likestilte-section">
           <h4>${t(heading)}</h4>
+          ${talkategoriNote(entry)}
           <p class="likestilte-note">${escapeHtml(t(note))}</p>
           <div class="likestilte-scroll">
             <table class="conjugation-table likestilte-table">
@@ -3017,6 +3317,7 @@ function renderResults(resultsList, options = {}) {
         <div class="expanded-section">
           <h4>${t('result_conjugation')}</h4>
           ${multiFormNote(cells)}
+          ${talkategoriNote(entry)}
           <table class="conjugation-table declension-table">
             <thead>
               <tr><th></th><th>${t('decl_singular')}</th><th>${t('decl_plural')}</th></tr>

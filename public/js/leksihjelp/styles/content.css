@@ -969,6 +969,11 @@
 /* ── Spell-check overlay (per-word markers + popover) ── */
 
 .skriv-leksihjelp #lexi-spell-overlay{
+  /* `top: 0; left: 0` + null storleik er ikkje berre ryddig: det er DET som
+     gjer at den allereie `absolute` hint-markøren tolkar viewport-tal rett i
+     uforankra modus — origo hennar fell saman med viewporten sitt. Gjev
+     overlayet eit origo som ikkje er null ein dag, og hint-markørane ryk
+     medan dei vanlege prikkane står. */
   position: fixed;
   top: 0;
   left: 0;
@@ -989,6 +994,15 @@
   opacity: 0.9;
   z-index: 2147483645;
 }
+
+/* Ankermodus: verten har gjeve oss eit element å bu i, og då er koordinatane
+   ankerlokale. Eit `position: fixed` barn ville lese dei som viewport-tal —
+   difor byter klassa BÅDE overlayet og markørane. Hint-markøren er allereie
+   absolute og treng ingen regel her. Blokka står UNDER grunnregelen med vilje:
+   ho vinn alt på spesifisitet, men då held ho òg om nokon seinare skrellar
+   vekk id-prefikset. */
+.skriv-leksihjelp #lexi-spell-overlay.lh-anchored{ position: absolute; }
+.skriv-leksihjelp #lexi-spell-overlay.lh-anchored .lh-spell-dot{ position: absolute; }
 
 .skriv-leksihjelp #lexi-spell-overlay .lh-spell-dot::after{
   /* Invisible hit target that extends above the thin line so the word

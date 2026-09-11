@@ -352,8 +352,23 @@
     priority: 35,
     exam: {
       safe: true,
-      reason: "Token-level dialect-mix token correction; at-or-below browser native spellcheck parity",
-      category: "spellcheck",
+      // ⚠️ IKKJE 'spellcheck'. Regelen er trygg å ha på — difor `safe: true` —
+      // men i ei prøve er målform sjølve det som blir målt. Ei prøve i nynorsk
+      // spør «kan eleven skrive nynorsk?», og ein regel som gjer «jeg» til
+      // «eg» svarar på spørsmålet for eleven. Det er fasit, ikkje rettskriving.
+      //
+      // Fram til 02.09.2026 stod det `category: "spellcheck"` her, grunngjeve
+      // med «at-or-below browser native spellcheck parity». Den samanlikninga
+      // held ikkje: nettlesaren sin eigen stavekontroll kjenner ikkje skilnad
+      // på målformer og ville late «jeg» stå. Lærarar melde frå same dagen at
+      // elevar i ein nynorskprøve fekk «jeg» → «eg» og «ikke» → «ikkje».
+      //
+      // `category` har NØYAKTIG éin lesar — `isRuleExamSpelling` i
+      // `spell-check-core.js`, som berre blir kalla når `examMode` er sann.
+      // Endringa gjeld difor KUN i prøve. I øving, der korreksjonen er nyttig
+      // og ønskt, er regelen heilt urørt.
+      reason: "Dialect/målform correction — the very competence an exam measures; suppressed in exam mode, unchanged in practice",
+      category: "grammar-lookup",
     },
     severity: 'error',
     explain: (finding) => {

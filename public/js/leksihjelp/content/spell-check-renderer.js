@@ -363,7 +363,10 @@
       const ae = document.activeElement;
       if (!activeEl) return;
       const focusStillInside = activeEl === ae || activeEl.contains(ae);
-      const focusInOverlay = overlay && overlay.contains(ae);
+      // Popoveret bur inne i overlayet i dag; spørsmålet her er likevel om
+      // fokus er i VÅR flate, så det blir spurt for seg og ikkje via
+      // monteringa.
+      const focusInOverlay = (overlay && overlay.contains(ae)) || (popover && popover.contains(ae));
       const focusInBtn = spellCheckBtn && (spellCheckBtn === ae || spellCheckBtn.contains(ae));
       // Focus may land inside the open chip menu (or its FL submenu) when the
       // student clicks an item — don't tear the menu down in that case.
@@ -812,7 +815,6 @@
 
   /** Marker at neste sjekk skal opne funnet som kjem ETTER dette i teksten. */
   function markPendingAdvance(finding) {
-    markPendingAdvance(finding);
     // Strengt etter: eit fiks flyttar dei etterfølgjande funna, men aldri
     // forbi startpunktet sitt, så «første start > her» held. Eit fiks som
     // slettar heile ordet KAN la det neste funnet lande på nøyaktig same
@@ -834,12 +836,202 @@
   // a live toggle flips the active popover layout without a re-open.
   let alternatesVisible = false;
 
+  // ── Anchored mode (embed-vertar som eig redigeringsflata si) ──
+  //
+  // Ein vert som eig flata kan gje oss eit element å feste markørane i. Då
+  // ligg markør og ord i SAME koordinatrom, og stiv rørsle — rulling,
+  // eit panel som opnar seg, redigeringsflata som flyttar seg på sida —
+  // kan ikkje skilje dei. Reflow (eit sideskift som blir sett inn over
+  // ordet) er ei ANNA sak, og er ikkje dekt av denne modusen.
+
+  /**
+   * Kven eig koordinatrommet? Alt som kan gå gale her endar i viewport-modus,
+   * altså dagens åtferd. Ein vert som konfigurerer feil skal få ein overlay
+   * som verkar, ikkje ein som er borte — men han skal få vite det.
+   *
+   * @param {Function|null} getAnchor — verten sin resolver
+   * @param {Element|null} editable — den aktive redigeringsflata
+   * @returns {Element|null}
+   */
+  function resolveOverlayAnchor(getAnchor, editable) {
+    // Ingen resolver, eller ingen aktiv flate: extension-vegen. Ikkje ein feil.
+    if (typeof getAnchor !== 'function' || !editable) return null;
+    let anchor = null;
+    try {
+      anchor = getAnchor();
+    } catch (_) {
+      warn('anchor — resolver threw');
+      return null;
+    }
+    // Verten kan takke nei. Det er eit lovleg svar, og skal vere stille.
+    if (!anchor) return null;
+    if (anchor.nodeType !== 1) {
+      warn('anchor — resolver returned a non-element');
+      return null;
+    }
+    // Ein vert som teiknar på nytt kan gje oss eit anker som ikkje lenger
+    // står i dokumentet; då ville overlayet hamna utanfor sida og markørane
+    // forsvinne heilt.
+    if (anchor.isConnected === false) {
+      warn('anchor — resolver returned a detached element');
+      return null;
+    }
+    // Ankeret må liggje UTANFOR flata: er det flata sjølv, ville markørane
+    // hamna inni eleven sitt svar — og dermed i teksten som blir levert.
+    if (anchor === editable) {
+      warn('anchor — resolver returned the editable itself');
+      return null;
+    }
+    // Ligg ikkje flata inni ankeret, er ikkje koordinatrommet felles.
+    //
+    // dbg, ikkje warn: resolveren tek ingen argument, så ein vert med FLEIRE
+    // redigeringsflater kan berre svare globalt. Lockdown returnerer alltid
+    // skrivearealet sitt, men prøveflata har òg vanlege input-felt (samtale-
+    // panelet) som resolveEditable godtek — og då er dette svaret rett, ikkje
+    // ein feil: viewport-modus er det riktige for eit felt utanfor ankeret.
+    // Ein warn her ville fylt konsollen med falske positive kvar gong eleven
+    // skreiv i samtalefeltet, og drukna dei fire som ER feilkonfigurasjon.
+    if (!anchor.contains(editable)) {
+      dbg('anchor — element outside the editable; viewport mode for this field');
+      return null;
+    }
+    return anchor;
+  }
+
+  /**
+   * CSS `zoom` og koordinatane vi får tilbake — motorane er IKKJE samde.
+   *
+   * Systemets WebKit (Safari, og dermed WKWebView i lockdown si Mac-app)
+   * rapporterer getBoundingClientRect() for innhald inne i eit `zoom`-tre
+   * UTAN å rekne med zoomen, medan det målar med han. Blink reknar han inn.
+   * Målt 31.08.2026, same side, same markup:
+   *
+   *   editor rect.width / offsetWidth : 1.0000 (WebKit)   1.2508 (Blink)
+   *   painted = reported × cssZoom, om viewport-origo — nøyaktig, begge aksar.
+   *
+   * Lockdown sin editor har `zoom: 1.25`; ankeret (#writing-area) har det
+   * ikkje. Ordet blir difor underrapportert og ankeret ikkje, og kvar markør
+   * landa på 0.8× av rett avstand — synleg som raude strekar i venstremargen.
+   * Forankringa kunne aldri fikse det: ho bytte koordinatrom, men begge
+   * rect-ane kom framleis gjennom det same underrapporterande API-et.
+   *
+   * Vi kan ikkje spørje motoren kva han gjer, så vi måler det: `offsetWidth`
+   * er ALLTID uzooma layout-px, så forholdet mellom han og den rapporterte
+   * breidda seier kva rommet vi fekk tala i er.
+   */
+  function cssZoomOf(el) {
+    let z = 1;
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+      const v = parseFloat(getComputedStyle(n).zoom);
+      // `zoom: normal` og manglande støtte gjev NaN — begge er «ingen zoom».
+      if (v && v !== 1) z *= v;
+    }
+    return z;
+  }
+
+  /**
+   * Rein: kva ein målt rect må gangast med for å bli MÅLA pikslar.
+   * 1 tyder «motoren har alt rekna zoomen inn» — då skal ingenting rørast.
+   */
+  function zoomCorrection(cssZoom, reportedScale) {
+    if (!(cssZoom > 0) || cssZoom === 1) return 1;
+    // Ei skjult flate måler 0 breidd, og cssZoom/0 er Infinity. Ein markør
+    // send til uendeleg er verre enn ein som står feil.
+    if (!(reportedScale > 0)) return 1;
+    const k = cssZoom / reportedScale;
+    // offsetWidth er heiltal, så forholdet ber avrundingsstøy: Blink måler
+    // 1.2508 der zoomen er 1.25. Ei «retting» på 1.0006 er ein avrunda
+    // piksel, ikkje ein motorskilnad, og å gange alle koordinatar med han
+    // ville flytta markørane utan grunn.
+    return (k > 0.99 && k < 1.01) ? 1 : k;
+  }
+
+  /**
+   * Alle seks felta, eller ingen. Gløymer ein bottom/right, samanliknar
+   * isInsideElement eit skalert ord mot ein uskalert kant, og markørar
+   * FORSVINN i staden for å stå feil — verre, ikkje betre.
+   */
+  function scaleRect(rect, k) {
+    if (!rect || k === 1) return rect;
+    return {
+      top: rect.top * k, left: rect.left * k,
+      width: rect.width * k, height: rect.height * k,
+      bottom: rect.bottom * k, right: rect.right * k,
+    };
+  }
+
+  /** Faktoren for eit konkret element, slege opp i DOM-en. */
+  function reportedZoomFactor(el) {
+    if (!el || typeof getComputedStyle !== 'function') return 1;
+    const cssZoom = cssZoomOf(el);
+    if (cssZoom === 1) return 1;
+    const w = el.offsetWidth;
+    if (!w) return 1;
+    return zoomCorrection(cssZoom, el.getBoundingClientRect().width / w);
+  }
+
+  /**
+   * Frå viewport-koordinatar til ankerlokale. Utan anker kjem punktet
+   * uendra tilbake, og det er det som held extension-vegen som før.
+   */
+  function toAnchorCoords(rect, anchorRect, scrollLeft, scrollTop) {
+    if (!anchorRect) return { left: rect.left, top: rect.top };
+    return {
+      left: rect.left - anchorRect.left + scrollLeft,
+      top: rect.top - anchorRect.top + scrollTop,
+    };
+  }
+
   function ensureOverlay() {
-    if (overlay) return overlay;
-    overlay = document.createElement('div');
-    overlay.id = 'lexi-spell-overlay';
-    (document.fullscreenElement || document.body).appendChild(overlay);
+    const host = typeof self !== 'undefined' ? self : globalThis;
+    const hostValue = host.lexiHostValue;
+    // hostValue er generisk: han gjev VERDIEN verten sette, her verten sin
+    // ankerresolver. Utan vert finst han ikkje, og då er svaret null.
+    const anchor = resolveOverlayAnchor(hostValue ? hostValue('overlayAnchor') : null, activeEl);
+
+    const fsEl = document.fullscreenElement;
+    // Eit anker utanfor topplaget ville gøymt kvar einaste markør så lenge
+    // fullskjerm står på. Då er viewport-vegen betre enn ingen markørar.
+    let usable = (anchor && (!fsEl || fsEl.contains(anchor))) ? anchor : null;
+    if (anchor && !usable) warn('anchor — resolver returned an element outside the fullscreen element');
+    // Absolutt posisjonering løyser seg mot næraste POSISJONERTE forfader.
+    // Er ankeret `static`, hamnar overlayet ein heilt annan stad enn det
+    // rammeverket vi trekkjer frå — markørane ville stått støtt forskyvde.
+    if (usable && getComputedStyle(usable).position === 'static') {
+      warn('anchor — resolver returned a static element; needs position: relative');
+      usable = null;
+    }
+    const parent = usable || fsEl || document.body;
+
+    // Ankeret kan bli bytt ut UTAN ein blur — verten kan byggje flata si på
+    // nytt. Difor blir det slege opp kvar gong og samanlikna med der
+    // overlayet faktisk heng.
+    if (overlay && overlay.parentElement !== parent) {
+      overlay.remove();
+      overlay = null;
+      markers.length = 0;
+      hidePopover();
+    }
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'lexi-spell-overlay';
+      parent.appendChild(overlay);
+    }
+    // Posisjonsmodus er CSS, ikkje berre tal: .lh-spell-dot er `position:
+    // fixed` i arket, og eit fixed barn bryr seg ikkje om at forelderen er
+    // absolute. Klassa byter begge. Same forelder er ikkje same modus — han
+    // blir difor synkronisert kvar gong, ikkje berre når overlayet er nytt.
+    overlay.classList.toggle('lh-anchored', !!usable);
     return overlay;
+  }
+
+  /** Ankeret overlayet faktisk heng i, eller null i viewport-modus. */
+  function currentAnchor() {
+    if (!overlay || !overlay.classList.contains('lh-anchored')) return null;
+    const parent = overlay.parentElement;
+    // Eit frakopla anker måler null i alle retningar — då er viewport-vegen
+    // det ærlege svaret, ikkje koordinatar som ser rimelege ut og er feil.
+    return parent && parent.isConnected !== false ? parent : null;
   }
 
   function renderMarkers(findings) {
@@ -859,9 +1051,14 @@
     // gjennom lesefasen, så TreeWalker-en går én gang i stedet for én
     // gang per funn. Begge fasene er synkrone; DOM-en kan ikke endre seg
     // mellom dem.
-    const er = activeEl.getBoundingClientRect();
+    // activeEl BER zoomen, så boksen sin eigen rect er underrapportert på
+    // nøyaktig same vis som orda inni. Skalerer ein berre orda, samanliknar
+    // isInsideElement to ulike rom og skjuler markørar som står heilt rett.
+    const zoomK = reportedZoomFactor(activeEl);
+    const er = scaleRect(activeEl.getBoundingClientRect(), zoomK);
+    const frame = anchorFrame();
     const measured = withSegmentCache(activeEl, () => findings.map((finding, idx) => ({
-      finding, idx, rect: positionForRange(activeEl, finding.start, finding.end),
+      finding, idx, rect: positionForRange(activeEl, finding.start, finding.end, zoomK),
     })));
 
     measured.forEach(({ finding, idx, rect }) => {
@@ -903,28 +1100,117 @@
       // the wrong word (or, past the end, left it unpositioned at the
       // viewport's top-left corner).
       markers.push({ el: dot, finding, rect, fIdx: idx });
-      positionDot(dot, rect);
+      positionDot(dot, rect, frame);
       // Phase 6 / F38-4: hint markers span the full word width.
       // Height stays at the CSS default (3px) so the solid-color P3 hint
       // background actually paints. Pre-F38-4 the hint marker had inline
       // height=0 and relied on a border-bottom for visibility, but on the
       // 3px-fixed-position dot the border didn't paint reliably across hosts.
       if (finding.severity === 'hint') {
-        const wordWidth = rect.width || (rect.right - rect.left);
-        dot.style.width = wordWidth + 'px';
-        dot.style.top = (rect.bottom || (rect.top + rect.height)) + 'px';
-        dot.style.left = rect.left + 'px';
+        // Hint-markøren spenner over heile ordet; resten av plasseringa er
+        // allereie skriven av positionDot.
+        dot.style.width = (rect.width || (rect.right - rect.left)) + 'px';
       }
       rendered++;
     });
     warn('markers rendered', { rendered, skipped, total: findings.length });
+    observeReflow();
   }
 
-  function positionDot(dot, rect) {
+  /**
+   * Ankerets geometri, rekna ut frå eit element-likt objekt. Rein av di det
+   * er her begge koordinatfellene bur, og dei må kunne testast utan DOM.
+   *
+   * `getBoundingClientRect()` gjev BORDER-boksen, men eit absolutt plassert
+   * barn har origo i PADDING-boksen. Difor blir kanten (clientLeft/clientTop)
+   * lagt til her, ÉIN gong: `frame.rect` er padding-boksen, ikkje border-
+   * boksen, og `toAnchorCoords` får halde fram med å berre trekkje frå.
+   */
+  function anchorFrameOf(anchor) {
+    if (!anchor) return null;
+    const border = anchor.getBoundingClientRect();
+    return {
+      rect: { left: border.left + (anchor.clientLeft || 0), top: border.top + (anchor.clientTop || 0) },
+      scrollLeft: anchor.scrollLeft || 0,
+      scrollTop: anchor.scrollTop || 0,
+    };
+  }
+
+  /**
+   * Ankerets rammeverk, lese ÉIN gong før skrivefasen.
+   *
+   * Ikkje inne i løkka: kvar `dot.style.*`-skriving ugyldiggjer layouten, så
+   * ein `getBoundingClientRect()` per markør ville tvinge ein reflow per
+   * markør — nøyaktig det lese-alt-først-skriv-etterpå fjerna. Rammeverket
+   * kan ikkje endre seg mellom fasane; dei er synkrone.
+   *
+   * Modusen blir lese av overlay-noden, som berre ensureOverlay() oppdaterer:
+   * ein kallar som ikkje har køyrt ensureOverlay i same runde får den SIST
+   * oppslegne modusen. Det er rett for refresh-løkka, som les geometrien på
+   * nytt kvar frame. Holet bak det: byter verten flata si utan ein blur, og
+   * den GAMLE noden framleis heng i dokumentet, måler refresh-framene mot det
+   * gamle ankeret heilt til neste renderMarkers() — ensureOverlay er det
+   * einaste som slår ankeret opp på nytt.
+   */
+  function anchorFrame() {
+    return anchorFrameOf(currentAnchor());
+  }
+
+  function positionDot(dot, rect, frame) {
     // Thin underline-style bar, full width of the error span, just below it.
-    dot.style.top = `${rect.top + rect.height}px`;
-    dot.style.left = `${rect.left}px`;
+    const p = toAnchorCoords(rect, frame && frame.rect, frame ? frame.scrollLeft : 0, frame ? frame.scrollTop : 0);
+    dot.style.top = `${p.top + rect.height}px`;
+    dot.style.left = `${p.left}px`;
     dot.style.width = `${Math.max(rect.width, 12)}px`;
+  }
+
+  // Reflow — eit sideskift som blir sett inn over ordet, ei linje som brekk
+  // om — flyttar ordet INNI ankeret og let markøren stå. Ankeret hjelper
+  // ikkje mot det. Redigeringsflata får ei ny høgd når verten sitt
+  // sideskift-lag set min-height, og ankeret ei ny breidd når eit panel
+  // opnar seg; begge er ResizeObserver-hendingar.
+  //
+  // MERK at reflow IKKJE er eit problem berre i ankermodus: eit textarea som
+  // veks av seg sjølv, ei linje som brekk om, eit bilete som lastar over
+  // inputen — alt dette flyttar ord i viewport-modus òg, og der finst det
+  // ingen oppfrisking for noko av det. Viset held den luka MEDVITE ope.
+  // Observasjonen av `activeEl` er difor porta saman med ankeret ikkje av di
+  // ho høyrer til der, men av di å slå henne på overalt ville gje nye
+  // oppfriskingsutløysarar på vilkårlege tredjepartssider for alle
+  // extension-brukarane — ei eiga avgjerd med eiga testing, ikkje eit
+  // vedheng til embed-arbeidet.
+  //
+  // Eitt vindauge der observatøren lever lenger enn elementa sine: byter
+  // eller byggjer verten om flata UTAN ein blur, kjem korkje renderMarkers
+  // eller hideOverlay, og observatøren held då sterke referansar til den
+  // frakopla flata og det frakopla ankeret fram til neste render eller
+  // nedrigging. Det er avgrensa (éin observatør, to element) og speglar det
+  // `overlay` og `markers` alt gjer i same situasjon.
+  let reflowObserver = null;
+  let observedEditable = null;
+  let observedAnchor = null;
+
+  function observeReflow() {
+    if (typeof ResizeObserver !== 'function') return;   // eldre WebKit: degradér stille
+    const anchor = currentAnchor();
+    if (!anchor || !activeEl) { stopObservingReflow(); return; }
+    // Same par som sist? Då er observatøren alt rett, og å byggje han på
+    // nytt ville kosta ei EKSTRA full ommåling: ResizeObserver fyrer eit
+    // initialt kall for kvart mål med ein gong observe() blir kalla, og
+    // renderMarkers går på debounce medan eleven skriv.
+    if (reflowObserver && observedEditable === activeEl && observedAnchor === anchor) return;
+    stopObservingReflow();
+    reflowObserver = new ResizeObserver(schedulePositionRefresh);
+    reflowObserver.observe(activeEl);
+    reflowObserver.observe(anchor);
+    observedEditable = activeEl;
+    observedAnchor = anchor;
+  }
+
+  function stopObservingReflow() {
+    if (reflowObserver) { reflowObserver.disconnect(); reflowObserver = null; }
+    observedEditable = null;
+    observedAnchor = null;
   }
 
   // Keep markers aligned with their words when the input scrolls or the
@@ -937,9 +1223,11 @@
       if (!activeEl || markers.length === 0) return;
       // Samme les-alt-først som i renderMarkers. Dette kjører på hver
       // scroll- og resize-frame, så det er den løkken som oftest går.
-      const er = activeEl.getBoundingClientRect();
+      const zoomK = reportedZoomFactor(activeEl);
+      const er = scaleRect(activeEl.getBoundingClientRect(), zoomK);
+      const frame = anchorFrame();
       const rects = withSegmentCache(activeEl, () =>
-        markers.map(m => positionForRange(activeEl, m.finding.start, m.finding.end)));
+        markers.map(m => positionForRange(activeEl, m.finding.start, m.finding.end, zoomK)));
       for (let i = 0; i < markers.length; i++) {
         const m = markers[i];
         const rect = rects[i];
@@ -948,7 +1236,7 @@
           continue;
         }
         m.el.style.display = '';
-        positionDot(m.el, rect);
+        positionDot(m.el, rect, frame);
         m.rect = rect;
       }
       if (popover && activePopoverIdx >= 0 && markerAt(activePopoverIdx)) {
@@ -978,6 +1266,7 @@
 
   function hideOverlay() {
     clearMarkers();
+    stopObservingReflow();
     if (overlay) overlay.remove();
     overlay = null;
   }
@@ -1550,6 +1839,15 @@ ${!reportChannelOpen() ? '' : `<button type="button" class="lh-spell-btn lh-spel
       });
     }
     attachReportHandler(popover.querySelector('.lh-spell-report'));
+    // Popoveret bur inne i overlayet, òg i ankermodus. Det er `position:
+    // fixed`, og fixed-barn blir ikkje klipte av ein forfader sin `overflow`
+    // — så ein rullecontainer er uproblematisk. MEN: ein `transform`,
+    // `filter`, `backdrop-filter`, `perspective`, `will-change` eller
+    // `contain: paint/layout` kvar som helst over ankeret gjer DEN til
+    // containing block for fixed, og då blir popoveret både klipt og
+    // z-index-et fanga i vertens stacking context. Markørane toler det (dei
+    // er ankerlokale); popoveret ville hoppa. Difor er dette eit krav til
+    // verten, ikkje noko vi kompenserer for her.
     overlay.appendChild(popover);
     // Position from a FRESH rect for this finding (guards against a stale
     // marker rect after scrolling), falling back to the marker's stored rect,
@@ -1558,7 +1856,7 @@ ${!reportChannelOpen() ? '' : `<button type="button" class="lh-spell-btn lh-spel
     let pRect = positionForRange(activeEl, finding.start, finding.end);
     if (!pRect) pRect = markerAt(idx)?.rect || null;
     if (!pRect && activeEl) {
-      const er = activeEl.getBoundingClientRect();
+      const er = scaleRect(activeEl.getBoundingClientRect(), reportedZoomFactor(activeEl));
       pRect = { top: er.top, left: er.left, width: 0, height: 0, bottom: er.top, right: er.left };
     }
     positionPopover(pRect);
@@ -2380,7 +2678,10 @@ ${!reportChannelOpen() ? '' : `<button type="button" class="lh-spell-btn lh-spel
 
   function positionButton() {
     if (!activeEl || !spellCheckBtn) return;
-    const rect = activeEl.getBoundingClientRect();
+    // Aa-knappen er position: fixed, altså i MÅLA pikslar — same rom som ei
+    // retta rect. Uretta ville knappen stått for langt opp til venstre i
+    // WebKit, akkurat som markørane gjorde.
+    const rect = scaleRect(activeEl.getBoundingClientRect(), reportedZoomFactor(activeEl));
     if (rect.width === 0 && rect.height === 0) {
       spellCheckBtn.style.display = 'none';
       return;
@@ -2524,7 +2825,7 @@ ${!reportChannelOpen() ? '' : `<button type="button" class="lh-spell-btn lh-spel
 
   function positionLangHint(banner) {
     if (!activeEl) return;
-    const r = activeEl.getBoundingClientRect();
+    const r = scaleRect(activeEl.getBoundingClientRect(), reportedZoomFactor(activeEl));
     banner.style.position = 'fixed';
     banner.style.left = Math.max(8, r.left) + 'px';
     banner.style.top = Math.max(8, r.top - 36) + 'px';
@@ -2685,10 +2986,20 @@ ${!reportChannelOpen() ? '' : `<button type="button" class="lh-spell-btn lh-spel
 
   // ── Range / position helpers ──
 
-  function positionForRange(el, start, end) {
-    if (el.isContentEditable) return rectFromCE(el, start, end);
-    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return rectFromTextarea(el, start, end);
-    return null;
+  // Éin saum: ALLE målte ordrect-ar går ut herifrå, og alle går ut i MÅLA
+  // pikslar. Rettinga høyrer hit og ikkje i dei to produsentane, av di
+  // spegel-teknikken i rectFromTextarea byggjer i det uzooma rommet og
+  // rectFromCE måler i det rapporterte — same underrapportering, éi retting.
+  //
+  // `k` kan sendast inn av kallarar som alt har rekna han ut for runden sin;
+  // hot-løkkene gjer det, så det blir eitt oppslag per runde og ikkje eitt
+  // per funn.
+  function positionForRange(el, start, end, k) {
+    const raw = el.isContentEditable ? rectFromCE(el, start, end)
+      : (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') ? rectFromTextarea(el, start, end)
+      : null;
+    if (!raw) return null;
+    return scaleRect(raw, typeof k === 'number' ? k : reportedZoomFactor(el));
   }
 
   function rangeForOffsets(el, start, end) {
@@ -2886,6 +3197,6 @@ ${!reportChannelOpen() ? '' : `<button type="button" class="lh-spell-btn lh-spel
   // (this file isn't an engine, but the idiom is the project's canonical
   // dual-export shape). Browser-side this branch is a no-op.
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { renderPedagogyPanel, sanitizeWarning, escapeHtml };
+    module.exports = { renderPedagogyPanel, sanitizeWarning, escapeHtml, toAnchorCoords, resolveOverlayAnchor, anchorFrameOf, zoomCorrection, scaleRect, reportedZoomFactor, cssZoomOf, positionDot };
   }
 })();

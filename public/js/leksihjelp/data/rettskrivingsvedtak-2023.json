@@ -1,7 +1,7 @@
 {
   "_metadata": {
     "name": "rettskrivingsvedtak-2023",
-    "description": "Bokmålsformer som fall bort ved Kultur- og likestillingsdepartementets vedtak av 26.09.2023 om bøyinga av ein del inkjekjønnssubstantiv. Valfridomen mellom samantrekt og full form er borte; berre den lange forma er rett.",
+    "description": "Former som fall bort (withdrawn) og kom til (added) ved Kultur- og likestillingsdepartementets vedtak av 26.09.2023 om bøyinga av ein del inkjekjønnssubstantiv m.m. i bokmål. Bygd frå vedtakslista (PDF), ikkje frå banken.",
     "source": "https://sprakradet.no/aktuelt/endringer-i-boyningen-av-en-del-intetkjonnssubstantiver-i-bokmal/",
     "decided": "2023-09-26",
     "language": "nb",
@@ -10,13 +10,132 @@
     "consumers": [
       "papertek-vocabulary/scripts/complete-form-cells-from-ordbank.mjs",
       "leksihjelp/scripts/check-rettskrivingsvedtak-2023.js"
-    ]
+    ],
+    "pdf": "https://sprakradet.no/wp-content/uploads/endringer-til-nettsidene-september-2023-liste-i-mal.pdf",
+    "built_by": "scripts/build-rettskrivingsvedtak-2023.mjs",
+    "built_at": "2026-09-06",
+    "etterledd": "Vedtaket gjeld òg samansetningar med dei råka orda som etterledd (PDF, innleiinga). Konsumentar må sjekke suffiks: lib/vedtak-2023.js isWithdrawnForm().",
+    "slots": [
+      "grunnform",
+      "bestemt.entall",
+      "ubestemt.flertall",
+      "bestemt.flertall"
+    ],
+    "rows": 232
   },
   "withdrawn": {
+    "apogé": [
+      {
+        "slot": "grunnform",
+        "form": "apogé"
+      }
+    ],
+    "jubilé": [
+      {
+        "slot": "grunnform",
+        "form": "jubilé"
+      }
+    ],
+    "mausolé": [
+      {
+        "slot": "grunnform",
+        "form": "mausolé"
+      }
+    ],
+    "musé": [
+      {
+        "slot": "grunnform",
+        "form": "musé"
+      }
+    ],
+    "perigé": [
+      {
+        "slot": "grunnform",
+        "form": "perigé"
+      }
+    ],
+    "propylé": [
+      {
+        "slot": "grunnform",
+        "form": "propylé"
+      }
+    ],
+    "babbel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "bablet"
+      }
+    ],
+    "barsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "barslet"
+      }
+    ],
+    "beksel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "bekslet"
+      }
+    ],
+    "bendsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "bendslet"
+      }
+    ],
+    "bindsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "bindslet"
+      }
+    ],
+    "bissel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "bislet"
+      }
+    ],
+    "bredsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "bredslet"
+      }
+    ],
+    "brensel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "brenslet"
+      }
+    ],
+    "dangel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "danglet"
+      }
+    ],
+    "deksel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "dekslet"
+      }
+    ],
+    "dingel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "dinglet"
+      }
+    ],
     "eksempel": [
       {
         "slot": "bestemt.entall",
         "form": "eksemplet"
+      }
+    ],
+    "esel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "eslet"
       }
     ],
     "fengsel": [
@@ -25,26 +144,88 @@
         "form": "fengslet"
       }
     ],
+    "fikkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "fiklet"
+      }
+    ],
+    "flygel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "flyglet"
+      }
+    ],
+    "gissel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "gislet"
+      }
+    ],
+    "gjemsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "gjemslet"
+      }
+    ],
+    "gjømsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "gjømslet"
+      }
+    ],
+    "hengsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "hengslet"
+      }
+    ],
+    "juggel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "juglet"
+      }
+    ],
     "kapittel": [
       {
         "slot": "bestemt.entall",
         "form": "kapitlet"
       }
     ],
-    "kjøpesenter": [
+    "kjekkel": [
       {
         "slot": "bestemt.entall",
-        "form": "kjøpesentret"
-      },
-      {
-        "slot": "bestemt.flertall",
-        "form": "kjøpesentra"
+        "form": "kjeklet"
       }
     ],
-    "lager": [
+    "kjørel": [
       {
-        "slot": "bestemt.flertall",
-        "form": "lagra"
+        "slot": "bestemt.entall",
+        "form": "kjørlet"
+      }
+    ],
+    "knussel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "knuslet"
+      }
+    ],
+    "koppel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "koplet"
+      }
+    ],
+    "kvakkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "kvaklet"
+      }
+    ],
+    "kvartel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "kvartlet"
       }
     ],
     "middel": [
@@ -53,16 +234,839 @@
         "form": "midlet"
       }
     ],
+    "mirakel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "miraklet"
+      }
+    ],
+    "møbel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "møblet"
+      }
+    ],
+    "mummel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "mumlet"
+      }
+    ],
+    "orakel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "oraklet"
+      }
+    ],
+    "orgel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "orglet"
+      }
+    ],
+    "prassel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "praslet"
+      }
+    ],
+    "preambel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "preamblet"
+      }
+    ],
+    "prikkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "priklet"
+      }
+    ],
+    "rabbel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "rablet"
+      }
+    ],
+    "rakkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "raklet"
+      }
+    ],
+    "rammel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "ramlet"
+      }
+    ],
+    "rangel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "ranglet"
+      }
+    ],
+    "rassel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "raslet"
+      }
+    ],
+    "rekel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "reklet"
+      }
+    ],
+    "rektangel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "rektanglet"
+      }
+    ],
+    "ringel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "ringlet"
+      }
+    ],
+    "rukkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "ruklet"
+      }
+    ],
+    "rummel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "rumlet"
+      }
+    ],
+    "røkkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "røklet"
+      }
+    ],
+    "sampel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "samplet"
+      }
+    ],
+    "sekel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "seklet"
+      }
+    ],
+    "sikkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "siklet"
+      }
+    ],
+    "singel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "singlet",
+        "sense": "singling"
+      }
+    ],
+    "skrakkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "skraklet"
+      }
+    ],
+    "skrammel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "skramlet"
+      }
+    ],
+    "skrangel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "skranglet"
+      }
+    ],
+    "skrassel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "skraslet"
+      }
+    ],
+    "skremsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "skremslet"
+      }
+    ],
+    "skvakkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "skvaklet"
+      }
+    ],
+    "sommel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "somlet"
+      }
+    ],
+    "spensel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "spenslet"
+      }
+    ],
+    "spetakkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "spetaklet"
+      }
+    ],
+    "stempel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "stemplet"
+      }
+    ],
+    "stengsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "stengslet"
+      }
+    ],
+    "strøssel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "strøslet"
+      }
+    ],
+    "støpsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "støpslet"
+      }
+    ],
+    "sukkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "suklet"
+      }
+    ],
+    "søppel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "søplet"
+      }
+    ],
+    "tabernakel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "tabernaklet"
+      }
+    ],
+    "taffel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "taflet"
+      }
+    ],
+    "takkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "taklet"
+      }
+    ],
+    "tassel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "taslet"
+      }
+    ],
+    "tempel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "templet"
+      }
+    ],
+    "tingel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "tinglet"
+      }
+    ],
+    "tingeltangel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "tingeltanglet"
+      }
+    ],
+    "trassel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "traslet"
+      }
+    ],
+    "treakel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "treaklet"
+      }
+    ],
+    "triangel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "trianglet"
+      }
+    ],
+    "trøbbel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "trøblet"
+      }
+    ],
+    "tukkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "tuklet"
+      }
+    ],
+    "varsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "varslet"
+      }
+    ],
+    "vehikkel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "vehiklet"
+      }
+    ],
+    "vingel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "vinglet"
+      }
+    ],
+    "vringel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "vringlet"
+      }
+    ],
+    "øksel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "økslet"
+      }
+    ],
+    "åtsel": [
+      {
+        "slot": "bestemt.entall",
+        "form": "åtslet"
+      }
+    ],
+    "barometer": [
+      {
+        "slot": "bestemt.entall",
+        "form": "barometret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "barometra"
+      }
+    ],
+    "hygrometer": [
+      {
+        "slot": "bestemt.entall",
+        "form": "hygrometret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "hygrometra"
+      }
+    ],
+    "petimeter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "petimetret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "petimetra"
+      }
+    ],
+    "termometer": [
+      {
+        "slot": "bestemt.entall",
+        "form": "termometret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "termometra"
+      }
+    ],
+    "-meter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "-metret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "-metra"
+      }
+    ],
+    "heksaeder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "heksaedret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "heksaedra"
+      }
+    ],
+    "polyeder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "polyedret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "polyedra"
+      }
+    ],
+    "-eder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "-edret"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "-edre"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "-edra"
+      }
+    ],
+    "alter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "altret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "altra"
+      }
+    ],
+    "anker": [
+      {
+        "slot": "bestemt.entall",
+        "form": "ankret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "ankra"
+      }
+    ],
+    "beger": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "begra"
+      }
+    ],
+    "bolster": [
+      {
+        "slot": "bestemt.entall",
+        "form": "bolstret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "bolstra"
+      }
+    ],
+    "bulder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "buldret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "buldra"
+      }
+    ],
+    "charter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "chartret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "chartra"
+      }
+    ],
+    "chiffer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "chifra"
+      }
+    ],
+    "diopter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "dioptret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "dioptra"
+      }
+    ],
+    "dunder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "dundret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "dundra"
+      }
+    ],
+    "eiter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "eitret"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "eitrer"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "eitra"
+      }
+    ],
+    "filter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "filtret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "filtra"
+      }
+    ],
+    "flimmer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "flimra"
+      }
+    ],
+    "flitter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "flitret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "flitra"
+      }
+    ],
+    "foster": [
+      {
+        "slot": "bestemt.entall",
+        "form": "fostret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "fostra"
+      }
+    ],
+    "fruentimmer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "fruentimra"
+      }
+    ],
+    "galder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "galdret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "galdra"
+      }
+    ],
+    "gelender": [
+      {
+        "slot": "bestemt.entall",
+        "form": "gelendret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "gelendra"
+      }
+    ],
+    "gitter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "gitret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "gitra"
+      }
+    ],
+    "glitter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "glitret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "glitra"
+      }
+    ],
+    "gnelder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "gneldret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "gneldra"
+      }
+    ],
+    "helikopter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "helikoptret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "helikoptra"
+      }
+    ],
+    "hilder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "hildret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "hildra"
+      }
+    ],
+    "hinder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "hindret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "hindra"
+      }
+    ],
+    "hylster": [
+      {
+        "slot": "bestemt.entall",
+        "form": "hylstret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "hylstra"
+      }
+    ],
+    "ister": [
+      {
+        "slot": "bestemt.entall",
+        "form": "istret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "istra"
+      }
+    ],
+    "kadaver": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "kadavra"
+      }
+    ],
+    "kaliber": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "kalibra"
+      }
+    ],
+    "kammer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "kamra"
+      }
+    ],
+    "kateter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "katetret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "katetra"
+      }
+    ],
+    "klammer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "klamra"
+      }
+    ],
+    "klander": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "klandere"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "klanderne"
+      }
+    ],
+    "klister": [
+      {
+        "slot": "bestemt.entall",
+        "form": "klistret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "klistra"
+      }
+    ],
+    "kloster": [
+      {
+        "slot": "bestemt.entall",
+        "form": "klostret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "klostra"
+      }
+    ],
+    "klunder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "klundret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "klundra"
+      }
+    ],
+    "kogger": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "kogra"
+      }
+    ],
+    "krater": [
+      {
+        "slot": "bestemt.entall",
+        "form": "kratret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "kratra"
+      }
+    ],
+    "kvidder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "kvidret"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "kvidre"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "kvidra"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "kvidrene"
+      }
+    ],
+    "kvitter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "kvitret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "kvitra"
+      }
+    ],
+    "lager": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "lagra"
+      }
+    ],
+    "læger": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "lægra"
+      }
+    ],
+    "monster": [
+      {
+        "slot": "bestemt.entall",
+        "form": "monstret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "monstra"
+      }
+    ],
+    "mylder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "myldret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "myldra"
+      }
+    ],
+    "mønster": [
+      {
+        "slot": "bestemt.entall",
+        "form": "mønstret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "mønstra"
+      }
+    ],
+    "mørker": [
+      {
+        "slot": "bestemt.entall",
+        "form": "mørkret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "mørkra"
+      }
+    ],
     "nummer": [
       {
         "slot": "bestemt.flertall",
         "form": "numra"
-      }
-    ],
-    "næringsmiddel": [
-      {
-        "slot": "bestemt.entall",
-        "form": "næringsmidlet"
       }
     ],
     "offer": [
@@ -81,6 +1085,30 @@
         "form": "orkestra"
       }
     ],
+    "paternoster": [
+      {
+        "slot": "bestemt.entall",
+        "form": "paternostret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "paternostra"
+      }
+    ],
+    "pister": [
+      {
+        "slot": "bestemt.entall",
+        "form": "pistret"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "pistrer"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "pistra"
+      }
+    ],
     "plaster": [
       {
         "slot": "bestemt.entall",
@@ -91,22 +1119,70 @@
         "form": "plastra"
       }
     ],
-    "postnummer": [
-      {
-        "slot": "bestemt.flertall",
-        "form": "postnumra"
-      }
-    ],
-    "retningsnummer": [
-      {
-        "slot": "bestemt.flertall",
-        "form": "retningsnumra"
-      }
-    ],
-    "rusmiddel": [
+    "plekter": [
       {
         "slot": "bestemt.entall",
-        "form": "rusmidlet"
+        "form": "plektret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "plektra"
+      }
+    ],
+    "plunder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "plundret"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "plundrer"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "plundra"
+      }
+    ],
+    "quarter": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "quartere",
+        "sense": "britisk vektenhet"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "quarterne",
+        "sense": "britisk vektenhet"
+      }
+    ],
+    "rabalder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "rabaldret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "rabaldra"
+      }
+    ],
+    "raster": [
+      {
+        "slot": "bestemt.entall",
+        "form": "rastret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "rastra"
+      }
+    ],
+    "register": [
+      {
+        "slot": "bestemt.entall",
+        "form": "registret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "registra"
       }
     ],
     "semester": [
@@ -129,32 +1205,96 @@
         "form": "sentra"
       }
     ],
-    "sentrum": [
+    "septer": [
       {
         "slot": "bestemt.entall",
-        "form": "sentret"
+        "form": "septret"
       },
       {
         "slot": "bestemt.flertall",
-        "form": "sentra"
+        "form": "septra"
       }
     ],
-    "stempel": [
+    "siffer": [
       {
-        "slot": "bestemt.entall",
-        "form": "stemplet"
+        "slot": "bestemt.flertall",
+        "form": "sifra"
       }
     ],
-    "støpsel": [
+    "silder": [
       {
         "slot": "bestemt.entall",
-        "form": "støpslet"
+        "form": "sildret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "sildra"
       }
     ],
-    "søppel": [
+    "sinder": [
       {
         "slot": "bestemt.entall",
-        "form": "søplet"
+        "form": "sindret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "sindra"
+      }
+    ],
+    "sjarter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "sjartret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "sjartra"
+      }
+    ],
+    "skimmer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "skimra"
+      }
+    ],
+    "skvalder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "skvaldret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "skvaldra"
+      }
+    ],
+    "smulder": [
+      {
+        "slot": "bestemt.entall",
+        "form": "smuldret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "smuldra"
+      }
+    ],
+    "spekter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "spektret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "spektra"
+      }
+    ],
+    "sutter": [
+      {
+        "slot": "bestemt.entall",
+        "form": "sutret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "sutra"
       }
     ],
     "teater": [
@@ -167,26 +1307,30 @@
         "form": "teatra"
       }
     ],
-    "telefonnummer": [
-      {
-        "slot": "bestemt.flertall",
-        "form": "telefonnumra"
-      }
-    ],
-    "transportmiddel": [
+    "tinder": [
       {
         "slot": "bestemt.entall",
-        "form": "transportmidlet"
-      }
-    ],
-    "treningssenter": [
-      {
-        "slot": "bestemt.entall",
-        "form": "treningssentret"
+        "form": "tindret"
       },
       {
         "slot": "bestemt.flertall",
-        "form": "treningssentra"
+        "form": "tindra"
+      }
+    ],
+    "tornister": [
+      {
+        "slot": "bestemt.entall",
+        "form": "tornistret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "tornistra"
+      }
+    ],
+    "tømmer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "tømra"
       }
     ],
     "under": [
@@ -199,23 +1343,1386 @@
         "form": "undra"
       }
     ],
-    "vaskemiddel": [
+    "vardøger": [
       {
-        "slot": "bestemt.entall",
-        "form": "vaskemidlet"
+        "slot": "bestemt.flertall",
+        "form": "vardøgra"
       }
     ],
-    "værvarsel": [
+    "vater": [
       {
         "slot": "bestemt.entall",
-        "form": "værvarslet"
+        "form": "vatret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "vatra"
       }
     ],
-    "møbel": [
+    "vidunder": [
       {
         "slot": "bestemt.entall",
-        "form": "møblet"
+        "form": "vidundret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "vidundra"
       }
+    ],
+    "vørter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "vørtra"
+      }
+    ],
+    "water": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "watere"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "waterne"
+      }
+    ],
+    "åger": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "ågra"
+      }
+    ],
+    "abdomen": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "abdomina"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "abdominaene"
+      }
+    ],
+    "omen": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "omina"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "ominaene"
+      }
+    ],
+    "aktivum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "aktiva"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "aktivaene"
+      }
+    ],
+    "depositum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "deposita"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "depositaene"
+      }
+    ],
+    "dictum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "dicta"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "dictaene"
+      }
+    ],
+    "diktum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "dikta"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "diktaene"
+      }
+    ],
+    "falsum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "falsa"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "falsaene"
+      }
+    ],
+    "fluidum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "fluida"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "fluidaene"
+      }
+    ],
+    "futurum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "futura"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "futuraene"
+      }
+    ],
+    "memorandum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "memoranda"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "memorandaene"
+      }
+    ],
+    "metrum": [
+      {
+        "slot": "bestemt.entall",
+        "form": "metret"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "metra"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "metraene"
+      }
+    ],
+    "multiplum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "multipla"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "multiplaene"
+      }
+    ],
+    "optimum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "optima"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "optimaene"
+      }
+    ],
+    "passivum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "passiva"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "passiver"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "passivaene"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "passivene"
+      }
+    ],
+    "peritektikum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "peritektika"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "peritektikaene"
+      }
+    ],
+    "plenum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "plena"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "plenaene"
+      }
+    ],
+    "postskriptum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "postskripta"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "postskriptaene"
+      }
+    ],
+    "preteritum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "preterita"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "preteritaene"
+      }
+    ],
+    "referendum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "referenda"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "refererenduma"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "referendaene"
+      }
+    ],
+    "responsum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "responsa"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "responsaene"
+      }
+    ],
+    "ultimatum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "ultimata"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "ultimataene"
+      }
+    ],
+    "arkanum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "arkana"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "arkanaene"
+      }
+    ],
+    "femininum": [
+      {
+        "slot": "bestemt.entall",
+        "form": "femininet"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "feminina"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "femininaene"
+      }
+    ],
+    "imperfektum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "imperfekta"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "imperfektaene"
+      }
+    ],
+    "interregnum": [
+      {
+        "slot": "bestemt.entall",
+        "form": "interregnet"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "interregna"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "interregnaene"
+      }
+    ],
+    "maskulinum": [
+      {
+        "slot": "bestemt.entall",
+        "form": "maskulinet"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "maskulina"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "maskuliner"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "maskulinaene"
+      }
+    ],
+    "nøytrum": [
+      {
+        "slot": "bestemt.entall",
+        "form": "nøytret"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "nøytra"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "nøytraene"
+      }
+    ],
+    "perfektum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "perfekta"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "perfektaene"
+      }
+    ],
+    "pluskvamperfektum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "pluskvamperfekta"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "pluskvamperfektaene"
+      }
+    ],
+    "supinum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "supina"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "supinaene"
+      }
+    ],
+    "spektrum": [
+      {
+        "slot": "bestemt.entall",
+        "form": "spektret"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "spektra"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "spektra"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "spektraene"
+      }
+    ],
+    "sentrum": [
+      {
+        "slot": "bestemt.entall",
+        "form": "sentret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "sentra"
+      }
+    ],
+    "monstrum": [
+      {
+        "slot": "bestemt.entall",
+        "form": "monstret"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "monstra"
+      }
+    ],
+    "oment": [
+      {
+        "slot": "grunnform",
+        "form": "omentum"
+      }
+    ],
+    "verb": [
+      {
+        "slot": "grunnform",
+        "form": "verbum"
+      }
+    ],
+    "genius": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "genier"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "geniene"
+      }
+    ],
+    "adverb": [
+      {
+        "slot": "grunnform",
+        "form": "adverbium"
+      }
+    ],
+    "stipend": [
+      {
+        "slot": "grunnform",
+        "form": "stipendium"
+      }
+    ]
+  },
+  "added": {
+    "barometer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "barometera"
+      }
+    ],
+    "hygrometer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "hygrometera"
+      }
+    ],
+    "petimeter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "petimetera"
+      }
+    ],
+    "termometer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "termometera"
+      }
+    ],
+    "-meter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "-metera"
+      }
+    ],
+    "heksaeder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "heksaedera"
+      }
+    ],
+    "polyeder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "polyedera"
+      }
+    ],
+    "-eder": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "edre"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "-edera"
+      }
+    ],
+    "alter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "alterne"
+      }
+    ],
+    "anker": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "ankerne"
+      }
+    ],
+    "beger": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "begera"
+      }
+    ],
+    "bolster": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "bolstera"
+      }
+    ],
+    "bulder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "buldera"
+      }
+    ],
+    "charter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "chartera"
+      }
+    ],
+    "chiffer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "chiffera"
+      }
+    ],
+    "cover": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "covere"
+      }
+    ],
+    "diopter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "dioptera"
+      }
+    ],
+    "dunder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "dundera"
+      }
+    ],
+    "edder": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "eddere"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "edderne"
+      }
+    ],
+    "eiter": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "eitre"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "eitera"
+      }
+    ],
+    "filter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "filtera"
+      }
+    ],
+    "flimmer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "flimmera"
+      }
+    ],
+    "flitter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "flittera"
+      }
+    ],
+    "foster": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "fostera"
+      }
+    ],
+    "fruentimmer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "fruentimmera"
+      }
+    ],
+    "galder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "galdera"
+      }
+    ],
+    "gelender": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "gelendera"
+      }
+    ],
+    "gitter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "gittera"
+      }
+    ],
+    "glitter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "glittera"
+      }
+    ],
+    "gnelder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "gneldera"
+      }
+    ],
+    "helikopter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "helikoptera"
+      }
+    ],
+    "hilder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "hildera"
+      }
+    ],
+    "hinder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "hindera"
+      }
+    ],
+    "hylster": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "hylstera"
+      }
+    ],
+    "ister": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "istera"
+      }
+    ],
+    "kadaver": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "kadavera"
+      }
+    ],
+    "kaliber": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "kalibera"
+      }
+    ],
+    "kammer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "kammera"
+      }
+    ],
+    "kateter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "katetera"
+      }
+    ],
+    "klammer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "klammera"
+      }
+    ],
+    "klander": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "klandre"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "klandrene"
+      }
+    ],
+    "klister": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "klistera"
+      }
+    ],
+    "kloster": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "klostera"
+      }
+    ],
+    "klunder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "klundera"
+      }
+    ],
+    "kogger": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "koggera"
+      }
+    ],
+    "krater": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "kratera"
+      }
+    ],
+    "kvidder": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "kviddere"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "kviddera"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "kvidderne"
+      }
+    ],
+    "kvitter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "kvittera"
+      }
+    ],
+    "lager": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "lagera"
+      }
+    ],
+    "læger": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "lægre"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "lægera"
+      }
+    ],
+    "monster": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "monstera"
+      }
+    ],
+    "mylder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "myldera"
+      }
+    ],
+    "mønster": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "mønstera"
+      }
+    ],
+    "mørker": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "mørkera"
+      }
+    ],
+    "nummer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "nummera"
+      }
+    ],
+    "offer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "offera"
+      }
+    ],
+    "orkester": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "orkestera"
+      }
+    ],
+    "paternoster": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "paternostera"
+      }
+    ],
+    "pister": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "pistre"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "pistera"
+      }
+    ],
+    "plaster": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "plastera"
+      }
+    ],
+    "plekter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "plektera"
+      }
+    ],
+    "plunder": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "plundre"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "plundera"
+      }
+    ],
+    "quarter": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "quartre",
+        "sense": "britisk vektenhet"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "quartrene",
+        "sense": "britisk vektenhet"
+      }
+    ],
+    "rabalder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "rabaldera"
+      }
+    ],
+    "raster": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "rastera"
+      }
+    ],
+    "register": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "registera"
+      }
+    ],
+    "semester": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "semestera"
+      }
+    ],
+    "senter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "sentera"
+      }
+    ],
+    "septer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "septera"
+      }
+    ],
+    "siffer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "siffera"
+      }
+    ],
+    "silder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "sildera"
+      }
+    ],
+    "sinder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "sindera"
+      }
+    ],
+    "sjarter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "sjartera"
+      }
+    ],
+    "skimmer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "skimmera"
+      }
+    ],
+    "skvalder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "skvaldera"
+      }
+    ],
+    "smulder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "smuldera"
+      }
+    ],
+    "spekter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "spektera"
+      }
+    ],
+    "sutter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "suttera"
+      }
+    ],
+    "teater": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "teatera"
+      }
+    ],
+    "tinder": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "tindera"
+      }
+    ],
+    "tornister": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "tornistera"
+      }
+    ],
+    "tømmer": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "tømmera"
+      }
+    ],
+    "vardøger": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "vardøgera"
+      }
+    ],
+    "vater": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "vatera"
+      }
+    ],
+    "vørter": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "vørtera"
+      }
+    ],
+    "water": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "watre"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "watrene"
+      }
+    ],
+    "åger": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "ågera"
+      }
+    ],
+    "abdomen": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "abdomener"
+      }
+    ],
+    "aktivum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "aktivum"
+      }
+    ],
+    "aktivum#2": [
+      {
+        "slot": "bestemt.entall",
+        "form": "aktivumet",
+        "sense": "i regnskapsbetydningen"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "aktiva",
+        "sense": "i regnskapsbetydningen"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "aktivaene",
+        "sense": "i regnskapsbetydningen"
+      }
+    ],
+    "depositum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "depositum"
+      }
+    ],
+    "dictum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "dictum"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "dictuma"
+      }
+    ],
+    "diktum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "diktum"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "diktuma"
+      }
+    ],
+    "falsum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "falsum"
+      }
+    ],
+    "fluidum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "fluidum"
+      }
+    ],
+    "futurum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "futurum"
+      }
+    ],
+    "memorandum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "memorandum"
+      }
+    ],
+    "metrum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "metrum"
+      }
+    ],
+    "multiplum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "multiplum"
+      }
+    ],
+    "optimum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "optimum"
+      }
+    ],
+    "passivum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "passivum"
+      }
+    ],
+    "passivum#2": [
+      {
+        "slot": "bestemt.entall",
+        "form": "passivumet",
+        "sense": "i regnskapsbetydningen"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "passiva",
+        "sense": "i regnskapsbetydningen"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "passivaene",
+        "sense": "i regnskapsbetydningen"
+      }
+    ],
+    "peritektikum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "peritektikum"
+      }
+    ],
+    "plenum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "plenum"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "plenumer"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "plenuma"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "plenumene"
+      }
+    ],
+    "postskriptum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "postskriptum"
+      }
+    ],
+    "preteritum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "preteritum"
+      }
+    ],
+    "referendum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "referendum"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "referenduma"
+      }
+    ],
+    "responsum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "responsum"
+      }
+    ],
+    "ultimatum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "ultimatum"
+      }
+    ],
+    "forum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "forum"
+      }
+    ],
+    "maksimum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "maksimum"
+      }
+    ],
+    "minimum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "minimum"
+      }
+    ],
+    "pensum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "pensum"
+      }
+    ],
+    "serum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "serum"
+      }
+    ],
+    "visum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "visum"
+      }
+    ],
+    "votum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "votum"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "votumer"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "votuma"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "votumene"
+      }
+    ],
+    "arkanum": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "arkana"
+      }
+    ],
+    "maskulinum": [
+      {
+        "slot": "bestemt.flertall",
+        "form": "maskulinene"
+      }
+    ],
+    "spektrum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "spektrum"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "spektruma"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "spektrumene"
+      }
+    ],
+    "sentrum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "sentrum"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "sentruma"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "sentrumene"
+      }
+    ],
+    "monstrum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "monstrum"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "monstruma"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "monstrumene"
+      }
+    ],
+    "auksjonarius": [
+      {
+        "slot": "bestemt.entall",
+        "form": "auksjonarien"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "auksjonariuser"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "auksjonariusene"
+      }
+    ],
+    "justitiarius": [
+      {
+        "slot": "bestemt.entall",
+        "form": "justitiariusen"
+      },
+      {
+        "slot": "ubestemt.flertall",
+        "form": "justitiariuser"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "justitiariusene"
+      }
+    ],
+    "nuntius": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "nuntiuser"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "nuntiusene"
+      }
+    ],
+    "radius": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "radiuser"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "radiusene"
+      }
+    ],
+    "genius": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "geniuser"
+      },
+      {
+        "slot": "bestemt.flertall",
+        "form": "geniusene"
+      }
+    ],
+    "tedeum": [
+      {
+        "slot": "ubestemt.flertall",
+        "form": "tedeumer"
+      }
+    ]
+  },
+  "notes": {
+    "maskulinum": [
+      "gamal kolonne hadde fleire enn fire grupper; slått saman til bestemt fleirtal: maskulina/maskuliner/maskulinaene"
     ]
   }
 }
