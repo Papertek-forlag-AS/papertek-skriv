@@ -20,6 +20,29 @@ import { getModalParent } from '../shared/dom-helpers.js';
 import { showInPageConfirm } from '../shared/in-page-modal.js';
 import { isInsideNonEditableBlock } from '../shared/frame-elements.js';
 
+const REFERENCE_FIELDS = ['id', 'author', 'year', 'title', 'url', 'publisher', 'type'];
+
+/**
+ * Coerce a stored reference field to a string. References come from the
+ * pupil's dialog, but also from stored documents, library backups and
+ * `.skriv` files, so a field may be any JSON value. Strings pass through,
+ * finite numbers and booleans become their text, everything else is dropped
+ * (never String(object): a hostile toString() could smuggle markup).
+ */
+function toReferenceText(value) {
+    if (typeof value === 'string') return value;
+    if ((typeof value === 'number' && Number.isFinite(value)) || typeof value === 'boolean') {
+        return String(value);
+    }
+    return '';
+}
+
+function normalizeReference(raw) {
+    const ref = { ...raw };
+    for (const field of REFERENCE_FIELDS) ref[field] = toReferenceText(raw[field]);
+    return ref;
+}
+
 /**
  * @param {HTMLElement} editor - The contenteditable editor element
  * @param {Object} opts
@@ -67,24 +90,33 @@ export function initReferences(editor, { onSave } = {}) {
     }
 
     /**
-     * Format a reference in simplified APA style.
+     * Format a reference in simplified APA style, as an HTML string.
+     * Every field is user data (dialog, stored document, backup, .skriv file)
+     * and is escaped; the only markup is the <i> around a book title. The URL
+     * is shown as text, never as a link.
      */
     function formatReference(ref) {
+        const author = toReferenceText(ref.author);
+        const year = toReferenceText(ref.year);
+        const title = toReferenceText(ref.title);
+        const publisher = toReferenceText(ref.publisher);
+        const url = toReferenceText(ref.url);
+
         const parts = [];
-        if (ref.author) parts.push(ref.author);
-        if (ref.year) parts.push(`(${ref.year}).`);
+        if (author) parts.push(escapeHtml(author));
+        if (year) parts.push(`(${escapeHtml(year)}).`);
         else if (parts.length) parts[parts.length - 1] += '.';
 
-        if (ref.title) {
+        if (title) {
             if (ref.type === 'book') {
-                parts.push(`<i>${escapeHtml(ref.title)}</i>.`);
+                parts.push(`<i>${escapeHtml(title)}</i>.`);
             } else {
-                parts.push(`${escapeHtml(ref.title)}.`);
+                parts.push(`${escapeHtml(title)}.`);
             }
         }
 
-        if (ref.publisher) parts.push(`${escapeHtml(ref.publisher)}.`);
-        if (ref.url) parts.push(escapeHtml(ref.url));
+        if (publisher) parts.push(`${escapeHtml(publisher)}.`);
+        if (url) parts.push(escapeHtml(url));
 
         return parts.join(' ');
     }
@@ -424,7 +456,10 @@ export function initReferences(editor, { onSave } = {}) {
                 references = references.filter(r => r.id !== existingRef.id);
 
                 // Remove all inline markers for this ref
-                editor.querySelectorAll(`.skriv-ref[data-ref-id="${existingRef.id}"]`).forEach(m => m.remove());
+                // (compare dataset values: a stored id is never spliced into a selector)
+                editor.querySelectorAll('.skriv-ref').forEach(m => {
+                    if (m.dataset.refId === existingRef.id) m.remove();
+                });
 
                 overlay.remove();
                 updateRefList();
@@ -503,7 +538,9 @@ export function initReferences(editor, { onSave } = {}) {
     // --- Public API ---
 
     function loadReferences(refs) {
-        references = (refs || []).map(r => ({ ...r }));
+        references = (Array.isArray(refs) ? refs : [])
+            .filter(r => r && typeof r === 'object' && !Array.isArray(r))
+            .map(normalizeReference);
         reattachMarkerListeners();
         if (references.length > 0) {
             updateRefList();
